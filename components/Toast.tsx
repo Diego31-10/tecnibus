@@ -1,0 +1,109 @@
+import { useEffect } from 'react';
+import { Text, View } from 'react-native';
+import Animated, { 
+  useAnimatedStyle, 
+  useSharedValue, 
+  withTiming,
+  Easing,
+  runOnJS
+} from 'react-native-reanimated';
+import { CheckCircle2, XCircle, Info, AlertTriangle } from 'lucide-react-native';
+
+type ToastProps = {
+  visible: boolean;
+  message: string;
+  type?: 'success' | 'error' | 'info' | 'warning';
+  onHide: () => void;
+  duration?: number;
+};
+
+export default function Toast({
+  visible,
+  message,
+  type = 'success',
+  onHide,
+  duration = 3000,
+}: ToastProps) {
+  const translateY = useSharedValue(-100);
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    if (visible) {
+      // Mostrar toast con animación suave
+      translateY.value = withTiming(0, {
+        duration: 400,
+        easing: Easing.out(Easing.cubic),
+      });
+      opacity.value = withTiming(1, {
+        duration: 400,
+        easing: Easing.out(Easing.cubic),
+      });
+
+      // Auto-ocultar después del duration
+      const timeout = setTimeout(() => {
+        hideToast();
+      }, duration);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [visible]);
+
+  const hideToast = () => {
+    translateY.value = withTiming(-100, {
+      duration: 300,
+      easing: Easing.in(Easing.cubic),
+    });
+    opacity.value = withTiming(0, {
+      duration: 300,
+      easing: Easing.in(Easing.cubic),
+    }, () => {
+      runOnJS(onHide)();
+    });
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+    opacity: opacity.value,
+  }));
+
+  const config = {
+    success: {
+      bgColor: 'bg-green-500',
+      icon: CheckCircle2,
+      iconColor: '#ffffff',
+    },
+    error: {
+      bgColor: 'bg-red-500',
+      icon: XCircle,
+      iconColor: '#ffffff',
+    },
+    info: {
+      bgColor: 'bg-primary-600',
+      icon: Info,
+      iconColor: '#ffffff',
+    },
+    warning: {
+      bgColor: 'bg-accent-500',
+      icon: AlertTriangle,
+      iconColor: '#ffffff',
+    },
+  };
+
+  const { bgColor, icon: Icon, iconColor } = config[type];
+
+  if (!visible) return null;
+
+  return (
+    <Animated.View 
+      style={animatedStyle}
+      className="absolute top-0 left-0 right-0 z-50 px-6 pt-16"
+    >
+      <View className={`${bgColor} rounded-2xl p-4 shadow-lg flex-row items-center`}>
+        <Icon size={24} color={iconColor} strokeWidth={2.5} />
+        <Text className="text-white font-semibold text-base ml-3 flex-1">
+          {message}
+        </Text>
+      </View>
+    </Animated.View>
+  );
+}

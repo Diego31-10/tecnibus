@@ -6,9 +6,11 @@ export default function RootLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
+        animation: 'fade',
       }}
     >
-      <Stack.Screen name="index" />
+      <Stack.Screen name="index" options={{ animation: 'none' }} />
+      <Stack.Screen name="login" />
       <Stack.Screen name="parent/index" />
       <Stack.Screen name="driver/index" />
     </Stack>

@@ -1,159 +1,88 @@
-import { View, Text, TextInput, TouchableOpacity, StatusBar, ScrollView } from 'react-native';
-import { useState } from 'react';
-import { useRouter } from 'expo-router';
-import { Bus, Mail, Lock, User, UserCircle } from 'lucide-react-native';
+import { useEffect } from 'react';
+import { View, Text, StatusBar } from 'react-native';
+import { useRouter, usePathname } from 'expo-router';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
+import { Bus } from 'lucide-react-native';
 import "@/global.css"
 
-export default function LoginScreen() {
+export default function SplashScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'parent' | 'driver' | null>(null);
+  const pathname = usePathname();
+  const scale = useSharedValue(0.8);
+  const opacity = useSharedValue(0);
+  const textOpacity = useSharedValue(0);
 
-  const handleLogin = () => {
-    // Simulación de navegación según el rol seleccionado
-    if (selectedRole === 'parent') {
-      router.push('/parent');
-    } else if (selectedRole === 'driver') {
-      router.push('/driver');
+  useEffect(() => {
+    if (pathname === '/') {
+      // Animación suave del logo
+      scale.value = withTiming(1, {
+        duration: 800,
+        easing: Easing.out(Easing.cubic),
+      });
+      opacity.value = withTiming(1, {
+        duration: 800,
+        easing: Easing.out(Easing.cubic),
+      });
+
+      // Fade in suave del texto con delay
+      setTimeout(() => {
+        textOpacity.value = withTiming(1, {
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+        });
+      }, 300);
+
+      // Navegar al login después de 2.5 segundos
+      const timeout = setTimeout(() => {
+        router.push('/login');
+      }, 2500);
+
+      return () => clearTimeout(timeout);
     }
-  };
+  }, [pathname]);
+
+  const logoStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  const textStyle = useAnimatedStyle(() => ({
+    opacity: textOpacity.value,
+  }));
 
   return (
-    <ScrollView className="flex-1 bg-gradient-to-b from-primary-50 to-white">
-      <StatusBar barStyle="dark-content" backgroundColor="#eff6ff" />
+    <View className="flex-1 bg-primary-600 items-center justify-center">
+      <StatusBar barStyle="light-content" backgroundColor="#2563eb" />
       
-      <View className="flex-1 px-6 pt-20 pb-8">
-        {/* Header con logo */}
-        <View className="items-center mb-12">
-          <View className="bg-primary-600 rounded-full p-5 mb-4">
-            <Bus size={48} color="#ffffff" strokeWidth={2.5} />
-          </View>
-          <Text className="text-4xl font-bold text-primary-800">
-            TecniBus
-          </Text>
-          <Text className="text-base text-gray-600 mt-2">
-            Monitoreo de Transporte Escolar
-          </Text>
-        </View>
+      {/* Logo animado */}
+      <Animated.View 
+        style={logoStyle}
+        className="bg-white rounded-full p-8 mb-6 shadow-2xl text-cente"
+      >
+        <Bus size={80} color="#2563eb" strokeWidth={2.5} />
+      </Animated.View>
 
-        {/* Formulario */}
-        <View className="bg-white rounded-3xl p-6 shadow-lg mb-6">
-          {/* Input de Email */}
-          <View className="mb-4">
-            <Text className="text-sm font-semibold text-gray-700 mb-2">
-              Correo electrónico
-            </Text>
-            <View className="flex-row items-center bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
-              <Mail size={20} color="#6b7280" />
-              <TextInput
-                className="flex-1 ml-3 text-base text-gray-800"
-                placeholder="ejemplo@correo.com"
-                placeholderTextColor="#9ca3af"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-          </View>
-
-          {/* Input de Contraseña */}
-          <View className="mb-4">
-            <Text className="text-sm font-semibold text-gray-700 mb-2">
-              Contraseña
-            </Text>
-            <View className="flex-row items-center bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
-              <Lock size={20} color="#6b7280" />
-              <TextInput
-                className="flex-1 ml-3 text-base text-gray-800"
-                placeholder="••••••••"
-                placeholderTextColor="#9ca3af"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
-            </View>
-          </View>
-
-          {/* Selección de Rol */}
-          <View className="mt-2">
-            <Text className="text-sm font-semibold text-gray-700 mb-3">
-              Selecciona tu rol
-            </Text>
-            
-            <View className="flex-row gap-3">
-              {/* Botón Padre */}
-              <TouchableOpacity
-                className={`flex-1 flex-row items-center justify-center py-4 rounded-xl border-2 ${
-                  selectedRole === 'parent'
-                    ? 'bg-primary-50 border-primary-600'
-                    : 'bg-white border-gray-200'
-                }`}
-                onPress={() => setSelectedRole('parent')}
-              >
-                <User
-                  size={22}
-                  color={selectedRole === 'parent' ? '#2563eb' : '#6b7280'}
-                  strokeWidth={2.5}
-                />
-                <Text
-                  className={`ml-2 font-semibold ${
-                    selectedRole === 'parent' ? 'text-primary-700' : 'text-gray-600'
-                  }`}
-                >
-                  Padre
-                </Text>
-              </TouchableOpacity>
-
-              {/* Botón Chofer */}
-              <TouchableOpacity
-                className={`flex-1 flex-row items-center justify-center py-4 rounded-xl border-2 ${
-                  selectedRole === 'driver'
-                    ? 'bg-accent-50 border-accent-600'
-                    : 'bg-white border-gray-200'
-                }`}
-                onPress={() => setSelectedRole('driver')}
-              >
-                <UserCircle
-                  size={22}
-                  color={selectedRole === 'driver' ? '#ca8a04' : '#6b7280'}
-                  strokeWidth={2.5}
-                />
-                <Text
-                  className={`ml-2 font-semibold ${
-                    selectedRole === 'driver' ? 'text-accent-700' : 'text-gray-600'
-                  }`}
-                >
-                  Chofer
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Botón de Iniciar Sesión */}
-        <TouchableOpacity
-          className={`py-4 rounded-xl ${
-            selectedRole
-              ? selectedRole === 'parent'
-                ? 'bg-primary-600'
-                : 'bg-accent-500'
-              : 'bg-gray-300'
-          }`}
-          onPress={handleLogin}
-          disabled={!selectedRole}
-        >
-          <Text className="text-white text-center text-lg font-bold">
-            Iniciar Sesión
-          </Text>
-        </TouchableOpacity>
-
-        {/* Texto de ayuda */}
-        <Text className="text-center text-gray-500 text-sm mt-6">
-          Versión Alpha - Solo interfaz de usuario
+      {/* Texto animado */}
+      <Animated.View style={textStyle}>
+        <Text className="text-white text-5xl font-bold mb-2 text-center">
+          TecniBus
         </Text>
-      </View>
-    </ScrollView>
+        <Text className="text-white text-lg text-center">
+          Monitoreo de Transporte Escolar
+        </Text>
+      </Animated.View>
+
+      {/* Versión */}
+      <Animated.View style={textStyle} className="absolute bottom-12">
+        <Text className="text-white text-sm">
+          Versión Alpha 1.0
+        </Text>
+      </Animated.View>
+    </View>
   );
 }
