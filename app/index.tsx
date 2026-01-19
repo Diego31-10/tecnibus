@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { View, Text, StatusBar } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, StatusBar, ActivityIndicator } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import Animated, {
   useAnimatedStyle,
@@ -7,8 +7,8 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { Bus } from 'lucide-react-native';
-import "@/global.css"
+import { Bus, CheckCircle, XCircle } from 'lucide-react-native';
+import { useSupabaseTest } from '../lib/useSupabaseTest';
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -16,6 +16,10 @@ export default function SplashScreen() {
   const scale = useSharedValue(0.8);
   const opacity = useSharedValue(0);
   const textOpacity = useSharedValue(0);
+  
+  // Test de conexión Supabase
+  const { status, error } = useSupabaseTest();
+  const [canNavigate, setCanNavigate] = useState(false);
 
   useEffect(() => {
     if (pathname === '/') {
@@ -36,15 +40,19 @@ export default function SplashScreen() {
           easing: Easing.out(Easing.cubic),
         });
       }, 300);
-
-      // Navegar al login después de 2.5 segundos
-      const timeout = setTimeout(() => {
-        router.push('/login');
-      }, 2500);
-
-      return () => clearTimeout(timeout);
     }
   }, [pathname]);
+
+  // Esperar a que la conexión se verifique antes de navegar
+  useEffect(() => {
+    if (status === 'connected') {
+      setCanNavigate(true);
+      const timeout = setTimeout(() => {
+        router.push('/login');
+      }, 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [status]);
 
   const logoStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -62,24 +70,59 @@ export default function SplashScreen() {
       {/* Logo animado */}
       <Animated.View 
         style={logoStyle}
-        className="bg-white rounded-full p-8 mb-6 shadow-2xl text-cente"
+        className="bg-white rounded-full p-8 mb-6 shadow-2xl"
       >
         <Bus size={80} color="#2563eb" strokeWidth={2.5} />
       </Animated.View>
 
       {/* Texto animado */}
       <Animated.View style={textStyle}>
-        <Text className="text-white text-5xl font-bold mb-2 text-center">
+        <Text className="text-white text-5xl font-bold mb-2">
           TecniBus
         </Text>
-        <Text className="text-white text-lg text-center">
+        <Text className="text-primary-200 text-lg text-center">
           Monitoreo de Transporte Escolar
         </Text>
       </Animated.View>
 
+      {/* Estado de conexión */}
+      <Animated.View style={textStyle} className="absolute bottom-20 items-center">
+        {status === 'checking' && (
+          <View className="flex-row items-center">
+            <ActivityIndicator size="small" color="#ffffff" />
+            <Text className="text-primary-200 text-sm ml-2">
+              Verificando conexión...
+            </Text>
+          </View>
+        )}
+        
+        {status === 'connected' && (
+          <View className="flex-row items-center">
+            <CheckCircle size={20} color="#22c55e" strokeWidth={2.5} />
+            <Text className="text-green-300 text-sm ml-2 font-semibold">
+              Conectado a Supabase
+            </Text>
+          </View>
+        )}
+        
+        {status === 'error' && (
+          <View className="items-center px-6">
+            <View className="flex-row items-center mb-2">
+              <XCircle size={20} color="#ef4444" strokeWidth={2.5} />
+              <Text className="text-red-300 text-sm ml-2 font-semibold">
+                Error de conexión
+              </Text>
+            </View>
+            <Text className="text-primary-300 text-xs text-center">
+              {error}
+            </Text>
+          </View>
+        )}
+      </Animated.View>
+
       {/* Versión */}
       <Animated.View style={textStyle} className="absolute bottom-12">
-        <Text className="text-white text-sm">
+        <Text className="text-primary-300 text-sm">
           Versión Alpha 1.0
         </Text>
       </Animated.View>
