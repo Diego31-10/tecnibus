@@ -6,7 +6,7 @@ type HeaderProps = {
   title: string;
   subtitle?: string;
   icon?: LucideIcon;
-  variant?: 'parent' | 'driver';
+  variant?: 'parent' | 'driver' | 'admin';
   showBackButton?: boolean;
   onBackPress?: () => void;
   rightIcon?: LucideIcon;
@@ -44,6 +44,11 @@ export default function Header({
       bg: 'bg-accent-600',
       iconBg: 'bg-accent-700',
       subtitleColor: 'text-accent-100',
+    },
+    admin: {
+      bg: 'bg-admin-700',
+      iconBg: 'bg-admin-600',
+      subtitleColor: 'text-admin-200',
     },
   };
 

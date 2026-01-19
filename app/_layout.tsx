@@ -13,6 +13,7 @@ export default function RootLayout() {
       <Stack.Screen name="login" />
       <Stack.Screen name="parent/index" />
       <Stack.Screen name="driver/index" />
+      <Stack.Screen name="admin/index" />
     </Stack>
   );
 }

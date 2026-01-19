@@ -7,7 +7,7 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { Bus, Mail, Lock, User, UserCircle } from 'lucide-react-native';
+import { Bus, Mail, Lock, User, UserCircle, Shield } from 'lucide-react-native';
 import { Toast } from '../components';
 import * as Haptics from 'expo-haptics';
 
@@ -15,7 +15,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'parent' | 'driver' | null>(null);
+  const [selectedRole, setSelectedRole] = useState<'parent' | 'driver' | 'admin' | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
@@ -26,7 +26,6 @@ export default function LoginScreen() {
   const formOpacity = useSharedValue(0);
 
   useEffect(() => {
-    // Animar logo - suave y elegante
     logoScale.value = withTiming(1, {
       duration: 600,
       easing: Easing.out(Easing.cubic),
@@ -36,7 +35,6 @@ export default function LoginScreen() {
       easing: Easing.out(Easing.cubic),
     });
 
-    // Animar formulario - con delay suave
     setTimeout(() => {
       formTranslateY.value = withTiming(0, {
         duration: 500,
@@ -59,15 +57,12 @@ export default function LoginScreen() {
     opacity: formOpacity.value,
   }));
 
-  const handleRoleSelect = (role: 'parent' | 'driver') => {
+  const handleRoleSelect = (role: 'parent' | 'driver' | 'admin') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedRole(role);
   };
 
   const handleLogin = () => {
-    console.log('Login pressed', { email, password, selectedRole });
-
-    // Validación
     if (!email || !password) {
       setToastMessage('⚠️ Por favor completa todos los campos');
       setToastVisible(true);
@@ -82,17 +77,22 @@ export default function LoginScreen() {
       return;
     }
 
-    // Feedback de éxito
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
-    // Navegar según el rol
-    console.log('Navigating to:', selectedRole);
     
     if (selectedRole === 'parent') {
       router.push('/parent');
     } else if (selectedRole === 'driver') {
       router.push('/driver');
+    } else if (selectedRole === 'admin') {
+      router.push('/admin');
     }
+  };
+
+  const getButtonColor = () => {
+    if (!selectedRole) return 'bg-gray-300';
+    if (selectedRole === 'parent') return 'bg-primary-600';
+    if (selectedRole === 'driver') return 'bg-accent-500';
+    return 'bg-admin-600';
   };
 
   return (
@@ -106,16 +106,16 @@ export default function LoginScreen() {
         onHide={() => setToastVisible(false)}
       />
       
-      <View className="flex-1 px-6 pt-20 pb-8">
+      <View className="flex-1 px-6 pt-16 pb-8">
         {/* Header animado */}
-        <Animated.View style={logoStyle} className="items-center mb-12">
+        <Animated.View style={logoStyle} className="items-center mb-10">
           <View className="bg-primary-600 rounded-full p-5 mb-4">
             <Bus size={48} color="#ffffff" strokeWidth={2.5} />
           </View>
           <Text className="text-4xl font-bold text-primary-800">
             TecniBus
           </Text>
-          <Text className="text-base text-gray-600 m-2">
+          <Text className="text-base text-gray-600 mt-2">
             Monitoreo de Transporte Escolar
           </Text>
         </Animated.View>
@@ -166,7 +166,8 @@ export default function LoginScreen() {
                 Selecciona tu rol
               </Text>
               
-              <View className="flex-row gap-3">
+              {/* Primera fila: Padre y Chofer */}
+              <View className="flex-row gap-3 mb-3">
                 <TouchableOpacity
                   className={`flex-1 flex-row items-center justify-center py-4 rounded-xl border-2 ${
                     selectedRole === 'parent'
@@ -213,18 +214,36 @@ export default function LoginScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
+
+              {/* Segunda fila: Administrador (completo) */}
+              <TouchableOpacity
+                className={`flex-row items-center justify-center py-4 rounded-xl border-2 ${
+                  selectedRole === 'admin'
+                    ? 'bg-admin-50 border-admin-600'
+                    : 'bg-white border-gray-200'
+                }`}
+                onPress={() => handleRoleSelect('admin')}
+                activeOpacity={0.7}
+              >
+                <Shield
+                  size={22}
+                  color={selectedRole === 'admin' ? '#16a34a' : '#6b7280'}
+                  strokeWidth={2.5}
+                />
+                <Text
+                  className={`ml-2 font-semibold ${
+                    selectedRole === 'admin' ? 'text-admin-700' : 'text-gray-600'
+                  }`}
+                >
+                  Administrador
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
 
-          {/* Botón de Login - SIMPLIFICADO */}
+          {/* Botón de Login */}
           <TouchableOpacity
-            className={`py-4 rounded-xl shadow-md ${
-              selectedRole === 'parent' 
-                ? 'bg-primary-600' 
-                : selectedRole === 'driver' 
-                  ? 'bg-accent-500' 
-                  : 'bg-gray-300'
-            }`}
+            className={`py-4 rounded-xl shadow-md ${getButtonColor()}`}
             onPress={handleLogin}
             disabled={!selectedRole}
             activeOpacity={0.8}
