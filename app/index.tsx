@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StatusBar, ActivityIndicator } from 'react-native';
+import { useEffect } from 'react';
+import { View, Text, StatusBar } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import Animated, {
   useAnimatedStyle,
@@ -7,8 +7,7 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { Bus, CheckCircle, XCircle } from 'lucide-react-native';
-import { useSupabaseTest } from '../lib/useSupabaseTest';
+import { Bus } from 'lucide-react-native';
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -16,10 +15,6 @@ export default function SplashScreen() {
   const scale = useSharedValue(0.8);
   const opacity = useSharedValue(0);
   const textOpacity = useSharedValue(0);
-  
-  // Test de conexión Supabase
-  const { status, error } = useSupabaseTest();
-  const [canNavigate, setCanNavigate] = useState(false);
 
   useEffect(() => {
     if (pathname === '/') {
@@ -40,19 +35,15 @@ export default function SplashScreen() {
           easing: Easing.out(Easing.cubic),
         });
       }, 300);
-    }
-  }, [pathname]);
 
-  // Esperar a que la conexión se verifique antes de navegar
-  useEffect(() => {
-    if (status === 'connected') {
-      setCanNavigate(true);
+      // Navegar al login después de 2 segundos
       const timeout = setTimeout(() => {
         router.push('/login');
       }, 2000);
+
       return () => clearTimeout(timeout);
     }
-  }, [status]);
+  }, [pathname]);
 
   const logoStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -83,41 +74,6 @@ export default function SplashScreen() {
         <Text className="text-primary-200 text-lg text-center">
           Monitoreo de Transporte Escolar
         </Text>
-      </Animated.View>
-
-      {/* Estado de conexión */}
-      <Animated.View style={textStyle} className="absolute bottom-20 items-center">
-        {status === 'checking' && (
-          <View className="flex-row items-center">
-            <ActivityIndicator size="small" color="#ffffff" />
-            <Text className="text-primary-200 text-sm ml-2">
-              Verificando conexión...
-            </Text>
-          </View>
-        )}
-        
-        {status === 'connected' && (
-          <View className="flex-row items-center">
-            <CheckCircle size={20} color="#22c55e" strokeWidth={2.5} />
-            <Text className="text-green-300 text-sm ml-2 font-semibold">
-              Conectado a Supabase
-            </Text>
-          </View>
-        )}
-        
-        {status === 'error' && (
-          <View className="items-center px-6">
-            <View className="flex-row items-center mb-2">
-              <XCircle size={20} color="#ef4444" strokeWidth={2.5} />
-              <Text className="text-red-300 text-sm ml-2 font-semibold">
-                Error de conexión
-              </Text>
-            </View>
-            <Text className="text-primary-300 text-xs text-center">
-              {error}
-            </Text>
-          </View>
-        )}
       </Animated.View>
 
       {/* Versión */}

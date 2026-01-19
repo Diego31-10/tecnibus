@@ -1,4 +1,4 @@
-import { View, Text, TextInput, StatusBar, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StatusBar, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -9,15 +9,20 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Bus, Mail, Lock, User, UserCircle, Shield } from 'lucide-react-native';
 import { Toast } from '../components';
+import { useAuth } from '../lib/AuthContext';
 import * as Haptics from 'expo-haptics';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { signIn, user } = useAuth();
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [selectedRole, setSelectedRole] = useState<'parent' | 'driver' | 'admin' | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'warning'>('warning');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Animaciones suaves
   const logoScale = useSharedValue(0.8);
@@ -47,6 +52,14 @@ export default function LoginScreen() {
     }, 200);
   }, []);
 
+  // Redirigir si ya está autenticado
+  useEffect(() => {
+    if (user) {
+      // La redirección por rol se hará en la siguiente fase
+      console.log('Usuario autenticado:', user.email);
+    }
+  }, [user]);
+
   const logoStyle = useAnimatedStyle(() => ({
     transform: [{ scale: logoScale.value }],
     opacity: logoOpacity.value,
@@ -62,34 +75,86 @@ export default function LoginScreen() {
     setSelectedRole(role);
   };
 
-  const handleLogin = () => {
-    if (!email || !password) {
-      setToastMessage('⚠️ Por favor completa todos los campos');
-      setToastVisible(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'warning') => {
+    setToastMessage(message);
+    setToastType(type);
+    setToastVisible(true);
+  };
+
+  const getErrorMessage = (error: Error): string => {
+    const message = error.message.toLowerCase();
+    
+    if (message.includes('invalid login credentials')) {
+      return 'Correo o contraseña incorrectos';
+    }
+    if (message.includes('email not confirmed')) {
+      return 'Correo no confirmado. Verifica tu email';
+    }
+    if (message.includes('invalid email')) {
+      return 'Formato de correo inválido';
+    }
+    if (message.includes('network')) {
+      return 'Error de conexión. Verifica tu internet';
+    }
+    
+    return 'Error al iniciar sesión. Intenta nuevamente';
+  };
+
+  const handleLogin = async () => {
+    // Validaciones básicas
+    if (!email.trim()) {
+      showToast('⚠️ Ingresa tu correo electrónico', 'warning');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      return;
+    }
+
+    if (!password) {
+      showToast('⚠️ Ingresa tu contraseña', 'warning');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
 
     if (!selectedRole) {
-      setToastMessage('⚠️ Por favor selecciona un rol');
-      setToastVisible(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showToast('⚠️ Selecciona tu rol', 'warning');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
 
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
-    if (selectedRole === 'parent') {
-      router.push('/parent');
-    } else if (selectedRole === 'driver') {
-      router.push('/driver');
-    } else if (selectedRole === 'admin') {
-      router.push('/admin');
+    // Validación de formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      showToast('⚠️ Formato de correo inválido', 'warning');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { error } = await signIn(email, password);
+
+      if (error) {
+        console.error('Error de login:', error);
+        showToast(`❌ ${getErrorMessage(error)}`, 'error');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } else {
+        showToast('✅ Inicio de sesión exitoso', 'success');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        
+        // La navegación por rol se implementará en FASE 4
+        console.log('Login exitoso - rol seleccionado:', selectedRole);
+      }
+    } catch (error) {
+      console.error('Error inesperado:', error);
+      showToast('❌ Error inesperado. Intenta nuevamente', 'error');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const getButtonColor = () => {
-    if (!selectedRole) return 'bg-gray-300';
+    if (!selectedRole || isLoading) return 'bg-gray-300';
     if (selectedRole === 'parent') return 'bg-primary-600';
     if (selectedRole === 'driver') return 'bg-accent-500';
     return 'bg-admin-600';
@@ -102,7 +167,7 @@ export default function LoginScreen() {
       <Toast
         visible={toastVisible}
         message={toastMessage}
-        type="warning"
+        type={toastType}
         onHide={() => setToastVisible(false)}
       />
       
@@ -138,6 +203,7 @@ export default function LoginScreen() {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  editable={!isLoading}
                 />
               </View>
             </View>
@@ -156,6 +222,7 @@ export default function LoginScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
+                  editable={!isLoading}
                 />
               </View>
             </View>
@@ -176,6 +243,7 @@ export default function LoginScreen() {
                   }`}
                   onPress={() => handleRoleSelect('parent')}
                   activeOpacity={0.7}
+                  disabled={isLoading}
                 >
                   <User
                     size={22}
@@ -199,6 +267,7 @@ export default function LoginScreen() {
                   }`}
                   onPress={() => handleRoleSelect('driver')}
                   activeOpacity={0.7}
+                  disabled={isLoading}
                 >
                   <UserCircle
                     size={22}
@@ -215,7 +284,7 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Segunda fila: Administrador (completo) */}
+              {/* Segunda fila: Administrador */}
               <TouchableOpacity
                 className={`flex-row items-center justify-center py-4 rounded-xl border-2 ${
                   selectedRole === 'admin'
@@ -224,6 +293,7 @@ export default function LoginScreen() {
                 }`}
                 onPress={() => handleRoleSelect('admin')}
                 activeOpacity={0.7}
+                disabled={isLoading}
               >
                 <Shield
                   size={22}
@@ -245,16 +315,25 @@ export default function LoginScreen() {
           <TouchableOpacity
             className={`py-4 rounded-xl shadow-md ${getButtonColor()}`}
             onPress={handleLogin}
-            disabled={!selectedRole}
+            disabled={!selectedRole || isLoading}
             activeOpacity={0.8}
           >
-            <Text className="text-white text-center text-lg font-bold">
-              Iniciar Sesión
-            </Text>
+            {isLoading ? (
+              <View className="flex-row items-center justify-center">
+                <ActivityIndicator size="small" color="#ffffff" />
+                <Text className="text-white text-center text-lg font-bold ml-2">
+                  Iniciando sesión...
+                </Text>
+              </View>
+            ) : (
+              <Text className="text-white text-center text-lg font-bold">
+                Iniciar Sesión
+              </Text>
+            )}
           </TouchableOpacity>
 
           <Text className="text-center text-gray-500 text-sm mt-6">
-            Versión Alpha - Solo interfaz de usuario
+            Versión Alpha - Autenticación con Supabase
           </Text>
         </Animated.View>
       </View>
