@@ -67,7 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         console.error('❌ Error cargando perfil:', error);
         
-        // Si el perfil no existe, intentar crearlo
         if (error.code === 'PGRST116') {
           console.log('⚠️ Perfil no existe, debería crearse automáticamente');
         }
@@ -94,21 +93,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      setLoading(true);
+      // NO setear loading aquí - lo manejará el componente de login
       const { error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
 
       if (error) {
-        setLoading(false);
         return { error };
       }
 
       // El perfil se cargará automáticamente vía onAuthStateChange
       return { error: null };
     } catch (error) {
-      setLoading(false);
       return { error: error as Error };
     }
   };

@@ -1,4 +1,12 @@
-import { View, Text, TextInput, StatusBar, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  StatusBar,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -8,22 +16,28 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { Bus, Mail, Lock } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
+
 import { Toast } from '../components';
 import { useAuth } from '../lib/AuthContext';
-import * as Haptics from 'expo-haptics';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { signIn, user, profile, loading: authLoading } = useAuth();
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showRedirecting, setShowRedirecting] = useState(false);
+
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error' | 'warning'>('warning');
-  const [isLoading, setIsLoading] = useState(false);
+  const [toastType, setToastType] =
+    useState<'success' | 'error' | 'warning'>('warning');
 
-  // Animaciones suaves
+  /* =====================
+     ANIMACIONES
+  ====================== */
   const logoScale = useSharedValue(0.8);
   const logoOpacity = useSharedValue(0);
   const formTranslateY = useSharedValue(30);
@@ -51,13 +65,33 @@ export default function LoginScreen() {
     }, 200);
   }, []);
 
-  // Redirigir automáticamente si ya está autenticado
-  useEffect(() => {
-    if (user && profile && !authLoading) {
-      console.log('✅ Usuario ya autenticado, redirigiendo...');
-      redirectToRolePage(profile.rol);
-    }
-  }, [user, profile, authLoading]);
+  /* =====================
+   REDIRECCIÓN AUTOMÁTICA
+====================== */
+useEffect(() => {
+  if (user && profile && !authLoading) {
+    console.log('✅ Usuario autenticado, redirigiendo a:', profile.rol);
+    
+    // Esperar 2 segundos para que se vea el toast verde en la pantalla de login
+    setTimeout(() => {
+      setShowRedirecting(true); // Mostrar pantalla "Redirigiendo..."
+      
+      // Luego esperar 1.5 segundos más antes de navegar
+      setTimeout(() => {
+        const routes = {
+          admin: '/admin',
+          padre: '/parent',
+          chofer: '/driver',
+        };
+        
+        const route = routes[profile.rol as keyof typeof routes];
+        if (route) {
+          router.replace(route as any);
+        }
+      }, 800);
+    }, 1300); // 2 segundos para ver el toast verde
+  }
+}, [user, profile, authLoading]);
 
   const logoStyle = useAnimatedStyle(() => ({
     transform: [{ scale: logoScale.value }],
@@ -69,45 +103,62 @@ export default function LoginScreen() {
     opacity: formOpacity.value,
   }));
 
-  const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'warning') => {
+  /* =====================
+     TOAST
+  ====================== */
+  const showToast = (
+    message: string,
+    type: 'success' | 'error' | 'warning'
+  ) => {
     setToastMessage(message);
     setToastType(type);
     setToastVisible(true);
   };
 
-  const getErrorMessage = (error: Error): string => {
+  /* =====================
+     ERRORES PERSONALIZADOS
+  ====================== */
+  const AUTH_ERROR_MAP: {
+    test: (msg: string) => boolean;
+    text: string;
+  }[] = [
+    {
+      test: msg => msg.includes('invalid login credentials'),
+      text: 'Correo o contraseña incorrectos',
+    },
+    {
+      test: msg => msg.includes('invalid email'),
+      text: 'El correo no tiene un formato válido',
+    },
+    {
+      test: msg => msg.includes('email not confirmed'),
+      text: 'Debes confirmar tu correo electrónico',
+    },
+    {
+      test: msg => msg.includes('too many requests'),
+      text: 'Demasiados intentos. Intenta más tarde',
+    },
+    {
+      test: msg => msg.includes('network'),
+      text: 'Error de conexión. Revisa tu internet',
+    },
+  ];
+
+  const getAuthErrorMessage = (error: Error): string => {
     const message = error.message.toLowerCase();
-    
-    if (message.includes('invalid login credentials')) {
-      return 'Correo o contraseña incorrectos';
+
+    for (const rule of AUTH_ERROR_MAP) {
+      if (rule.test(message)) {
+        return rule.text;
+      }
     }
-    if (message.includes('email not confirmed')) {
-      return 'Correo no confirmado. Verifica tu email';
-    }
-    if (message.includes('invalid email')) {
-      return 'Formato de correo inválido';
-    }
-    if (message.includes('network')) {
-      return 'Error de conexión. Verifica tu internet';
-    }
-    
-    return 'Error al iniciar sesión. Intenta nuevamente';
+
+    return 'No se pudo iniciar sesión. Intenta nuevamente';
   };
 
-  const redirectToRolePage = (rol: string) => {
-    const routes = {
-      admin: '/admin',
-      padre: '/parent',
-      chofer: '/driver',
-    };
-
-    const route = routes[rol as keyof typeof routes];
-    if (route) {
-      console.log(`🔀 Redirigiendo a: ${route}`);
-      router.replace(route as any);
-    }
-  };
-
+  /* =====================
+     LOGIN
+  ====================== */
   const handleLogin = async () => {
     // Validaciones básicas
     if (!email.trim()) {
@@ -115,13 +166,13 @@ export default function LoginScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
-
+  
     if (!password) {
       showToast('⚠️ Ingresa tu contraseña', 'warning');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
-
+  
     // Validación de formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
@@ -129,47 +180,54 @@ export default function LoginScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
-
+  
     setIsLoading(true);
-
+  
     try {
       const { error } = await signIn(email, password);
-
+  
       if (error) {
         console.error('❌ Error de login:', error);
-        showToast(`❌ ${getErrorMessage(error)}`, 'error');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setIsLoading(false);
+        showToast(`❌ ${getAuthErrorMessage(error)}`, 'error');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } else {
+        // Login exitoso
+        console.log('✅ Login exitoso - esperando carga de perfil...');
         showToast('✅ Inicio de sesión exitoso', 'success');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         
-        console.log('✅ Login exitoso - esperando carga de perfil...');
-        
+        // Delay de 800ms para que se vea el toast verde
         setTimeout(() => {
-          setIsLoading(false);
-        }, 2000);
+          // El useEffect de arriba manejará la redirección cuando profile esté listo
+          console.log('⏳ Verificando perfil del usuario...');
+        }, 800);
       }
     } catch (error) {
       console.error('❌ Error inesperado:', error);
+      setIsLoading(false);
       showToast('❌ Error inesperado. Intenta nuevamente', 'error');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setIsLoading(false);
     }
   };
 
-  // Si ya está autenticado, mostrar loading
-  if (user && profile && !authLoading) {
-    return (
-      <View className="flex-1 bg-primary-600 items-center justify-center">
-        <ActivityIndicator size="large" color="#ffffff" />
-        <Text className="text-white mt-4 text-base">
-          Redirigiendo...
-        </Text>
-      </View>
-    );
-  }
+  /* =====================
+   LOADING SCREEN
+====================== */
+if (showRedirecting) { // ← CAMBIO AQUÍ
+  return (
+    <View className="flex-1 bg-primary-600 items-center justify-center">
+      <ActivityIndicator size="large" color="#ffffff" />
+      <Text className="text-white mt-4 text-base">
+        Redirigiendo...
+      </Text>
+    </View>
+  );
+}
 
+  /* =====================
+     UI
+  ====================== */
   return (
     <ScrollView className="flex-1 bg-primary-50">
       <StatusBar barStyle="dark-content" backgroundColor="#eff6ff" />
@@ -180,9 +238,9 @@ export default function LoginScreen() {
         type={toastType}
         onHide={() => setToastVisible(false)}
       />
-      
+
       <View className="flex-1 px-6 pt-20 pb-8">
-        {/* Header animado */}
+        {/* Header */}
         <Animated.View style={logoStyle} className="items-center mb-12">
           <View className="bg-primary-600 rounded-full p-5 mb-4">
             <Bus size={48} color="#ffffff" strokeWidth={2.5} />
@@ -195,10 +253,10 @@ export default function LoginScreen() {
           </Text>
         </Animated.View>
 
-        {/* Formulario animado */}
+        {/* Form */}
         <Animated.View style={formStyle}>
           <View className="bg-white rounded-3xl p-6 shadow-lg mb-6">
-            {/* Input de Email */}
+            {/* Email */}
             <View className="mb-4">
               <Text className="text-sm font-semibold text-gray-700 mb-2">
                 Correo electrónico
@@ -218,7 +276,7 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            {/* Input de Contraseña */}
+            {/* Password */}
             <View className="mb-4">
               <Text className="text-sm font-semibold text-gray-700 mb-2">
                 Contraseña
@@ -229,9 +287,9 @@ export default function LoginScreen() {
                   className="flex-1 ml-3 text-base text-gray-800"
                   placeholder="••••••••"
                   placeholderTextColor="#9ca3af"
+                  secureTextEntry
                   value={password}
                   onChangeText={setPassword}
-                  secureTextEntry
                   editable={!isLoading}
                   onSubmitEditing={handleLogin}
                 />
@@ -239,9 +297,11 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          {/* Botón de Login */}
+          {/* Button */}
           <TouchableOpacity
-            className={`py-4 rounded-xl shadow-md ${isLoading ? 'bg-gray-300' : 'bg-primary-600'}`}
+            className={`py-4 rounded-xl ${
+              isLoading ? 'bg-gray-300' : 'bg-primary-600'
+            }`}
             onPress={handleLogin}
             disabled={isLoading}
             activeOpacity={0.8}
@@ -249,7 +309,7 @@ export default function LoginScreen() {
             {isLoading ? (
               <View className="flex-row items-center justify-center">
                 <ActivityIndicator size="small" color="#ffffff" />
-                <Text className="text-white text-center text-lg font-bold ml-2">
+                <Text className="text-white text-lg font-bold ml-2">
                   Iniciando sesión...
                 </Text>
               </View>
