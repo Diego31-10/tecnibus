@@ -5,3 +5,4 @@ export { default as Header } from './Header';
 export { default as Toast } from './Toast';
 export { default as AnimatedCard } from './AnimatedCard';
 export { default as AnimatedButton } from './AnimatedButton';
+export { AuthGuard } from './AuthGuard';

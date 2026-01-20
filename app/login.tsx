@@ -7,18 +7,17 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { Bus, Mail, Lock, User, UserCircle, Shield } from 'lucide-react-native';
+import { Bus, Mail, Lock } from 'lucide-react-native';
 import { Toast } from '../components';
 import { useAuth } from '../lib/AuthContext';
 import * as Haptics from 'expo-haptics';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, user } = useAuth();
+  const { signIn, user, profile, loading: authLoading } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'parent' | 'driver' | 'admin' | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'warning'>('warning');
@@ -52,13 +51,13 @@ export default function LoginScreen() {
     }, 200);
   }, []);
 
-  // Redirigir si ya está autenticado
+  // Redirigir automáticamente si ya está autenticado
   useEffect(() => {
-    if (user) {
-      // La redirección por rol se hará en la siguiente fase
-      console.log('Usuario autenticado:', user.email);
+    if (user && profile && !authLoading) {
+      console.log('✅ Usuario ya autenticado, redirigiendo...');
+      redirectToRolePage(profile.rol);
     }
-  }, [user]);
+  }, [user, profile, authLoading]);
 
   const logoStyle = useAnimatedStyle(() => ({
     transform: [{ scale: logoScale.value }],
@@ -69,11 +68,6 @@ export default function LoginScreen() {
     transform: [{ translateY: formTranslateY.value }],
     opacity: formOpacity.value,
   }));
-
-  const handleRoleSelect = (role: 'parent' | 'driver' | 'admin') => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedRole(role);
-  };
 
   const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'warning') => {
     setToastMessage(message);
@@ -100,6 +94,20 @@ export default function LoginScreen() {
     return 'Error al iniciar sesión. Intenta nuevamente';
   };
 
+  const redirectToRolePage = (rol: string) => {
+    const routes = {
+      admin: '/admin',
+      padre: '/parent',
+      chofer: '/driver',
+    };
+
+    const route = routes[rol as keyof typeof routes];
+    if (route) {
+      console.log(`🔀 Redirigiendo a: ${route}`);
+      router.replace(route as any);
+    }
+  };
+
   const handleLogin = async () => {
     // Validaciones básicas
     if (!email.trim()) {
@@ -110,12 +118,6 @@ export default function LoginScreen() {
 
     if (!password) {
       showToast('⚠️ Ingresa tu contraseña', 'warning');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      return;
-    }
-
-    if (!selectedRole) {
-      showToast('⚠️ Selecciona tu rol', 'warning');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
@@ -134,33 +136,39 @@ export default function LoginScreen() {
       const { error } = await signIn(email, password);
 
       if (error) {
-        console.error('Error de login:', error);
+        console.error('❌ Error de login:', error);
         showToast(`❌ ${getErrorMessage(error)}`, 'error');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        setIsLoading(false);
       } else {
         showToast('✅ Inicio de sesión exitoso', 'success');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        
+        console.log('✅ Login exitoso - esperando carga de perfil...');
+        
         setTimeout(() => {
-          console.log('🔐 Esperando carga de perfil para redirección...');
-        }, 500);
-        // La navegación por rol se implementará en FASE 4
-        console.log('Login exitoso - rol seleccionado:', selectedRole);
+          setIsLoading(false);
+        }, 2000);
       }
     } catch (error) {
-      console.error('Error inesperado:', error);
+      console.error('❌ Error inesperado:', error);
       showToast('❌ Error inesperado. Intenta nuevamente', 'error');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
       setIsLoading(false);
     }
   };
 
-  const getButtonColor = () => {
-    if (!selectedRole || isLoading) return 'bg-gray-300';
-    if (selectedRole === 'parent') return 'bg-primary-600';
-    if (selectedRole === 'driver') return 'bg-accent-500';
-    return 'bg-admin-600';
-  };
+  // Si ya está autenticado, mostrar loading
+  if (user && profile && !authLoading) {
+    return (
+      <View className="flex-1 bg-primary-600 items-center justify-center">
+        <ActivityIndicator size="large" color="#ffffff" />
+        <Text className="text-white mt-4 text-base">
+          Redirigiendo...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView className="flex-1 bg-primary-50">
@@ -173,9 +181,9 @@ export default function LoginScreen() {
         onHide={() => setToastVisible(false)}
       />
       
-      <View className="flex-1 px-6 pt-16 pb-8">
+      <View className="flex-1 px-6 pt-20 pb-8">
         {/* Header animado */}
-        <Animated.View style={logoStyle} className="items-center mb-10">
+        <Animated.View style={logoStyle} className="items-center mb-12">
           <View className="bg-primary-600 rounded-full p-5 mb-4">
             <Bus size={48} color="#ffffff" strokeWidth={2.5} />
           </View>
@@ -225,99 +233,17 @@ export default function LoginScreen() {
                   onChangeText={setPassword}
                   secureTextEntry
                   editable={!isLoading}
+                  onSubmitEditing={handleLogin}
                 />
               </View>
-            </View>
-
-            {/* Selección de Rol */}
-            <View className="mt-2">
-              <Text className="text-sm font-semibold text-gray-700 mb-3">
-                Selecciona tu rol
-              </Text>
-              
-              {/* Primera fila: Padre y Chofer */}
-              <View className="flex-row gap-3 mb-3">
-                <TouchableOpacity
-                  className={`flex-1 flex-row items-center justify-center py-4 rounded-xl border-2 ${
-                    selectedRole === 'parent'
-                      ? 'bg-primary-50 border-primary-600'
-                      : 'bg-white border-gray-200'
-                  }`}
-                  onPress={() => handleRoleSelect('parent')}
-                  activeOpacity={0.7}
-                  disabled={isLoading}
-                >
-                  <User
-                    size={22}
-                    color={selectedRole === 'parent' ? '#2563eb' : '#6b7280'}
-                    strokeWidth={2.5}
-                  />
-                  <Text
-                    className={`ml-2 font-semibold ${
-                      selectedRole === 'parent' ? 'text-primary-700' : 'text-gray-600'
-                    }`}
-                  >
-                    Padre
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  className={`flex-1 flex-row items-center justify-center py-4 rounded-xl border-2 ${
-                    selectedRole === 'driver'
-                      ? 'bg-accent-50 border-accent-600'
-                      : 'bg-white border-gray-200'
-                  }`}
-                  onPress={() => handleRoleSelect('driver')}
-                  activeOpacity={0.7}
-                  disabled={isLoading}
-                >
-                  <UserCircle
-                    size={22}
-                    color={selectedRole === 'driver' ? '#ca8a04' : '#6b7280'}
-                    strokeWidth={2.5}
-                  />
-                  <Text
-                    className={`ml-2 font-semibold ${
-                      selectedRole === 'driver' ? 'text-accent-700' : 'text-gray-600'
-                    }`}
-                  >
-                    Chofer
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Segunda fila: Administrador */}
-              <TouchableOpacity
-                className={`flex-row items-center justify-center py-4 rounded-xl border-2 ${
-                  selectedRole === 'admin'
-                    ? 'bg-admin-50 border-admin-600'
-                    : 'bg-white border-gray-200'
-                }`}
-                onPress={() => handleRoleSelect('admin')}
-                activeOpacity={0.7}
-                disabled={isLoading}
-              >
-                <Shield
-                  size={22}
-                  color={selectedRole === 'admin' ? '#16a34a' : '#6b7280'}
-                  strokeWidth={2.5}
-                />
-                <Text
-                  className={`ml-2 font-semibold ${
-                    selectedRole === 'admin' ? 'text-admin-700' : 'text-gray-600'
-                  }`}
-                >
-                  Administrador
-                </Text>
-              </TouchableOpacity>
             </View>
           </View>
 
           {/* Botón de Login */}
           <TouchableOpacity
-            className={`py-4 rounded-xl shadow-md ${getButtonColor()}`}
+            className={`py-4 rounded-xl shadow-md ${isLoading ? 'bg-gray-300' : 'bg-primary-600'}`}
             onPress={handleLogin}
-            disabled={!selectedRole || isLoading}
+            disabled={isLoading}
             activeOpacity={0.8}
           >
             {isLoading ? (
@@ -335,7 +261,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <Text className="text-center text-gray-500 text-sm mt-6">
-            Versión Alpha - Autenticación con Supabase
+            Sistema de autenticación institucional
           </Text>
         </Animated.View>
       </View>

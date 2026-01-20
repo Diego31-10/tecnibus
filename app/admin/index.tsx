@@ -10,15 +10,16 @@ import {
   BarChart3,
   Settings,
   Plus,
-  ArrowLeft
+  LogOut
 } from 'lucide-react-native';
 import { Card, AnimatedCard } from '../../components';
+import { useAuth } from '../../lib/AuthContext';
 import * as Haptics from 'expo-haptics';
 
 export default function AdminHomeScreen() {
   const router = useRouter();
+  const { signOut, profile } = useAuth();
 
-  // Datos simulados
   const stats = {
     totalStudents: 156,
     totalDrivers: 12,
@@ -32,6 +33,12 @@ export default function AdminHomeScreen() {
     console.log(`Navegar a: ${section}`);
   };
 
+  const handleLogout = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await signOut();
+    router.replace('/login');
+  };
+
   return (
     <View className="flex-1 bg-admin-50">
       <StatusBar barStyle="light-content" backgroundColor="#166534" />
@@ -39,18 +46,13 @@ export default function AdminHomeScreen() {
       {/* Header */}
       <View className="bg-admin-700 pt-12 pb-6 px-6 rounded-b-3xl shadow-lg">
         <View className="flex-row items-center justify-between mb-4">
-          <TouchableOpacity 
-            onPress={() => router.back()}
-            className="bg-admin-600 p-2 rounded-xl"
-          >
-            <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
-          </TouchableOpacity>
+          <View className="flex-1" />
           
           <TouchableOpacity 
             className="bg-admin-600 p-2 rounded-xl"
-            onPress={() => handleCardPress('configuracion')}
+            onPress={handleLogout}
           >
-            <Settings size={24} color="#ffffff" strokeWidth={2.5} />
+            <LogOut size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
 
@@ -63,7 +65,7 @@ export default function AdminHomeScreen() {
               Panel de Administración
             </Text>
             <Text className="text-admin-200 text-sm mt-1">
-              Institución Educativa
+              {profile?.nombre || 'Institución Educativa'}
             </Text>
           </View>
         </View>

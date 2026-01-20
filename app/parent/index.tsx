@@ -1,5 +1,6 @@
-import { View, Text, StatusBar, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StatusBar, ScrollView } from 'react-native';
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { 
   User, 
   CheckCircle2, 
@@ -7,12 +8,16 @@ import {
   MapPin, 
   Clock, 
   Info,
-  Bus
+  Bus,
+  LogOut
 } from 'lucide-react-native';
-import { StatusBadge, Header, Toast, AnimatedCard, AnimatedButton } from '../../components';
+import { StatusBadge, AnimatedCard, AnimatedButton } from '../../components';
+import { useAuth } from '../../lib/AuthContext';
 import * as Haptics from 'expo-haptics';
 
 export default function ParentHomeScreen() {
+  const router = useRouter();
+  const { signOut, profile } = useAuth();
   const [isAttending, setIsAttending] = useState(true);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -25,44 +30,56 @@ export default function ParentHomeScreen() {
 
   const handleToggleAttendance = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
     setIsAttending(!isAttending);
-    
-    setToastMessage(
-      !isAttending 
-        ? '✓ Estudiante marcado como presente'
-        : '✓ Estudiante marcado como ausente'
-    );
-    setToastType(!isAttending ? 'success' : 'warning');
-    setToastVisible(true);
   };
 
   const handleViewDetails = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setToastMessage('ℹ️ Funcionalidad disponible próximamente');
-    setToastType('info');
-    setToastVisible(true);
+    console.log('Ver más detalles');
+  };
+
+  const handleLogout = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await signOut();
+    router.replace('/login');
   };
 
   return (
     <View className="flex-1 bg-primary-50">
       <StatusBar barStyle="light-content" backgroundColor="#1e40af" />
       
-      {/* Toast global */}
-      <Toast
-        visible={toastVisible}
-        message={toastMessage}
-        type={toastType}
-        onHide={() => setToastVisible(false)}
-      />
+      {/* Header */}
+      <View className="bg-primary-700 pt-12 pb-6 px-6 rounded-b-3xl shadow-lg">
+        <View className="flex-row items-center justify-between mb-4">
+          <TouchableOpacity 
+            onPress={() => router.back()}
+            className="bg-primary-600 p-2 rounded-xl"
+          >
+            <User size={24} color="#ffffff" strokeWidth={2.5} />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            className="bg-primary-600 p-2 rounded-xl"
+            onPress={handleLogout}
+          >
+            <LogOut size={24} color="#ffffff" strokeWidth={2.5} />
+          </TouchableOpacity>
+        </View>
 
-      <Header
-        title={studentName}
-        subtitle={route}
-        icon={User}
-        variant="parent"
-        rightIcon={User}
-      />
+        <View className="flex-row items-center">
+          <View className="bg-primary-600 p-3 rounded-full mr-4">
+            <User size={28} color="#ffffff" strokeWidth={2.5} />
+          </View>
+          <View className="flex-1">
+            <Text className="text-white text-2xl font-bold">
+              {studentName}
+            </Text>
+            <Text className="text-primary-200 text-sm mt-1">
+              {route}
+            </Text>
+          </View>
+        </View>
+      </View>
 
       <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
         {/* Card de Estado - Animado con delay 0 */}
