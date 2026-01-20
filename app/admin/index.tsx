@@ -168,7 +168,7 @@ export default function AdminHomeScreen() {
             {/* Gestionar Choferes */}
             <TouchableOpacity
               className="bg-accent-50 rounded-xl p-4 flex-row items-center justify-between border-2 border-accent-200"
-              onPress={() => handleCardPress('choferes')}
+              onPress={() => router.push('/admin/choferes/crear')}
               activeOpacity={0.7}
             >
               <View className="flex-row items-center flex-1">
@@ -190,7 +190,7 @@ export default function AdminHomeScreen() {
             {/* Gestionar Padres */}
             <TouchableOpacity
               className="bg-purple-50 rounded-xl p-4 flex-row items-center justify-between border-2 border-purple-200"
-              onPress={() => handleCardPress('padres')}
+              onPress={() => router.push('/admin/padres/crear')}
               activeOpacity={0.7}
             >
               <View className="flex-row items-center flex-1">
