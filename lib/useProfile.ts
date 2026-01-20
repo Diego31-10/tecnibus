@@ -1,0 +1,66 @@
+import { useEffect, useState } from 'react';
+import { useAuth } from './AuthContext';
+import { supabase } from './supabase';
+
+export type UserRole = 'admin' | 'padre' | 'chofer';
+
+export type Profile = {
+  id: string;
+  nombre: string;
+  correo: string;
+  rol: UserRole;
+  created_at: string;
+};
+
+export function useProfile() {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    } else {
+      setProfile(null);
+      setLoading(false);
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching profile:', fetchError);
+        setError(fetchError.message);
+        setProfile(null);
+      } else {
+        setProfile(data);
+        console.log('✅ Perfil cargado:', data);
+      }
+    } catch (err) {
+      console.error('Error inesperado:', err);
+      setError('Error inesperado al cargar perfil');
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    profile,
+    loading,
+    error,
+    refetch: fetchProfile,
+  };
+}

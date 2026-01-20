@@ -140,7 +140,9 @@ export default function LoginScreen() {
       } else {
         showToast('✅ Inicio de sesión exitoso', 'success');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        
+        setTimeout(() => {
+          console.log('🔐 Esperando carga de perfil para redirección...');
+        }, 500);
         // La navegación por rol se implementará en FASE 4
         console.log('Login exitoso - rol seleccionado:', selectedRole);
       }
