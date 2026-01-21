@@ -27,32 +27,32 @@ export default function CrearPadreScreen() {
   const handleCrearPadre = async () => {
     // Validaciones
     if (!nombre.trim()) {
-      showToast('⚠️ Ingresa el nombre completo', 'warning');
+      showToast('Ingresa el nombre completo', 'warning');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
 
     if (!email.trim()) {
-      showToast('⚠️ Ingresa el correo electrónico', 'warning');
+      showToast('ngresa el correo electrónico', 'warning');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      showToast('⚠️ Formato de correo inválido', 'warning');
+      showToast('Formato de correo inválido', 'warning');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
 
     if (!password) {
-      showToast('⚠️ Ingresa una contraseña', 'warning');
+      showToast('Ingresa una contraseña', 'warning');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
 
     if (password.length < 6) {
-      showToast('⚠️ La contraseña debe tener mínimo 6 caracteres', 'warning');
+      showToast(' La contraseña debe tener mínimo 6 caracteres', 'warning');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
@@ -69,14 +69,14 @@ export default function CrearPadreScreen() {
       });
 
       if (!result.success) {
-        showToast(`❌ ${result.error}`, 'error');
+        showToast(`${result.error}`, 'error');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setIsLoading(false);
         return;
       }
 
       // Éxito
-      showToast('✅ Padre creado exitosamente', 'success');
+      showToast('Padre creado exitosamente', 'success');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       // Limpiar formulario
@@ -91,7 +91,7 @@ export default function CrearPadreScreen() {
 
     } catch (error) {
       console.error('❌ Error creando padre:', error);
-      showToast('❌ Error al crear padre', 'error');
+      showToast('Error al crear padre', 'error');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setIsLoading(false);
     }

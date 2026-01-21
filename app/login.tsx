@@ -162,13 +162,13 @@ useEffect(() => {
   const handleLogin = async () => {
     // Validaciones básicas
     if (!email.trim()) {
-      showToast('⚠️ Ingresa tu correo electrónico', 'warning');
+      showToast('Ingresa tu correo electrónico', 'warning');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
   
     if (!password) {
-      showToast('⚠️ Ingresa tu contraseña', 'warning');
+      showToast('Ingresa tu contraseña', 'warning');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
@@ -176,7 +176,7 @@ useEffect(() => {
     // Validación de formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      showToast('⚠️ Formato de correo inválido', 'warning');
+      showToast('Formato de correo inválido', 'warning');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
@@ -189,12 +189,12 @@ useEffect(() => {
       if (error) {
         console.error('❌ Error de login:', error);
         setIsLoading(false);
-        showToast(`❌ ${getAuthErrorMessage(error)}`, 'error');
+        showToast(`${getAuthErrorMessage(error)}`, 'error');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } else {
         // Login exitoso
         console.log('✅ Login exitoso - esperando carga de perfil...');
-        showToast('✅ Inicio de sesión exitoso', 'success');
+        showToast('Inicio de sesión exitoso', 'success');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         
         // Delay de 800ms para que se vea el toast verde
@@ -206,7 +206,7 @@ useEffect(() => {
     } catch (error) {
       console.error('❌ Error inesperado:', error);
       setIsLoading(false);
-      showToast('❌ Error inesperado. Intenta nuevamente', 'error');
+      showToast('Error inesperado. Intenta nuevamente', 'error');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
