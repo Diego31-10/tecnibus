@@ -1,6 +1,6 @@
 import { View, Text, StatusBar, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { 
+import {
   Shield,
   Users,
   Bus,
@@ -10,9 +10,10 @@ import {
   BarChart3,
   Settings,
   Plus,
-  LogOut
+  LogOut,
+  List
 } from 'lucide-react-native';
-import { Card, AnimatedCard } from '../../components';
+import { AnimatedCard } from '../../components';
 import { useAuth } from '../../lib/AuthContext';
 import * as Haptics from 'expo-haptics';
 
@@ -166,12 +167,8 @@ export default function AdminHomeScreen() {
             </TouchableOpacity>
 
             {/* Gestionar Choferes */}
-            <TouchableOpacity
-              className="bg-accent-50 rounded-xl p-4 flex-row items-center justify-between border-2 border-accent-200"
-              onPress={() => router.push('/admin/choferes/crear')}
-              activeOpacity={0.7}
-            >
-              <View className="flex-row items-center flex-1">
+            <View className="bg-accent-50 rounded-xl p-4 border-2 border-accent-200">
+              <View className="flex-row items-center mb-3">
                 <View className="bg-accent-600 p-2 rounded-lg">
                   <UserCircle size={24} color="#ffffff" strokeWidth={2.5} />
                 </View>
@@ -184,16 +181,35 @@ export default function AdminHomeScreen() {
                   </Text>
                 </View>
               </View>
-              <Plus size={20} color="#ca8a04" strokeWidth={2.5} />
-            </TouchableOpacity>
+
+              <View className="flex-row gap-2">
+                <TouchableOpacity
+                  className="flex-1 bg-accent-600 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  onPress={() => router.push('/admin/choferes')}
+                  activeOpacity={0.7}
+                >
+                  <List size={16} color="#ffffff" strokeWidth={2.5} />
+                  <Text className="text-white font-semibold ml-2 text-sm">
+                    Ver Lista
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="flex-1 bg-accent-700 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  onPress={() => router.push('/admin/choferes/crear')}
+                  activeOpacity={0.7}
+                >
+                  <Plus size={16} color="#ffffff" strokeWidth={2.5} />
+                  <Text className="text-white font-semibold ml-2 text-sm">
+                    Crear Nuevo
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
             {/* Gestionar Padres */}
-            <TouchableOpacity
-              className="bg-purple-50 rounded-xl p-4 flex-row items-center justify-between border-2 border-purple-200"
-              onPress={() => router.push('/admin/padres/crear')}
-              activeOpacity={0.7}
-            >
-              <View className="flex-row items-center flex-1">
+            <View className="bg-purple-50 rounded-xl p-4 border-2 border-purple-200">
+              <View className="flex-row items-center mb-3">
                 <View className="bg-purple-600 p-2 rounded-lg">
                   <Users size={24} color="#ffffff" strokeWidth={2.5} />
                 </View>
@@ -206,8 +222,31 @@ export default function AdminHomeScreen() {
                   </Text>
                 </View>
               </View>
-              <Plus size={20} color="#9333ea" strokeWidth={2.5} />
-            </TouchableOpacity>
+
+              <View className="flex-row gap-2">
+                <TouchableOpacity
+                  className="flex-1 bg-purple-600 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  onPress={() => router.push('/admin/padres')}
+                  activeOpacity={0.7}
+                >
+                  <List size={16} color="#ffffff" strokeWidth={2.5} />
+                  <Text className="text-white font-semibold ml-2 text-sm">
+                    Ver Lista
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="flex-1 bg-purple-700 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  onPress={() => router.push('/admin/padres/crear')}
+                  activeOpacity={0.7}
+                >
+                  <Plus size={16} color="#ffffff" strokeWidth={2.5} />
+                  <Text className="text-white font-semibold ml-2 text-sm">
+                    Crear Nuevo
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
             {/* Gestionar Rutas */}
             <TouchableOpacity

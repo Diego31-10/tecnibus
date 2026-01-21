@@ -87,7 +87,7 @@ export default function CrearPadreScreen() {
       setTimeout(() => {
         setIsLoading(false);
         router.back();
-      }, 2000);
+      }, 1000);
 
     } catch (error) {
       console.error('❌ Error creando padre:', error);

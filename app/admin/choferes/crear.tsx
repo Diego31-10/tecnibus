@@ -86,8 +86,8 @@ export default function CrearChoferScreen() {
 
       setTimeout(() => {
         setIsLoading(false);
-        router.back();
-      }, 2000);
+        router.back()
+      }, 1000);
 
     } catch (error) {
       console.error('❌ Error creando chofer:', error);
