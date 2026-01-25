@@ -1,21 +1,21 @@
-import { View, Text, StatusBar, ScrollView, TouchableOpacity } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import {
-  Shield,
-  Users,
-  Bus,
-  MapPin,
-  UserCircle,
-  GraduationCap,
   BarChart3,
-  Settings,
-  Plus,
+  Bus,
+  GraduationCap,
+  List,
   LogOut,
-  List
+  MapPin,
+  Plus,
+  Settings,
+  Shield,
+  UserCircle,
+  Users
 } from 'lucide-react-native';
+import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { AnimatedCard } from '../../components';
-import { useAuth } from '../../lib/AuthContext';
-import * as Haptics from 'expo-haptics';
+import { useAuth } from '../../lib/contexts/AuthContext';
 
 export default function AdminHomeScreen() {
   const router = useRouter();
@@ -45,30 +45,26 @@ export default function AdminHomeScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#166534" />
       
       {/* Header */}
-      <View className="bg-admin-700 pt-12 pb-6 px-6 rounded-b-3xl shadow-lg">
-        <View className="flex-row items-center justify-between mb-4">
-          <View className="flex-1" />
-          
+      <View className="bg-admin-700 pt-20 pb-6 px-6 rounded-b-3xl shadow-lg">
+        <View className="flex-row items-center">
+          <View className="bg-admin-600 p-3 rounded-full mr-4">
+            <Shield size={28} color="#ffffff" strokeWidth={2.5} />
+          </View>
+        
+          <View className="flex-1">
+            <Text className="text-white text-2xl font-bold">
+              Panel de Administración
+            </Text>
+            <Text className="text-white text-xl mt-1">
+              {'¡Hola '+ profile?.nombre+'!' || 'Institución Educativa'}
+            </Text>
+          </View>
           <TouchableOpacity 
             className="bg-admin-600 p-2 rounded-xl"
             onPress={handleLogout}
           >
             <LogOut size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
-        </View>
-
-        <View className="flex-row items-center">
-          <View className="bg-admin-600 p-3 rounded-full mr-4">
-            <Shield size={28} color="#ffffff" strokeWidth={2.5} />
-          </View>
-          <View className="flex-1">
-            <Text className="text-white text-2xl font-bold">
-              Panel de Administración
-            </Text>
-            <Text className="text-admin-200 text-sm mt-1">
-              {profile?.nombre || 'Institución Educativa'}
-            </Text>
-          </View>
         </View>
       </View>
 
@@ -146,7 +142,7 @@ export default function AdminHomeScreen() {
           <View className="gap-3">
             {/* Gestionar Estudiantes */}
             <TouchableOpacity
-              className="bg-primary-50 rounded-xl p-4 flex-row items-center justify-between border-2 border-primary-200"
+              className="bg-primary-50 rounded-xl p-4 flex-row items-center justify-between border-2 border-blue-200"
               onPress={() => handleCardPress('estudiantes')}
               activeOpacity={0.7}
             >
@@ -167,7 +163,7 @@ export default function AdminHomeScreen() {
             </TouchableOpacity>
 
             {/* Gestionar Choferes */}
-            <View className="bg-accent-50 rounded-xl p-4 border-2 border-accent-200">
+            <View className="bg-accent-50 rounded-xl p-4 border-2 border-accent-100">
               <View className="flex-row items-center mb-3">
                 <View className="bg-accent-600 p-2 rounded-lg">
                   <UserCircle size={24} color="#ffffff" strokeWidth={2.5} />

@@ -1,25 +1,25 @@
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import { Bus, Lock, Mail } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  ScrollView,
+  StatusBar,
   Text,
   TextInput,
-  StatusBar,
-  ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
+  View,
 } from 'react-native';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'expo-router';
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-  Easing,
 } from 'react-native-reanimated';
-import { Bus, Mail, Lock } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
 
 import { Toast } from '../components';
-import { useAuth } from '../lib/AuthContext';
+import { useAuth } from '../lib/contexts/AuthContext';
 
 export default function LoginScreen() {
   const router = useRouter();

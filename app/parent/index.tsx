@@ -1,28 +1,24 @@
-import { View, Text, TouchableOpacity, StatusBar, ScrollView } from 'react-native';
-import { useState } from 'react';
-import { useRouter } from 'expo-router';
-import { 
-  User, 
-  CheckCircle2, 
-  XCircle, 
-  MapPin, 
-  Clock, 
-  Info,
-  Bus,
-  LogOut
-} from 'lucide-react-native';
-import { StatusBadge, AnimatedCard, AnimatedButton } from '../../components';
-import { useAuth } from '../../lib/AuthContext';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import {
+  Bus,
+  CheckCircle2,
+  Clock,
+  Info,
+  LogOut,
+  MapPin,
+  User,
+  XCircle
+} from 'lucide-react-native';
+import { useState } from 'react';
+import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { AnimatedButton, AnimatedCard, StatusBadge } from '../../components';
+import { useAuth } from '../../lib/contexts/AuthContext';
 
 export default function ParentHomeScreen() {
   const router = useRouter();
-  const { signOut, profile } = useAuth();
+  const { signOut } = useAuth();
   const [isAttending, setIsAttending] = useState(true);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error' | 'info' | 'warning'>('success');
-
   const studentName = "María Rodríguez";
   const route = "Ruta Centro - Norte";
   const estimatedTime = "15 minutos";

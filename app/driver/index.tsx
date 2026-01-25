@@ -1,20 +1,19 @@
-import { View, Text, StatusBar, ScrollView, TouchableOpacity } from 'react-native';
-import { useState } from 'react';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { 
-  MapPin, 
-  Bus,
+import {
+  ArrowLeft,
+  Clock,
+  LogOut,
+  MapPin,
+  Navigation,
   Play,
   Square,
-  Users,
-  Clock,
-  Navigation,
-  ArrowLeft,
-  LogOut
+  Users
 } from 'lucide-react-native';
-import { Card, StatusBadge, AnimatedCard, AnimatedButton } from '../../components';
-import { useAuth } from '../../lib/AuthContext';
-import * as Haptics from 'expo-haptics';
+import { useState } from 'react';
+import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { AnimatedButton, AnimatedCard, StatusBadge } from '../../components';
+import { useAuth } from '../../lib/contexts/AuthContext';
 
 type Student = {
   id: string;

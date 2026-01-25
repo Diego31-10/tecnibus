@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
 import { useRouter, useSegments } from 'expo-router';
-import { useAuth } from '../lib/AuthContext';
+import { useEffect } from 'react';
+import { ActivityIndicator, Text, View } from 'react-native';
+import { useAuth } from '../lib/contexts/AuthContext';
 
 /**
  * Componente que protege las rutas y redirige según el rol del usuario

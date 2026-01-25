@@ -22,7 +22,7 @@ export default function Toast({
   message,
   type = 'success',
   onHide,
-  duration = 3000,
+  duration = 1500,
 }: ToastProps) {
   const translateY = useSharedValue(-100);
   const opacity = useSharedValue(0);
