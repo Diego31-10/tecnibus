@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { supabase } from './supabase';
 
 export type UserRole = 'admin' | 'padre' | 'chofer';

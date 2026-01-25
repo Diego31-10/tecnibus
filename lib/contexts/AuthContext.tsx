@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase } from './supabase';
-import { Profile } from './useProfile';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from '../services/supabase';
+import { Profile } from '../services/useProfile';
 
 type AuthContextType = {
   session: Session | null;
