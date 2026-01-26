@@ -45,3 +45,5 @@ app-example
 
 # funciones claude
 .clauderc
+.claude/
+CLAUDE.md
