@@ -9,6 +9,7 @@ import {
 } from 'lucide-react-native';
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,13 +19,16 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { AnimatedCard } from '../../components';
+import { AnimatedCard, Toast } from '../../components';
 import { useAuth } from '../../lib/contexts/AuthContext';
+import { updateProfile } from '../../lib/services/profile.service';
 
 export default function ParentProfileScreen() {
   const router = useRouter();
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as 'success' | 'error' });
 
   const [formData, setFormData] = useState({
     nombre: profile?.nombre || '',
@@ -32,11 +36,29 @@ export default function ParentProfileScreen() {
     telefono: profile?.telefono || '',
   });
 
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ visible: true, message, type });
+  };
+
   const handleSave = async () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    // TODO: Implementar actualización de perfil
-    console.log('Guardar cambios:', formData);
-    setIsEditing(false);
+    if (isSaving) return;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsSaving(true);
+
+    const result = await updateProfile(formData);
+
+    if (result.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast('Perfil actualizado correctamente', 'success');
+      await refreshProfile();
+      setIsEditing(false);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showToast(result.error || 'Error al actualizar', 'error');
+    }
+
+    setIsSaving(false);
   };
 
   const handleCancel = () => {
@@ -83,10 +105,17 @@ export default function ParentProfileScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSave}
-                className="bg-green-600 px-4 py-2 rounded-xl flex-row items-center"
+                className={`bg-green-600 px-4 py-2 rounded-xl flex-row items-center ${isSaving && 'opacity-60'}`}
+                disabled={isSaving}
               >
-                <Save size={16} color="#ffffff" strokeWidth={2.5} />
-                <Text className="text-white font-bold ml-2">Guardar</Text>
+                {isSaving ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Save size={16} color="#ffffff" strokeWidth={2.5} />
+                )}
+                <Text className="text-white font-bold ml-2">
+                  {isSaving ? 'Guardando...' : 'Guardar'}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -224,6 +253,13 @@ export default function ParentProfileScreen() {
 
         <View className="h-4" />
       </ScrollView>
+
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast({ ...toast, visible: false })}
+      />
     </KeyboardAvoidingView>
   );
 }
