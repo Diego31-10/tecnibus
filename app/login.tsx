@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
@@ -22,10 +21,13 @@ import Animated, {
 
 import { Toast } from '../components';
 import { useAuth } from '../lib/contexts/AuthContext';
+import { haptic } from '@/lib/utils/haptics';
+import { useShadow } from '@/lib/utils/shadows';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, user, profile, loading: authLoading } = useAuth();
+  const { signIn, signOut, user, profile, loading: authLoading } = useAuth();
+  const shadow = useShadow('lg');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,6 +42,9 @@ export default function LoginScreen() {
   // Estados para autenticación biométrica
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
+
+  // Para limpiar sesión (desarrollo)
+  const [tapCount, setTapCount] = useState(0);
 
   /* =====================
      ANIMACIONES
@@ -101,7 +106,7 @@ export default function LoginScreen() {
       });
 
       if (result.success) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        haptic.success();
 
         // Recuperar credenciales guardadas
         const savedEmail = await SecureStore.getItemAsync('userEmail');
@@ -118,21 +123,21 @@ export default function LoginScreen() {
           if (error) {
             setIsLoading(false);
             showToast(getAuthErrorMessage(error), 'error');
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            haptic.error();
           } else {
             showToast('Inicio de sesión exitoso', 'success');
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            haptic.success();
           }
         } else {
           showToast('No hay credenciales guardadas', 'warning');
         }
       } else {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        haptic.warning();
       }
     } catch (error) {
       console.error('Error en autenticación biométrica:', error);
       showToast('Error en autenticación biométrica', 'error');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic.error();
     }
   };
 
@@ -234,13 +239,13 @@ useEffect(() => {
     // Validaciones básicas
     if (!email.trim()) {
       showToast('Ingresa tu correo electrónico', 'warning');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      haptic.warning();
       return;
     }
   
     if (!password) {
       showToast('Ingresa tu contraseña', 'warning');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      haptic.warning();
       return;
     }
   
@@ -248,7 +253,7 @@ useEffect(() => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
       showToast('Formato de correo inválido', 'warning');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      haptic.warning();
       return;
     }
   
@@ -261,12 +266,12 @@ useEffect(() => {
         console.error('❌ Error de login:', error);
         setIsLoading(false);
         showToast(`${getAuthErrorMessage(error)}`, 'error');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        haptic.error();
       } else {
         // Login exitoso
         console.log('✅ Login exitoso - esperando carga de perfil...');
         showToast('Inicio de sesión exitoso', 'success');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        haptic.success();
 
         // Guardar credenciales para autenticación biométrica
         if (isBiometricSupported) {
@@ -290,8 +295,41 @@ useEffect(() => {
       console.error('❌ Error inesperado:', error);
       setIsLoading(false);
       showToast('Error inesperado. Intenta nuevamente', 'error');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic.error();
     }
+  };
+
+  /* =====================
+     LIMPIAR SESIÓN (DESARROLLO)
+  ====================== */
+  const handleClearSession = async () => {
+    try {
+      await signOut();
+      await SecureStore.deleteItemAsync('userEmail');
+      await SecureStore.deleteItemAsync('userPassword');
+      setHasSavedCredentials(false);
+      setEmail('');
+      setPassword('');
+      showToast('Sesión limpiada completamente', 'success');
+      haptic.success();
+      console.log('🗑️ Sesión y credenciales eliminadas');
+    } catch (error) {
+      console.error('Error limpiando sesión:', error);
+      showToast('Error al limpiar sesión', 'error');
+    }
+  };
+
+  const handleLogoPress = () => {
+    const newCount = tapCount + 1;
+    setTapCount(newCount);
+
+    if (newCount === 3) {
+      handleClearSession();
+      setTapCount(0);
+    }
+
+    // Reset counter después de 2 segundos
+    setTimeout(() => setTapCount(0), 2000);
   };
 
   /* =====================
@@ -325,20 +363,22 @@ if (showRedirecting) { // ← CAMBIO AQUÍ
       <View className="flex-1 px-6 pt-20 pb-8">
         {/* Header */}
         <Animated.View style={logoStyle} className="items-center mb-12">
-          <View className="bg-primary-600 rounded-full p-5 mb-4">
-            <Bus size={48} color="#ffffff" strokeWidth={2.5} />
-          </View>
-          <Text className="text-4xl font-bold text-primary-800">
-            TecniBus
-          </Text>
-          <Text className="text-base text-gray-600 mt-2">
-            Monitoreo de Transporte Escolar
-          </Text>
+          <TouchableOpacity onPress={handleLogoPress} activeOpacity={0.8}>
+            <View className="bg-primary-600 rounded-full p-5 mb-4">
+              <Bus size={48} color="#ffffff" strokeWidth={2.5} />
+            </View>
+            <Text className="text-4xl font-bold text-primary-800 text-center">
+              TecniBus
+            </Text>
+            <Text className="text-base text-gray-600 mt-2 text-center">
+              Monitoreo de Transporte Escolar
+            </Text>
+          </TouchableOpacity>
         </Animated.View>
 
         {/* Form */}
         <Animated.View style={formStyle}>
-          <View className="bg-white rounded-3xl p-6 shadow-lg mb-6">
+          <View className="bg-white rounded-3xl p-6 mb-6" style={shadow}>
             {/* Email */}
             <View className="mb-4">
               <Text className="text-sm font-semibold text-gray-700 mb-2">
