@@ -1,6 +1,8 @@
 import * as Haptics from 'expo-haptics';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
-import { Bus, Lock, Mail } from 'lucide-react-native';
+import { Bus, Fingerprint, Lock, Mail } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -35,6 +37,10 @@ export default function LoginScreen() {
   const [toastType, setToastType] =
     useState<'success' | 'error' | 'warning'>('warning');
 
+  // Estados para autenticación biométrica
+  const [isBiometricSupported, setIsBiometricSupported] = useState(false);
+  const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
+
   /* =====================
      ANIMACIONES
   ====================== */
@@ -63,7 +69,72 @@ export default function LoginScreen() {
         easing: Easing.out(Easing.cubic),
       });
     }, 200);
+
+    // Verificar soporte biométrico y credenciales guardadas
+    checkBiometricSupport();
   }, []);
+
+  /* =====================
+     AUTENTICACIÓN BIOMÉTRICA
+  ====================== */
+  const checkBiometricSupport = async () => {
+    try {
+      const compatible = await LocalAuthentication.hasHardwareAsync();
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      setIsBiometricSupported(compatible && enrolled);
+
+      // Verificar si hay credenciales guardadas
+      const savedEmail = await SecureStore.getItemAsync('userEmail');
+      setHasSavedCredentials(!!savedEmail);
+    } catch (error) {
+      console.error('Error verificando biometría:', error);
+      setIsBiometricSupported(false);
+    }
+  };
+
+  const handleBiometricAuth = async () => {
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Autentícate para iniciar sesión',
+        fallbackLabel: 'Usar contraseña',
+        cancelLabel: 'Cancelar',
+      });
+
+      if (result.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+        // Recuperar credenciales guardadas
+        const savedEmail = await SecureStore.getItemAsync('userEmail');
+        const savedPassword = await SecureStore.getItemAsync('userPassword');
+
+        if (savedEmail && savedPassword) {
+          setEmail(savedEmail);
+          setPassword(savedPassword);
+
+          // Iniciar sesión automáticamente
+          setIsLoading(true);
+          const { error } = await signIn(savedEmail, savedPassword);
+
+          if (error) {
+            setIsLoading(false);
+            showToast(getAuthErrorMessage(error), 'error');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          } else {
+            showToast('Inicio de sesión exitoso', 'success');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
+        } else {
+          showToast('No hay credenciales guardadas', 'warning');
+        }
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      }
+    } catch (error) {
+      console.error('Error en autenticación biométrica:', error);
+      showToast('Error en autenticación biométrica', 'error');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  };
 
   /* =====================
    REDIRECCIÓN AUTOMÁTICA
@@ -185,7 +256,7 @@ useEffect(() => {
   
     try {
       const { error } = await signIn(email, password);
-  
+
       if (error) {
         console.error('❌ Error de login:', error);
         setIsLoading(false);
@@ -196,7 +267,19 @@ useEffect(() => {
         console.log('✅ Login exitoso - esperando carga de perfil...');
         showToast('Inicio de sesión exitoso', 'success');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        
+
+        // Guardar credenciales para autenticación biométrica
+        if (isBiometricSupported) {
+          try {
+            await SecureStore.setItemAsync('userEmail', email.trim().toLowerCase());
+            await SecureStore.setItemAsync('userPassword', password);
+            setHasSavedCredentials(true);
+            console.log('✅ Credenciales guardadas para biometría');
+          } catch (error) {
+            console.error('❌ Error guardando credenciales:', error);
+          }
+        }
+
         // Delay de 800ms para que se vea el toast verde
         setTimeout(() => {
           // El useEffect de arriba manejará la redirección cuando profile esté listo
@@ -320,9 +403,33 @@ if (showRedirecting) { // ← CAMBIO AQUÍ
             )}
           </TouchableOpacity>
 
-          <Text className="text-center text-gray-500 text-sm mt-6">
-            Sistema de autenticación institucional
-          </Text>
+          {/* Botón de Autenticación Biométrica */}
+          {isBiometricSupported && hasSavedCredentials && !isLoading && (
+            <TouchableOpacity
+              className="py-4 rounded-xl bg-gray-100 border-2 border-primary-200 mt-3 flex-row items-center justify-center"
+              onPress={handleBiometricAuth}
+              activeOpacity={0.8}
+            >
+              <Fingerprint size={24} color="#2563eb" strokeWidth={2.5} />
+              <Text className="text-primary-600 text-lg font-bold ml-2">
+                Iniciar con Biometría
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Mensajes informativos */}
+          <View className="mt-6 space-y-2">
+            <Text className="text-center text-gray-500 text-sm">
+              Sistema de autenticación institucional
+            </Text>
+
+            <Text className="text-center text-gray-600 text-sm mt-3">
+              ¿No tienes cuenta?{' '}
+              <Text className="text-primary-600 font-semibold">
+                Contacta a tu institución
+              </Text>
+            </Text>
+          </View>
         </Animated.View>
       </View>
     </ScrollView>
