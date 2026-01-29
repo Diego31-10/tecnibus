@@ -5,28 +5,51 @@ import {
   Bus,
   GraduationCap,
   List,
-  LogOut,
   MapPin,
   Plus,
+  RefreshCw,
   Settings,
   Shield,
   UserCircle,
   Users
 } from 'lucide-react-native';
-import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { AnimatedCard } from '../../components';
 import { useAuth } from '../../lib/contexts/AuthContext';
+import { DashboardStats, getDashboardStats } from '../../lib/services/stats.service';
 
 export default function AdminHomeScreen() {
   const router = useRouter();
   const { signOut, profile } = useAuth();
+  const [stats, setStats] = useState<DashboardStats>({
+    totalStudents: 0,
+    totalDrivers: 0,
+    totalParents: 0,
+    totalRoutes: 0,
+    activeBuses: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const stats = {
-    totalStudents: 156,
-    totalDrivers: 12,
-    totalParents: 143,
-    totalRoutes: 8,
-    activeBuses: 6,
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    setLoading(true);
+    const data = await getDashboardStats();
+    setStats(data);
+    setLoading(false);
+  };
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setRefreshing(true);
+    await loadStats();
+    setRefreshing(false);
   };
 
   const handleCardPress = (section: string) => {
@@ -46,7 +69,7 @@ export default function AdminHomeScreen() {
       {/* Header */}
       <View className="bg-admin-700 pt-20 pb-6 px-6 rounded-b-3xl shadow-lg">
         <View className="flex-row items-center">
-          <View className="bg-admin-600 p-3 rounded-full mr-4">
+          <View className="p-3 mr-4">
             <Shield size={28} color="#ffffff" strokeWidth={2.5} />
           </View>
         
@@ -70,11 +93,31 @@ export default function AdminHomeScreen() {
       <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
         {/* Estadísticas Generales */}
         <AnimatedCard delay={0} className="mb-4">
-          <Text className="text-lg font-bold text-gray-800 mb-4">
-            Estadísticas Generales
-          </Text>
-          
-          <View className="flex-row flex-wrap gap-3">
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-lg font-bold text-gray-800">
+              Estadísticas Generales
+            </Text>
+            <TouchableOpacity
+              onPress={handleRefresh}
+              className={`bg-admin-100 p-2 rounded-lg ${refreshing && 'opacity-60'}`}
+              disabled={refreshing}
+            >
+              <RefreshCw
+                size={20}
+                color="#16a34a"
+                strokeWidth={2.5}
+                className={refreshing ? 'animate-spin' : ''}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {loading ? (
+            <View className="py-8 items-center">
+              <ActivityIndicator size="large" color="#16a34a" />
+              <Text className="text-gray-500 mt-4">Cargando estadísticas...</Text>
+            </View>
+          ) : (
+            <View className="flex-row flex-wrap gap-3">
             {/* Estudiantes */}
             <View className="flex-1 min-w-[45%] bg-primary-50 rounded-xl p-4">
               <View className="flex-row items-center justify-between mb-2">
@@ -126,7 +169,8 @@ export default function AdminHomeScreen() {
                 Busetas Activas
               </Text>
             </View>
-          </View>
+            </View>
+          )}
         </AnimatedCard>
 
         {/* Gestión Rápida */}
