@@ -4,7 +4,7 @@ import Animated, {
     withTiming,
     Easing,
   } from 'react-native-reanimated';
-  import * as Haptics from 'expo-haptics';
+  import { haptic } from '@/lib/utils/haptics';
   import Button from './Button';
   
   type AnimatedButtonProps = {
@@ -32,7 +32,7 @@ import Animated, {
   
     const handlePress = () => {
       if (enableHaptics) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        haptic.light();
       }
       onPress();
     };

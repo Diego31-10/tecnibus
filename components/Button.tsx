@@ -1,5 +1,6 @@
 import { TouchableOpacity, Text, View } from 'react-native';
 import { LucideIcon } from 'lucide-react-native';
+import { useShadow } from '@/lib/utils/shadows';
 
 type ButtonProps = {
   title: string;
@@ -22,7 +23,8 @@ export default function Button({
   disabled = false,
   fullWidth = true,
 }: ButtonProps) {
-  
+  const shadow = useShadow('md');
+
   // Estilos según variante
   const variantStyles = {
     primary: 'bg-primary-600',
@@ -55,9 +57,10 @@ export default function Button({
 
   return (
     <TouchableOpacity
-      className={`rounded-xl shadow-md flex-row items-center justify-center ${
+      className={`rounded-xl flex-row items-center justify-center ${
         disabled ? disabledStyle : variantStyles[variant]
       } ${sizeStyles[size]} ${fullWidth ? 'w-full' : ''}`}
+      style={shadow}
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.8}

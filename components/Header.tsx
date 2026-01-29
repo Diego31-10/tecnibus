@@ -1,6 +1,8 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, LucideIcon } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { createShadow } from '@/lib/utils/shadows';
 
 type HeaderProps = {
   title: string;
@@ -24,6 +26,9 @@ export default function Header({
   onRightIconPress,
 }: HeaderProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const paddingTop = Math.max(insets.top + 8, 48);
+  const shadow = createShadow('lg');
 
   const handleBackPress = () => {
     if (onBackPress) {
@@ -55,7 +60,7 @@ export default function Header({
   const styles = variantStyles[variant];
 
   return (
-    <View className={`${styles.bg} pt-12 pb-6 px-6 rounded-b-3xl shadow-lg`}>
+    <View className={`${styles.bg} pb-6 px-6 rounded-b-3xl`} style={[{ paddingTop }, shadow]}>
       {/* Barra de navegación */}
       <View className="flex-row items-center justify-between mb-4">
         {showBackButton ? (

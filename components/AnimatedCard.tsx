@@ -3,6 +3,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
+  withDelay,
   Easing,
 } from 'react-native-reanimated';
 import Card from './Card';
@@ -26,16 +27,21 @@ export default function AnimatedCard({
   const opacity = useSharedValue(0);
 
   useEffect(() => {
-    setTimeout(() => {
-      translateY.value = withTiming(0, {
+    translateY.value = withDelay(
+      delay,
+      withTiming(0, {
         duration: 500,
         easing: Easing.out(Easing.cubic),
-      });
-      opacity.value = withTiming(1, {
+      })
+    );
+
+    opacity.value = withDelay(
+      delay,
+      withTiming(1, {
         duration: 500,
         easing: Easing.out(Easing.cubic),
-      });
-    }, delay);
+      })
+    );
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({

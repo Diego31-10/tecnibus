@@ -1,13 +1,15 @@
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
-import Animated, { 
-  useAnimatedStyle, 
-  useSharedValue, 
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
   withTiming,
   Easing,
   runOnJS
 } from 'react-native-reanimated';
 import { CheckCircle2, XCircle, Info, AlertTriangle } from 'lucide-react-native';
+import { useToastSpacing } from '@/lib/utils/spacing';
+import { useShadow } from '@/lib/utils/shadows';
 
 type ToastProps = {
   visible: boolean;
@@ -26,6 +28,8 @@ export default function Toast({
 }: ToastProps) {
   const translateY = useSharedValue(-100);
   const opacity = useSharedValue(0);
+  const toastSpacing = useToastSpacing();
+  const shadow = useShadow('lg');
 
   useEffect(() => {
     if (visible) {
@@ -94,11 +98,11 @@ export default function Toast({
   if (!visible) return null;
 
   return (
-    <Animated.View 
-      style={animatedStyle}
-      className="absolute top-0 left-0 right-0 z-50 px-6 pt-16"
+    <Animated.View
+      style={[animatedStyle, toastSpacing]}
+      className="absolute top-0 left-0 right-0 z-50 px-6"
     >
-      <View className={`${bgColor} rounded-2xl p-4 shadow-lg flex-row items-center`}>
+      <View className={`${bgColor} rounded-2xl p-4 flex-row items-center`} style={shadow}>
         <Icon size={24} color={iconColor} strokeWidth={2.5} />
         <Text className="text-white font-semibold text-base ml-3 flex-1">
           {message}

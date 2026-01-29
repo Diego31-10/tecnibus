@@ -1,5 +1,6 @@
 import { View, Text } from 'react-native';
 import { LucideIcon } from 'lucide-react-native';
+import { useShadow } from '@/lib/utils/shadows';
 
 type CardProps = {
   children: React.ReactNode;
@@ -18,8 +19,10 @@ export default function Card({
   iconBgColor = 'bg-primary-100',
   className = '',
 }: CardProps) {
+  const shadow = useShadow('md');
+
   return (
-    <View className={`bg-white rounded-2xl p-5 shadow-md ${className}`}>
+    <View className={`bg-white rounded-2xl p-5 ${className}`} style={shadow}>
       {/* Header del Card */}
       {(title || Icon) && (
         <View className="flex-row items-center justify-between mb-4">
