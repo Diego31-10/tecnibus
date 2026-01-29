@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { ArrowLeft, Plus, Trash2, UserCircle } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
@@ -12,11 +11,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from '../../../components/Toast';
 import { eliminarUsuario, obtenerChoferes, type Profile } from '../../../lib/services/admin.service';
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 
 export default function ListaChoferesScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const paddingTop = Math.max(insets.top + 8, 48);
+  const shadow = createShadow('lg');
   const [choferes, setChoferes] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -56,7 +61,7 @@ export default function ListaChoferesScreen() {
   }, [cargarChoferes]);
 
   const confirmarEliminar = (chofer: Profile) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic.medium();
     Alert.alert(
       'Eliminar Chofer',
       `¿Estás seguro de eliminar a ${chofer.nombre} ${chofer.apellido || ''}? Esta acción no se puede deshacer.`,
@@ -97,7 +102,7 @@ export default function ListaChoferesScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#a16207" />
 
       {/* HEADER */}
-      <View className="bg-accent-700 pt-20 pb-6 px-6 rounded-b-3xl shadow-lg">
+      <View className="bg-accent-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center">
           <TouchableOpacity
             className="bg-accent-600 p-2 rounded-xl mr-4"

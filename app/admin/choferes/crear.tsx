@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff, Lock, Mail, Save, User } from 'lucide-react-native';
 import { useState } from 'react';
@@ -13,11 +12,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from '../../../components/Toast';
 import { crearUsuario } from '../../../lib/services/admin.service';
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 
 export default function CrearChoferScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const paddingTop = Math.max(insets.top + 8, 48);
+  const shadow = createShadow('lg');
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
   const [email, setEmail] = useState('');
@@ -53,7 +58,7 @@ export default function CrearChoferScreen() {
   const handleCrear = async () => {
     if (!validarFormulario()) return;
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic.medium();
     setLoading(true);
 
     const result = await crearUsuario({
@@ -86,7 +91,7 @@ export default function CrearChoferScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#a16207" />
 
       {/* Header */}
-      <View className="bg-accent-700 pt-20 pb-6 px-6 rounded-b-3xl shadow-lg">
+      <View className="bg-accent-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center">
           <TouchableOpacity
             className="bg-accent-600 p-2 rounded-xl mr-4"

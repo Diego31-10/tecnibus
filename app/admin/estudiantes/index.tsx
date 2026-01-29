@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -20,14 +19,20 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard } from '../../../components';
 import {
   Estudiante,
   getEstudiantes
 } from '../../../lib/services/estudiantes.service';
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 
 export default function EstudiantesListScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const paddingTop = Math.max(insets.top + 8, 48);
+  const shadow = createShadow('lg');
   const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
   const [filteredEstudiantes, setFilteredEstudiantes] = useState<Estudiante[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,12 +91,12 @@ export default function EstudiantesListScreen() {
   };
 
   const handleCrearEstudiante = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic.medium();
     router.push('/admin/estudiantes/crear');
   };
 
   const handleEditarEstudiante = (id: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.light();
     router.push(`/admin/estudiantes/${id}` as any);
   };
 
@@ -173,7 +178,7 @@ export default function EstudiantesListScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#166534" />
 
       {/* Header */}
-      <View className="bg-admin-700 pt-20 pb-6 px-6 rounded-b-3xl shadow-lg">
+      <View className="bg-admin-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => router.back()}

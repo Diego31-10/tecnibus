@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -23,6 +22,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard } from '../../../components';
 import Toast from '../../../components/Toast';
 import {
@@ -32,6 +32,8 @@ import {
   getRutasDisponibles,
   updateEstudiante
 } from '../../../lib/services/estudiantes.service';
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 
 type Padre = {
   id: string;
@@ -48,6 +50,9 @@ type Ruta = {
 export default function EditarEstudianteScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
+  const paddingTop = Math.max(insets.top + 8, 48);
+  const shadow = createShadow('lg');
 
   // Form state
   const [nombre, setNombre] = useState('');
@@ -129,14 +134,14 @@ export default function EditarEstudianteScreen() {
   );
 
   const handleSelectPadre = (padre: Padre) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.light();
     setPadreSeleccionado(padre);
     setShowPadresModal(false);
     setSearchPadre('');
   };
 
   const handleSelectRuta = (ruta: Ruta) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.light();
     setRutaSeleccionada(ruta);
     setShowRutasModal(false);
   };
@@ -162,7 +167,7 @@ export default function EditarEstudianteScreen() {
       return;
     }
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic.medium();
     setLoading(true);
 
     const success = await updateEstudiante(id, {
@@ -191,7 +196,7 @@ export default function EditarEstudianteScreen() {
   };
 
   const handleDelete = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.light();
 
     Alert.alert(
       'Confirmar eliminación',
@@ -205,7 +210,7 @@ export default function EditarEstudianteScreen() {
           text: 'Eliminar',
           style: 'destructive',
           onPress: async () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            haptic.heavy();
             setLoading(true);
 
             const success = await deleteEstudiante(id);
@@ -245,7 +250,7 @@ export default function EditarEstudianteScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#166534" />
 
       {/* Header */}
-      <View className="bg-admin-700 pt-20 pb-6 px-6 rounded-b-3xl shadow-lg">
+      <View className="bg-admin-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
