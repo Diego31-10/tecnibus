@@ -1,0 +1,305 @@
+import { supabase } from './supabase';
+
+export type Estudiante = {
+  id: string;
+  nombre: string;
+  apellido: string;
+  id_padre: string | null;
+  id_ruta: string | null;
+  created_at: string;
+  // Relaciones
+  padre?: {
+    id: string;
+    nombre: string;
+    apellido: string;
+  };
+  ruta?: {
+    id: string;
+    nombre: string;
+  };
+};
+
+export type CreateEstudianteDto = {
+  nombre: string;
+  apellido: string;
+  id_padre: string | null;
+  id_ruta: string | null;
+};
+
+export type UpdateEstudianteDto = Partial<CreateEstudianteDto>;
+
+/**
+ * Obtiene todos los estudiantes con sus relaciones
+ * Incluye información del padre y ruta asignados
+ */
+export async function getEstudiantes(): Promise<Estudiante[]> {
+  try {
+    const { data, error } = await supabase
+      .from('estudiantes')
+      .select(`
+        id,
+        nombre,
+        apellido,
+        id_padre,
+        id_ruta,
+        created_at,
+        padre:profiles!estudiantes_id_padre_fkey(
+          id,
+          nombre,
+          apellido
+        ),
+        ruta:rutas(
+          id,
+          nombre
+        )
+      `)
+      .order('apellido', { ascending: true })
+      .order('nombre', { ascending: true });
+
+    if (error) {
+      console.error('❌ Error obteniendo estudiantes:', error);
+      throw error;
+    }
+
+    // Mapear datos para tipos correctos
+    const estudiantes = (data || []).map((est: any) => ({
+      id: est.id,
+      nombre: est.nombre,
+      apellido: est.apellido,
+      id_padre: est.id_padre,
+      id_ruta: est.id_ruta,
+      created_at: est.created_at,
+      padre: est.padre ? {
+        id: est.padre.id,
+        nombre: est.padre.nombre,
+        apellido: est.padre.apellido,
+      } : undefined,
+      ruta: est.ruta ? {
+        id: est.ruta.id,
+        nombre: est.ruta.nombre,
+      } : undefined,
+    }));
+
+    console.log(`✅ ${estudiantes.length} estudiantes obtenidos`);
+    return estudiantes;
+  } catch (error) {
+    console.error('❌ Error en getEstudiantes:', error);
+    return [];
+  }
+}
+
+/**
+ * Busca estudiantes por nombre o apellido
+ */
+export async function searchEstudiantes(query: string): Promise<Estudiante[]> {
+  try {
+    const { data, error } = await supabase
+      .from('estudiantes')
+      .select(`
+        id,
+        nombre,
+        apellido,
+        id_padre,
+        id_ruta,
+        created_at,
+        padre:profiles!estudiantes_id_padre_fkey(
+          id,
+          nombre,
+          apellido
+        ),
+        ruta:rutas(
+          id,
+          nombre
+        )
+      `)
+      .or(`nombre.ilike.%${query}%,apellido.ilike.%${query}%`)
+      .order('apellido', { ascending: true });
+
+    if (error) {
+      console.error('❌ Error buscando estudiantes:', error);
+      throw error;
+    }
+
+    return (data || []).map((est: any) => ({
+      id: est.id,
+      nombre: est.nombre,
+      apellido: est.apellido,
+      id_padre: est.id_padre,
+      id_ruta: est.id_ruta,
+      created_at: est.created_at,
+      padre: est.padre ? {
+        id: est.padre.id,
+        nombre: est.padre.nombre,
+        apellido: est.padre.apellido,
+      } : undefined,
+      ruta: est.ruta ? {
+        id: est.ruta.id,
+        nombre: est.ruta.nombre,
+      } : undefined,
+    }));
+  } catch (error) {
+    console.error('❌ Error en searchEstudiantes:', error);
+    return [];
+  }
+}
+
+/**
+ * Crea un nuevo estudiante
+ */
+export async function createEstudiante(dto: CreateEstudianteDto): Promise<Estudiante | null> {
+  try {
+    const { data, error } = await supabase
+      .from('estudiantes')
+      .insert({
+        nombre: dto.nombre.trim(),
+        apellido: dto.apellido.trim(),
+        id_padre: dto.id_padre,
+        id_ruta: dto.id_ruta,
+      })
+      .select(`
+        id,
+        nombre,
+        apellido,
+        id_padre,
+        id_ruta,
+        created_at,
+        padre:profiles!estudiantes_id_padre_fkey(
+          id,
+          nombre,
+          apellido
+        ),
+        ruta:rutas(
+          id,
+          nombre
+        )
+      `)
+      .single();
+
+    if (error) {
+      console.error('❌ Error creando estudiante:', error);
+      throw error;
+    }
+
+    console.log('✅ Estudiante creado:', data);
+    return data as unknown as Estudiante;
+  } catch (error) {
+    console.error('❌ Error en createEstudiante:', error);
+    return null;
+  }
+}
+
+/**
+ * Actualiza un estudiante existente
+ */
+export async function updateEstudiante(
+  id: string,
+  dto: UpdateEstudianteDto
+): Promise<boolean> {
+  try {
+    const updateData: any = {};
+
+    if (dto.nombre !== undefined) updateData.nombre = dto.nombre.trim();
+    if (dto.apellido !== undefined) updateData.apellido = dto.apellido.trim();
+    if (dto.id_padre !== undefined) updateData.id_padre = dto.id_padre;
+    if (dto.id_ruta !== undefined) updateData.id_ruta = dto.id_ruta;
+
+    const { error } = await supabase
+      .from('estudiantes')
+      .update(updateData)
+      .eq('id', id);
+
+    if (error) {
+      console.error('❌ Error actualizando estudiante:', error);
+      throw error;
+    }
+
+    console.log('✅ Estudiante actualizado:', id);
+    return true;
+  } catch (error) {
+    console.error('❌ Error en updateEstudiante:', error);
+    return false;
+  }
+}
+
+/**
+ * Elimina un estudiante
+ */
+export async function deleteEstudiante(id: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('estudiantes')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('❌ Error eliminando estudiante:', error);
+      throw error;
+    }
+
+    console.log('✅ Estudiante eliminado:', id);
+    return true;
+  } catch (error) {
+    console.error('❌ Error en deleteEstudiante:', error);
+    return false;
+  }
+}
+
+/**
+ * Obtiene la lista de padres para el autocomplete
+ * Retorna solo padres activos con nombre y apellido
+ */
+export async function getPadresParaAsignar(): Promise<Array<{
+  id: string;
+  nombre: string;
+  apellido: string;
+  nombreCompleto: string;
+}>> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, nombre, apellido')
+      .eq('rol', 'padre')
+      .order('apellido', { ascending: true })
+      .order('nombre', { ascending: true });
+
+    if (error) {
+      console.error('❌ Error obteniendo padres:', error);
+      throw error;
+    }
+
+    return (data || []).map((padre) => ({
+      id: padre.id,
+      nombre: padre.nombre,
+      apellido: padre.apellido,
+      nombreCompleto: `${padre.nombre} ${padre.apellido}`,
+    }));
+  } catch (error) {
+    console.error('❌ Error en getPadresParaAsignar:', error);
+    return [];
+  }
+}
+
+/**
+ * Obtiene la lista de rutas disponibles
+ */
+export async function getRutasDisponibles(): Promise<Array<{
+  id: string;
+  nombre: string;
+}>> {
+  try {
+    const { data, error } = await supabase
+      .from('rutas')
+      .select('id, nombre')
+      .order('nombre', { ascending: true });
+
+    if (error) {
+      console.error('❌ Error obteniendo rutas:', error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('❌ Error en getRutasDisponibles:', error);
+    return [];
+  }
+}

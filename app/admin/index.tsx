@@ -54,7 +54,12 @@ export default function AdminHomeScreen() {
 
   const handleCardPress = (section: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    console.log(`Navegar a: ${section}`);
+
+    if (section === 'estudiantes') {
+      router.push('/admin/estudiantes/index');
+    } else {
+      console.log(`Navegar a: ${section}`);
+    }
   };
 
   const handleSettings = () => {
