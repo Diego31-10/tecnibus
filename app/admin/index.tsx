@@ -56,7 +56,7 @@ export default function AdminHomeScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     if (section === 'estudiantes') {
-      router.push('/admin/estudiantes/index');
+      router.push('/admin/estudiantes');
     } else {
       console.log(`Navegar a: ${section}`);
     }
@@ -189,12 +189,8 @@ export default function AdminHomeScreen() {
 
           <View className="gap-3">
             {/* Gestionar Estudiantes */}
-            <TouchableOpacity
-              className="bg-primary-50 rounded-xl p-4 flex-row items-center justify-between border-2 border-blue-200"
-              onPress={() => handleCardPress('estudiantes')}
-              activeOpacity={0.7}
-            >
-              <View className="flex-row items-center flex-1">
+            <View className="bg-primary-50 rounded-xl p-4 border-2 border-primary-100">
+              <View className="flex-row items-center mb-3">
                 <View className="bg-primary-600 p-2 rounded-lg">
                   <GraduationCap size={24} color="#ffffff" strokeWidth={2.5} />
                 </View>
@@ -202,13 +198,36 @@ export default function AdminHomeScreen() {
                   <Text className="text-primary-800 font-bold text-base">
                     Gestionar Estudiantes
                   </Text>
-                  <Text className="text-primary-600 text-xs">
-                    Agregar, editar o eliminar estudiantes
+                  <Text className="text-primary-700 text-xs">
+                    Administrar estudiantes y asignaciones
                   </Text>
                 </View>
               </View>
-              <Plus size={20} color="#2563eb" strokeWidth={2.5} />
-            </TouchableOpacity>
+
+              <View className="flex-row gap-2">
+                <TouchableOpacity
+                  className="flex-1 bg-primary-600 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  onPress={() => router.push('/admin/estudiantes')}
+                  activeOpacity={0.7}
+                >
+                  <List size={16} color="#ffffff" strokeWidth={2.5} />
+                  <Text className="text-white font-semibold ml-2 text-sm">
+                    Ver Lista
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="flex-1 bg-primary-700 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  onPress={() => router.push('/admin/estudiantes/crear')}
+                  activeOpacity={0.7}
+                >
+                  <Plus size={16} color="#ffffff" strokeWidth={2.5} />
+                  <Text className="text-white font-semibold ml-2 text-sm">
+                    Crear Nuevo
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
             {/* Gestionar Choferes */}
             <View className="bg-accent-50 rounded-xl p-4 border-2 border-accent-100">

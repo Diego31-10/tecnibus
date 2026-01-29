@@ -43,12 +43,14 @@ export async function getEstudiantes(): Promise<Estudiante[]> {
         id_padre,
         id_ruta,
         created_at,
-        padre:profiles!estudiantes_id_padre_fkey(
-          id,
-          nombre,
-          apellido
+        padres(
+          profiles(
+            id,
+            nombre,
+            apellido
+          )
         ),
-        ruta:rutas(
+        rutas(
           id,
           nombre
         )
@@ -69,14 +71,14 @@ export async function getEstudiantes(): Promise<Estudiante[]> {
       id_padre: est.id_padre,
       id_ruta: est.id_ruta,
       created_at: est.created_at,
-      padre: est.padre ? {
-        id: est.padre.id,
-        nombre: est.padre.nombre,
-        apellido: est.padre.apellido,
+      padre: est.padres?.profiles ? {
+        id: est.padres.profiles.id,
+        nombre: est.padres.profiles.nombre,
+        apellido: est.padres.profiles.apellido,
       } : undefined,
-      ruta: est.ruta ? {
-        id: est.ruta.id,
-        nombre: est.ruta.nombre,
+      ruta: est.rutas ? {
+        id: est.rutas.id,
+        nombre: est.rutas.nombre,
       } : undefined,
     }));
 
@@ -102,12 +104,14 @@ export async function searchEstudiantes(query: string): Promise<Estudiante[]> {
         id_padre,
         id_ruta,
         created_at,
-        padre:profiles!estudiantes_id_padre_fkey(
-          id,
-          nombre,
-          apellido
+        padres(
+          profiles(
+            id,
+            nombre,
+            apellido
+          )
         ),
-        ruta:rutas(
+        rutas(
           id,
           nombre
         )
@@ -127,14 +131,14 @@ export async function searchEstudiantes(query: string): Promise<Estudiante[]> {
       id_padre: est.id_padre,
       id_ruta: est.id_ruta,
       created_at: est.created_at,
-      padre: est.padre ? {
-        id: est.padre.id,
-        nombre: est.padre.nombre,
-        apellido: est.padre.apellido,
+      padre: est.padres?.profiles ? {
+        id: est.padres.profiles.id,
+        nombre: est.padres.profiles.nombre,
+        apellido: est.padres.profiles.apellido,
       } : undefined,
-      ruta: est.ruta ? {
-        id: est.ruta.id,
-        nombre: est.ruta.nombre,
+      ruta: est.rutas ? {
+        id: est.rutas.id,
+        nombre: est.rutas.nombre,
       } : undefined,
     }));
   } catch (error) {
@@ -163,12 +167,14 @@ export async function createEstudiante(dto: CreateEstudianteDto): Promise<Estudi
         id_padre,
         id_ruta,
         created_at,
-        padre:profiles!estudiantes_id_padre_fkey(
-          id,
-          nombre,
-          apellido
+        padres(
+          profiles(
+            id,
+            nombre,
+            apellido
+          )
         ),
-        ruta:rutas(
+        rutas(
           id,
           nombre
         )

@@ -12,7 +12,6 @@ import {
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   ScrollView,
@@ -23,6 +22,7 @@ import {
   View
 } from 'react-native';
 import { AnimatedCard } from '../../../components';
+import Toast from '../../../components/Toast';
 import {
   createEstudiante,
   getPadresParaAsignar,
@@ -60,6 +60,15 @@ export default function CrearEstudianteScreen() {
   const [showPadresModal, setShowPadresModal] = useState(false);
   const [showRutasModal, setShowRutasModal] = useState(false);
   const [searchPadre, setSearchPadre] = useState('');
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  }>({
+    visible: false,
+    message: '',
+    type: 'success',
+  });
 
   useEffect(() => {
     loadData();
@@ -96,17 +105,21 @@ export default function CrearEstudianteScreen() {
   const handleSubmit = async () => {
     // Validaciones
     if (!nombre.trim()) {
-      Alert.alert('Error', 'El nombre es requerido');
+      setToast({ visible: true, message: 'Ingresa el nombre', type: 'warning' });
       return;
     }
 
     if (!apellido.trim()) {
-      Alert.alert('Error', 'El apellido es requerido');
+      setToast({ visible: true, message: 'Ingresa el apellido', type: 'warning' });
       return;
     }
 
     if (!padreSeleccionado) {
-      Alert.alert('Error', 'Debes seleccionar un padre');
+      setToast({
+        visible: true,
+        message: 'Debes seleccionar un padre',
+        type: 'warning',
+      });
       return;
     }
 
@@ -123,14 +136,18 @@ export default function CrearEstudianteScreen() {
     setLoading(false);
 
     if (result) {
-      Alert.alert('Éxito', 'Estudiante creado correctamente', [
-        {
-          text: 'OK',
-          onPress: () => router.back(),
-        },
-      ]);
+      setToast({
+        visible: true,
+        message: 'Estudiante creado correctamente',
+        type: 'success',
+      });
+      setTimeout(() => router.back(), 1500);
     } else {
-      Alert.alert('Error', 'No se pudo crear el estudiante');
+      setToast({
+        visible: true,
+        message: 'No se pudo crear el estudiante',
+        type: 'error',
+      });
     }
   };
 
@@ -398,6 +415,14 @@ export default function CrearEstudianteScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Toast */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast({ ...toast, visible: false })}
+      />
     </View>
   );
 }

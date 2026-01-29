@@ -1,15 +1,15 @@
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   ArrowLeft,
   GraduationCap,
+  MapPin,
   Plus,
   Search,
   User,
-  MapPin,
   UserX
 } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -23,8 +23,7 @@ import {
 import { AnimatedCard } from '../../../components';
 import {
   Estudiante,
-  getEstudiantes,
-  searchEstudiantes
+  getEstudiantes
 } from '../../../lib/services/estudiantes.service';
 
 export default function EstudiantesListScreen() {
@@ -35,20 +34,30 @@ export default function EstudiantesListScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    loadEstudiantes();
-  }, []);
+  // Cargar estudiantes cuando la pantalla recibe foco
+  useFocusEffect(
+    useCallback(() => {
+      loadEstudiantes();
+    }, [])
+  );
 
   useEffect(() => {
     handleSearch(searchQuery);
   }, [searchQuery, estudiantes]);
 
   const loadEstudiantes = async () => {
-    setLoading(true);
-    const data = await getEstudiantes();
-    setEstudiantes(data);
-    setFilteredEstudiantes(data);
-    setLoading(false);
+    try {
+      setLoading(true);
+      const data = await getEstudiantes();
+      setEstudiantes(data);
+      setFilteredEstudiantes(data);
+    } catch (error) {
+      console.error('❌ Error cargando estudiantes:', error);
+      setEstudiantes([]);
+      setFilteredEstudiantes([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRefresh = async () => {
@@ -83,16 +92,16 @@ export default function EstudiantesListScreen() {
 
   const handleEditarEstudiante = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(`/admin/estudiantes/${id}`);
+    router.push(`/admin/estudiantes/${id}` as any);
   };
 
   const renderEstudiante = ({ item, index }: { item: Estudiante; index: number }) => (
-    <AnimatedCard
-      delay={index * 50}
-      className="mb-3"
-      onPress={() => handleEditarEstudiante(item.id)}
-    >
-      <View className="flex-row items-start">
+    <AnimatedCard delay={index * 50} className="mb-3">
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => handleEditarEstudiante(item.id)}
+      >
+        <View className="flex-row items-start">
         {/* Avatar */}
         <View className="bg-primary-100 p-3 rounded-full mr-3">
           <GraduationCap size={24} color="#2563eb" strokeWidth={2} />
@@ -121,7 +130,7 @@ export default function EstudiantesListScreen() {
             )}
           </View>
 
-          {/* Ruta asignada */}
+        {/* Ruta asignada */}
           <View className="flex-row items-center mt-1">
             {item.ruta ? (
               <>
@@ -138,7 +147,8 @@ export default function EstudiantesListScreen() {
             )}
           </View>
         </View>
-      </View>
+        </View>
+      </TouchableOpacity>
     </AnimatedCard>
   );
 
