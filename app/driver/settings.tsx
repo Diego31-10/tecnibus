@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import {
   ChevronRight,
@@ -6,21 +5,27 @@ import {
   UserCircle
 } from 'lucide-react-native';
 import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard } from '../../components';
 import { useAuth } from '../../lib/contexts/AuthContext';
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 
 export default function DriverSettingsScreen() {
   const router = useRouter();
   const { signOut, profile } = useAuth();
+  const insets = useSafeAreaInsets();
+  const paddingTop = Math.max(insets.top + 8, 48);
+  const shadow = createShadow('lg');
 
   const handleLogout = async () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    haptic.warning();
     await signOut();
     router.replace('/login');
   };
 
   const handleViewProfile = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.light();
     router.push('/driver/perfil');
   };
 
@@ -29,7 +34,7 @@ export default function DriverSettingsScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#854d0e" />
 
       {/* Header */}
-      <View className="bg-accent-600 pt-12 pb-6 px-6 rounded-b-3xl shadow-lg">
+      <View className="bg-accent-600 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center">
           <View className="bg-accent-700 p-3 rounded-full mr-4">
             <UserCircle size={28} color="#ffffff" strokeWidth={2.5} />

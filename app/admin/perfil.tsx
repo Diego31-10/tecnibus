@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -20,13 +19,19 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard, Toast } from '../../components';
 import { useAuth } from '../../lib/contexts/AuthContext';
 import { updateProfile } from '../../lib/services/profile.service';
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 
 export default function AdminProfileScreen() {
   const router = useRouter();
   const { profile, refreshProfile } = useAuth();
+  const insets = useSafeAreaInsets();
+  const paddingTop = Math.max(insets.top + 8, 48);
+  const shadow = createShadow('lg');
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as 'success' | 'error' });
@@ -44,18 +49,18 @@ export default function AdminProfileScreen() {
   const handleSave = async () => {
     if (isSaving) return;
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic.medium();
     setIsSaving(true);
 
     const result = await updateProfile(formData);
 
     if (result.success) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptic.success();
       showToast('Perfil actualizado correctamente', 'success');
       await refreshProfile();
       setIsEditing(false);
     } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic.error();
       showToast(result.error || 'Error al actualizar', 'error');
     }
 
@@ -63,7 +68,7 @@ export default function AdminProfileScreen() {
   };
 
   const handleCancel = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.light();
     setFormData({
       nombre: profile?.nombre || '',
       apellido: profile?.apellido || '',
@@ -80,7 +85,7 @@ export default function AdminProfileScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#166534" />
 
       {/* Header */}
-      <View className="bg-admin-700 pt-20 pb-6 px-6 rounded-b-3xl shadow-lg">
+      <View className="bg-admin-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => router.back()}

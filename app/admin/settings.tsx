@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -7,21 +6,28 @@ import {
   User
 } from 'lucide-react-native';
 import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard } from '../../components';
 import { useAuth } from '../../lib/contexts/AuthContext';
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 
 export default function AdminSettingsScreen() {
   const router = useRouter();
   const { signOut, profile } = useAuth();
+  const insets = useSafeAreaInsets();
+
+  const paddingTop = Math.max(insets.top + 8, 48);
+  const shadow = createShadow('lg');
 
   const handleLogout = async () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    haptic.warning();
     await signOut();
     router.replace('/login');
   };
 
   const handleViewProfile = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.light();
     router.push('/admin/perfil');
   };
 
@@ -30,7 +36,7 @@ export default function AdminSettingsScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#166534"  />
 
       {/* Header */}
-      <View className="bg-admin-700 pt-20 pb-6 px-6 rounded-b-3xl shadow-lg">
+      <View className="bg-admin-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center">
           <TouchableOpacity
             onPress={() => router.back()}
