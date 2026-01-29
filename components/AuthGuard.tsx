@@ -13,31 +13,31 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   
     useEffect(() => {
       if (loading) return;
-  
+
       const firstSegment = segments[0];
       const inLoginScreen = firstSegment === 'login' || firstSegment === 'index';
-  
+
       console.log('🔐 AuthGuard - Estado:', {
         user: user?.email,
         role: profile?.rol,
         segments,
       });
-  
+
       // No autenticado → login
       if (!user && !inLoginScreen) {
         router.replace('/login');
         return;
       }
-  
-      // Autenticado → redirección por rol
-      if (user && profile && !inLoginScreen) {
+
+      // Autenticado → redirección por rol (incluso si está en login)
+      if (user && profile) {
         const expectedPath =
           profile.rol === 'admin'
             ? 'admin'
             : profile.rol === 'padre'
             ? 'parent'
             : 'driver';
-  
+
         if (firstSegment !== expectedPath) {
           router.replace(`/${expectedPath}` as any);
         }
