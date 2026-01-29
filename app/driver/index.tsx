@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -13,8 +12,11 @@ import {
 } from 'lucide-react-native';
 import { useState } from 'react';
 import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedButton, AnimatedCard, StatusBadge } from '../../components';
 import { useAuth } from '../../lib/contexts/AuthContext';
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 
 type Student = {
   id: string;
@@ -26,7 +28,11 @@ type Student = {
 export default function DriverHomeScreen() {
   const router = useRouter();
   const { signOut, profile } = useAuth();
+  const insets = useSafeAreaInsets();
   const [routeActive, setRouteActive] = useState(false);
+
+  const paddingTop = Math.max(insets.top + 8, 48);
+  const shadow = createShadow('lg');
 
   const routeName = "Ruta Centro - Norte";
   const routeTime = "07:00 AM";
@@ -69,7 +75,7 @@ export default function DriverHomeScreen() {
   );
 
   const handleSettings = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.light();
     router.push('/driver/settings');
   };
 
@@ -78,7 +84,7 @@ export default function DriverHomeScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#854d0e" />
       
       {/* Header */}
-      <View className="bg-accent-600 pt-12 pb-6 px-6 rounded-b-3xl shadow-lg">
+      <View className="bg-accent-600 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity 
             onPress={() => router.back()}
@@ -174,7 +180,7 @@ export default function DriverHomeScreen() {
             <AnimatedButton
               title="Iniciar Recorrido"
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                haptic.heavy();
                 setRouteActive(true);
               }}
               variant="success"
@@ -185,7 +191,7 @@ export default function DriverHomeScreen() {
             <AnimatedButton
               title="Finalizar Recorrido"
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                haptic.heavy();
                 setRouteActive(false);
               }}
               variant="danger"

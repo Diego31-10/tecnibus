@@ -1,5 +1,5 @@
-import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bus,
   CheckCircle2,
@@ -24,16 +24,20 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedButton, AnimatedCard, StatusBadge } from '../../components';
 import { useAuth } from '../../lib/contexts/AuthContext';
 import {
   EstudianteDelPadre,
   getMyEstudiantes
 } from '../../lib/services/padres.service';
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 
 export default function ParentHomeScreen() {
   const router = useRouter();
   const { signOut } = useAuth();
+  const insets = useSafeAreaInsets();
 
   // Estados
   const [loading, setLoading] = useState(true);
@@ -42,6 +46,9 @@ export default function ParentHomeScreen() {
     useState<EstudianteDelPadre | null>(null);
   const [showSelector, setShowSelector] = useState(false);
   const [isAttending, setIsAttending] = useState(true);
+
+  const paddingTop = Math.max(insets.top + 8, 48);
+  const shadow = createShadow('lg');
 
   // Datos temporales (hasta implementar funcionalidad completa)
   const estimatedTime = '15 minutos';
@@ -65,23 +72,23 @@ export default function ParentHomeScreen() {
   };
 
   const handleSelectEstudiante = (estudiante: EstudianteDelPadre) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.light();
     setEstudianteSeleccionado(estudiante);
     setShowSelector(false);
   };
 
   const handleToggleAttendance = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    haptic.success();
     setIsAttending(!isAttending);
   };
 
   const handleViewDetails = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.light();
     console.log('Ver más detalles');
   };
 
   const handleSettings = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.light();
     router.push('/parent/settings');
   };
 
@@ -118,7 +125,7 @@ export default function ParentHomeScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#1e40af" />
       
       {/* Header */}
-      <View className="bg-primary-700 pt-12 pb-6 px-6 rounded-b-3xl shadow-lg">
+      <View className="bg-primary-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -258,14 +265,19 @@ export default function ParentHomeScreen() {
           delay={200}
           className="mb-4"
         >
-          <View className="bg-gradient-to-r from-accent-50 to-accent-100 rounded-xl p-6 items-center">
+          <LinearGradient
+            colors={['#fefce8', '#fef9c3']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            className="rounded-xl p-6 items-center"
+          >
             <Text className="text-accent-800 text-5xl font-bold">
               {estimatedTime}
             </Text>
             <Text className="text-accent-700 text-sm mt-2 font-semibold">
               Tiempo aproximado
             </Text>
-          </View>
+          </LinearGradient>
 
           <View className="mt-4 bg-gray-50 rounded-xl p-3 flex-row items-start">
             <Info size={18} color="#6b7280" strokeWidth={2} />

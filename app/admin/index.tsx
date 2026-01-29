@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import {
   BarChart3,
@@ -15,13 +14,17 @@ import {
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard } from '../../components';
 import { useAuth } from '../../lib/contexts/AuthContext';
 import { DashboardStats, getDashboardStats } from '../../lib/services/stats.service';
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 
 export default function AdminHomeScreen() {
   const router = useRouter();
   const { signOut, profile } = useAuth();
+  const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<DashboardStats>({
     totalStudents: 0,
     totalDrivers: 0,
@@ -31,6 +34,9 @@ export default function AdminHomeScreen() {
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const paddingTop = Math.max(insets.top + 8, 48);
+  const shadow = createShadow('lg');
 
   useEffect(() => {
     loadStats();
@@ -46,14 +52,14 @@ export default function AdminHomeScreen() {
   const handleRefresh = async () => {
     if (refreshing) return;
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.light();
     setRefreshing(true);
     await loadStats();
     setRefreshing(false);
   };
 
   const handleCardPress = (section: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.light();
 
     if (section === 'estudiantes') {
       router.push('/admin/estudiantes');
@@ -63,7 +69,7 @@ export default function AdminHomeScreen() {
   };
 
   const handleSettings = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic.light();
     router.push('/admin/settings');
   };
 
@@ -72,7 +78,7 @@ export default function AdminHomeScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#166534" />
       
       {/* Header */}
-      <View className="bg-admin-700 pt-20 pb-6 px-6 rounded-b-3xl shadow-lg">
+      <View className="bg-admin-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center">
           <View className="p-3 mr-4">
             <Shield size={28} color="#ffffff" strokeWidth={2.5} />
