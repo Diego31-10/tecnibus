@@ -7,7 +7,9 @@ export type UserRole = 'admin' | 'padre' | 'chofer';
 export type Profile = {
   id: string;
   nombre: string;
+  apellido: string;
   correo: string;
+  telefono: string | null;
   rol: UserRole;
   created_at: string;
 };

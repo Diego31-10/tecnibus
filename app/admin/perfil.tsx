@@ -80,7 +80,7 @@ export default function AdminProfileScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#166534" />
 
       {/* Header */}
-      <View className="bg-admin-700 pt-12 pb-6 px-6 rounded-b-3xl shadow-lg">
+      <View className="bg-admin-700 pt-20 pb-6 px-6 rounded-b-3xl shadow-lg">
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -123,9 +123,6 @@ export default function AdminProfileScreen() {
         </View>
 
         <View className="flex-row items-center">
-          <View className="bg-admin-600 p-3 rounded-full mr-4">
-            <Shield size={28} color="#ffffff" strokeWidth={2.5} />
-          </View>
           <View className="flex-1">
             <Text className="text-white text-2xl font-bold">
               Mi Perfil

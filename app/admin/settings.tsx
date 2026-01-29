@@ -1,9 +1,9 @@
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import {
+  ArrowLeft,
   ChevronRight,
   LogOut,
-  Shield,
   User
 } from 'lucide-react-native';
 import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
@@ -27,19 +27,22 @@ export default function AdminSettingsScreen() {
 
   return (
     <View className="flex-1 bg-admin-50">
-      <StatusBar barStyle="light-content" backgroundColor="#166534" />
+      <StatusBar barStyle="light-content" backgroundColor="#166534"  />
 
       {/* Header */}
-      <View className="bg-admin-700 pt-12 pb-6 px-6 rounded-b-3xl shadow-lg">
+      <View className="bg-admin-700 pt-20 pb-6 px-6 rounded-b-3xl shadow-lg">
         <View className="flex-row items-center">
-          <View className="bg-admin-600 p-3 rounded-full mr-4">
-            <Shield size={28} color="#ffffff" strokeWidth={2.5} />
-          </View>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="bg-admin-600 p-3 rounded-xl mr-4 "
+          >
+            <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
+          </TouchableOpacity>
           <View className="flex-1">
             <Text className="text-white text-2xl font-bold">
               Configuración
             </Text>
-            <Text className="text-admin-200 text-sm mt-1">
+            <Text className="text-white text-xl mt-1">
               {profile?.nombre} {profile?.apellido}
             </Text>
           </View>
