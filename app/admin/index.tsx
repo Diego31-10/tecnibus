@@ -34,10 +34,9 @@ export default function AdminHomeScreen() {
     console.log(`Navegar a: ${section}`);
   };
 
-  const handleLogout = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await signOut();
-    router.replace('/login');
+  const handleSettings = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push('/admin/settings');
   };
 
   return (
@@ -59,11 +58,11 @@ export default function AdminHomeScreen() {
               {'¡Hola '+ profile?.nombre+'!' || 'Institución Educativa'}
             </Text>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             className="bg-admin-600 p-2 rounded-xl"
-            onPress={handleLogout}
+            onPress={handleSettings}
           >
-            <LogOut size={24} color="#ffffff" strokeWidth={2.5} />
+            <Settings size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
       </View>

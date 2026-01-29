@@ -7,6 +7,7 @@ import {
   MapPin,
   Navigation,
   Play,
+  Settings,
   Square,
   Users
 } from 'lucide-react-native';
@@ -67,10 +68,9 @@ export default function DriverHomeScreen() {
     </View>
   );
 
-  const handleLogout = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await signOut();
-    router.replace('/login');
+  const handleSettings = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push('/driver/settings');
   };
 
   return (
@@ -87,11 +87,11 @@ export default function DriverHomeScreen() {
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
           
-          <TouchableOpacity 
+          <TouchableOpacity
             className="bg-accent-700 p-2 rounded-xl"
-            onPress={handleLogout}
+            onPress={handleSettings}
           >
-            <LogOut size={24} color="#ffffff" strokeWidth={2.5} />
+            <Settings size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
 

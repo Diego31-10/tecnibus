@@ -7,6 +7,7 @@ import {
   Info,
   LogOut,
   MapPin,
+  Settings,
   User,
   XCircle
 } from 'lucide-react-native';
@@ -34,10 +35,9 @@ export default function ParentHomeScreen() {
     console.log('Ver más detalles');
   };
 
-  const handleLogout = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await signOut();
-    router.replace('/login');
+  const handleSettings = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push('/parent/settings');
   };
 
   return (
@@ -54,11 +54,11 @@ export default function ParentHomeScreen() {
             <User size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
           
-          <TouchableOpacity 
+          <TouchableOpacity
             className="bg-primary-600 p-2 rounded-xl"
-            onPress={handleLogout}
+            onPress={handleSettings}
           >
-            <LogOut size={24} color="#ffffff" strokeWidth={2.5} />
+            <Settings size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
 
