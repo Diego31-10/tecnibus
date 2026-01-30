@@ -1,3 +1,6 @@
+import { Colors } from '@/lib/constants/colors';
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -8,9 +11,7 @@ import {
 import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard } from '../../components';
-import { useAuth } from '../../lib/contexts/AuthContext';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminSettingsScreen() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function AdminSettingsScreen() {
 
   return (
     <View className="flex-1 bg-admin-50">
-      <StatusBar barStyle="light-content" backgroundColor="#166534"  />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.admin[700]} translucent={false}  />
 
       {/* Header */}
       <View className="bg-admin-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>

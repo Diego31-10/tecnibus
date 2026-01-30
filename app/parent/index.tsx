@@ -26,7 +26,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedButton, AnimatedCard, StatusBadge } from '../../components';
-import { useAuth } from '../../lib/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   EstudianteDelPadre,
   getMyEstudiantes

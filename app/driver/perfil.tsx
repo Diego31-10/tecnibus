@@ -22,7 +22,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard, Toast } from '../../components';
-import { useAuth } from '../../lib/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { updateProfile } from '../../lib/services/profile.service';
 
 export default function DriverProfileScreen() {

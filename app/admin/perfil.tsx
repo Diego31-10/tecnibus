@@ -1,3 +1,4 @@
+import { Colors } from '@/lib/constants/colors';
 import { haptic } from '@/lib/utils/haptics';
 import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
@@ -23,7 +24,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard, Toast } from '../../components';
-import { useAuth } from '../../lib/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { updateProfile } from '../../lib/services/profile.service';
 
 export default function AdminProfileScreen() {
@@ -82,7 +83,7 @@ export default function AdminProfileScreen() {
       className="flex-1 bg-admin-50"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar barStyle="light-content" backgroundColor="#166534" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.admin[700]} translucent={false} />
 
       {/* Header */}
       <View className="bg-admin-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>

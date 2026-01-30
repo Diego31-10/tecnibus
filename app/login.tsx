@@ -22,7 +22,7 @@ import Animated, {
 import { haptic } from '@/lib/utils/haptics';
 import { useShadow } from '@/lib/utils/shadows';
 import { Toast } from '../components';
-import { useAuth } from '../lib/contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginScreen() {
   const router = useRouter();

@@ -1,9 +1,9 @@
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
-import { AuthGuard } from '../components/AuthGuard';
-import "../global.css";
-import { AuthProvider } from '../lib/contexts/AuthContext';
 import { Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthGuard } from '../components/AuthGuard';
+import { AuthProvider } from '../contexts/AuthContext';
+import "../global.css";
 
 export default function RootLayout() {
   return (
@@ -22,10 +22,15 @@ export default function RootLayout() {
             <Stack.Screen name="parent/index" options={{ animation: 'fade', animationDuration: 200 }} />
             <Stack.Screen name="driver/index" options={{ animation: 'fade', animationDuration: 200 }} />
             <Stack.Screen name="admin/index" options={{ animation: 'fade', animationDuration: 200 }} />
-            <Stack.Screen name="admin/choferes/index" />
-            <Stack.Screen name="admin/choferes/crear" />
-            <Stack.Screen name="admin/padres/index" />
-            <Stack.Screen name="admin/padres/crear" />
+            <Stack.Screen name="admin/choferes/index" options={{ animation: 'fade', animationDuration: 200 }}/>
+            <Stack.Screen name="admin/choferes/crear" options={{ animation: 'fade', animationDuration: 200 }}/>
+            <Stack.Screen name="admin/padres/index" options={{ animation: 'fade', animationDuration: 200 }}/>
+            <Stack.Screen name="admin/padres/crear" options={{ animation: 'fade', animationDuration: 200 }}/>
+            <Stack.Screen name="admin/estudiantes/index" options={{ animation: 'fade', animationDuration: 200 }}/>
+            <Stack.Screen name="admin/estudiantes/crear" options={{ animation: 'fade', animationDuration: 200 }}/>
+            <Stack.Screen name="parent/perfil" options={{ animation: 'fade', animationDuration: 200 }}/>
+            <Stack.Screen name="driver/perfil" options={{ animation: 'fade', animationDuration: 200 }}/>
+            <Stack.Screen name="admin/perfil" options={{ animation: 'fade', animationDuration: 200 }}/>  
           </Stack>
         </AuthGuard>
       </AuthProvider>

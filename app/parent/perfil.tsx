@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard, Toast } from '../../components';
-import { useAuth } from '../../lib/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { updateProfile } from '../../lib/services/profile.service';
 import { haptic } from '@/lib/utils/haptics';
 import { createShadow } from '@/lib/utils/shadows';
