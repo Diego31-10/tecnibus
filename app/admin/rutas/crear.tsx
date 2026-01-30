@@ -1,3 +1,4 @@
+import { Colors } from '@/lib/constants/colors';
 import { haptic } from '@/lib/utils/haptics';
 import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
@@ -127,7 +128,7 @@ export default function CrearRutaScreen() {
 
   return (
     <View className="flex-1 bg-admin-50">
-      <StatusBar barStyle="light-content" backgroundColor="#1d4ed8" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.ruta[700]} translucent={false} />
 
       {/* Header */}
       <View className="bg-ruta-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>

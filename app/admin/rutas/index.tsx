@@ -1,3 +1,4 @@
+import { Colors } from '@/lib/constants/colors';
 import { haptic } from '@/lib/utils/haptics';
 import { createShadow } from '@/lib/utils/shadows';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -107,7 +108,7 @@ export default function RutasListScreen() {
           <View className="flex-row items-start">
             {/* Icono */}
             <View className="bg-ruta-100 p-3 rounded-full mr-3">
-              <MapPin size={24} color="#2563eb" strokeWidth={2} />
+              <MapPin size={24} color="#dc2626" strokeWidth={2} />
             </View>
 
             {/* Info de la Ruta */}
@@ -167,7 +168,7 @@ export default function RutasListScreen() {
 
   return (
     <View className="flex-1 bg-admin-50">
-      <StatusBar barStyle="light-content" backgroundColor="#1d4ed8" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.ruta[700]} translucent={false} />
 
       {/* Header */}
       <View className="bg-ruta-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
@@ -220,7 +221,7 @@ export default function RutasListScreen() {
       {/* Lista de rutas */}
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#2563eb" />
+          <ActivityIndicator size="large" color="#dc2626" />
           <Text className="text-gray-500 mt-4">Cargando rutas...</Text>
         </View>
       ) : (
@@ -235,8 +236,8 @@ export default function RutasListScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              colors={['#2563eb']}
-              tintColor="#2563eb"
+              colors={['#dc2626']}
+              tintColor="#dc2626"
             />
           }
         />

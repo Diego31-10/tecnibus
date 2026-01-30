@@ -1,3 +1,4 @@
+import { Colors } from '@/lib/constants/colors';
 import { haptic } from '@/lib/utils/haptics';
 import { createShadow } from '@/lib/utils/shadows';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -439,7 +440,8 @@ export default function EditarRutaScreen() {
   if (loadingData) {
     return (
       <View className="flex-1 bg-admin-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#2563eb" />
+        <StatusBar barStyle="light-content" backgroundColor={Colors.ruta[700]} translucent={false} />
+        <ActivityIndicator size="large" color="#dc2626" />
         <Text className="text-gray-500 mt-4">Cargando datos...</Text>
       </View>
     );
@@ -447,7 +449,7 @@ export default function EditarRutaScreen() {
 
   return (
     <View className="flex-1 bg-admin-50">
-      <StatusBar barStyle="light-content" backgroundColor="#1d4ed8" />
+      <StatusBar barStyle="light-content" backgroundColor="#b91c1c" translucent={false} />
 
       {/* Header */}
       <View className="bg-ruta-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>

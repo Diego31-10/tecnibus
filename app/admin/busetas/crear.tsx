@@ -1,3 +1,4 @@
+import { Colors } from '@/lib/constants/colors';
 import { haptic } from '@/lib/utils/haptics';
 import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
@@ -91,7 +92,7 @@ export default function CrearBusetaScreen() {
 
   return (
     <View className="flex-1 bg-admin-50">
-      <StatusBar barStyle="light-content" backgroundColor="#15803d" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.buseta[700]} translucent={false} />
 
       {/* Header */}
       <View className="bg-buseta-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>

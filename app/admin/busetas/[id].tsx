@@ -1,3 +1,4 @@
+import { Colors } from '@/lib/constants/colors';
 import { haptic } from '@/lib/utils/haptics';
 import { createShadow } from '@/lib/utils/shadows';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -166,6 +167,7 @@ export default function EditarBusetaScreen() {
   if (loadingData) {
     return (
       <View className="flex-1 bg-admin-50 items-center justify-center">
+        <StatusBar barStyle="light-content" backgroundColor={Colors.buseta[700]} translucent={false} />
         <ActivityIndicator size="large" color="#16a34a" />
         <Text className="text-gray-500 mt-4">Cargando datos...</Text>
       </View>
@@ -174,7 +176,7 @@ export default function EditarBusetaScreen() {
 
   return (
     <View className="flex-1 bg-admin-50">
-      <StatusBar barStyle="light-content" backgroundColor="#15803d" />
+      <StatusBar barStyle="light-content" backgroundColor="#15803d" translucent={false} />
 
       {/* Header */}
       <View className="bg-buseta-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
