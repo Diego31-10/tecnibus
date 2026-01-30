@@ -1,6 +1,6 @@
 import * as LocalAuthentication from 'expo-local-authentication';
-import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { Bus, Fingerprint, Lock, Mail } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
@@ -19,10 +19,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { Toast } from '../components';
-import { useAuth } from '../lib/contexts/AuthContext';
 import { haptic } from '@/lib/utils/haptics';
 import { useShadow } from '@/lib/utils/shadows';
+import { Toast } from '../components';
+import { useAuth } from '../lib/contexts/AuthContext';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -337,7 +337,7 @@ useEffect(() => {
 ====================== */
 if (showRedirecting) { // ← CAMBIO AQUÍ
   return (
-    <View className="flex-1 bg-primary-600 items-center justify-center">
+    <View className="flex-1 bg-estudiante-600 items-center justify-center">
       <ActivityIndicator size="large" color="#ffffff" />
       <Text className="text-white mt-4 text-base">
         Redirigiendo...
@@ -350,7 +350,7 @@ if (showRedirecting) { // ← CAMBIO AQUÍ
      UI
   ====================== */
   return (
-    <ScrollView className="flex-1 bg-primary-50">
+    <ScrollView className="flex-1 bg-estudiante-50">
       <StatusBar barStyle="dark-content" backgroundColor="#eff6ff" />
 
       <Toast
@@ -364,14 +364,14 @@ if (showRedirecting) { // ← CAMBIO AQUÍ
         {/* Header */}
         <Animated.View style={logoStyle} className="items-center mb-12">
           <TouchableOpacity onPress={handleLogoPress} activeOpacity={0.8}>
-            <View className="bg-primary-600 rounded-full p-5 mb-4">
+            <View className="bg-estudiante-600 rounded-full p-5 mb-4">
               <Bus size={48} color="#ffffff" strokeWidth={2.5} />
             </View>
-            <Text className="text-4xl font-bold text-primary-800 text-center">
+            <Text className="text-4xl font-bold text-estudiante-800 text-center">
               TecniBus
             </Text>
             <Text className="text-base text-gray-600 mt-2 text-center">
-              Monitoreo de Transporte Escolar
+              Sistema de Gestión de Transporte Escolar
             </Text>
           </TouchableOpacity>
         </Animated.View>
@@ -423,7 +423,7 @@ if (showRedirecting) { // ← CAMBIO AQUÍ
           {/* Button */}
           <TouchableOpacity
             className={`py-4 rounded-xl ${
-              isLoading ? 'bg-gray-300' : 'bg-primary-600'
+              isLoading ? 'bg-gray-300' : 'bg-estudiante-600'
             }`}
             onPress={handleLogin}
             disabled={isLoading}
@@ -446,12 +446,12 @@ if (showRedirecting) { // ← CAMBIO AQUÍ
           {/* Botón de Autenticación Biométrica */}
           {isBiometricSupported && hasSavedCredentials && !isLoading && (
             <TouchableOpacity
-              className="py-4 rounded-xl bg-gray-100 border-2 border-primary-200 mt-3 flex-row items-center justify-center"
+              className="py-4 rounded-xl bg-gray-100 border-2 border-estudiante-200 mt-3 flex-row items-center justify-center"
               onPress={handleBiometricAuth}
               activeOpacity={0.8}
             >
               <Fingerprint size={24} color="#2563eb" strokeWidth={2.5} />
-              <Text className="text-primary-600 text-lg font-bold ml-2">
+              <Text className="text-estudiante-600 text-lg font-bold ml-2">
                 Iniciar con Biometría
               </Text>
             </TouchableOpacity>
@@ -465,7 +465,7 @@ if (showRedirecting) { // ← CAMBIO AQUÍ
 
             <Text className="text-center text-gray-600 text-sm mt-3">
               ¿No tienes cuenta?{' '}
-              <Text className="text-primary-600 font-semibold">
+              <Text className="text-estudiante-600 font-semibold">
                 Contacta a tu institución
               </Text>
             </Text>

@@ -1,3 +1,5 @@
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -25,8 +27,6 @@ import {
   Estudiante,
   getEstudiantes
 } from '../../../lib/services/estudiantes.service';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
 
 export default function EstudiantesListScreen() {
   const router = useRouter();
@@ -108,7 +108,7 @@ export default function EstudiantesListScreen() {
       >
         <View className="flex-row items-start">
         {/* Avatar */}
-        <View className="bg-primary-100 p-3 rounded-full mr-3">
+        <View className="bg-estudiante-100 p-3 rounded-full mr-3">
           <GraduationCap size={24} color="#2563eb" strokeWidth={2} />
         </View>
 
@@ -178,18 +178,18 @@ export default function EstudiantesListScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#166534" />
 
       {/* Header */}
-      <View className="bg-admin-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View className="bg-estudiante-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="bg-admin-600 p-2 rounded-lg"
+            className="bg-estudiante-600 p-2 rounded-lg"
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleCrearEstudiante}
-            className="bg-admin-600 px-4 py-2 rounded-lg flex-row items-center"
+            className="bg-estudiante-600 px-4 py-2 rounded-lg flex-row items-center"
           >
             <Plus size={20} color="#ffffff" strokeWidth={2.5} />
             <Text className="text-white font-semibold ml-1">Nuevo</Text>
@@ -197,7 +197,7 @@ export default function EstudiantesListScreen() {
         </View>
 
         <View className="flex-row items-center">
-          <View className="bg-admin-600 p-3 rounded-full mr-4">
+          <View className="bg-estudiante-600 p-3 rounded-full mr-4">
             <GraduationCap size={28} color="#ffffff" strokeWidth={2.5} />
           </View>
           <View className="flex-1">

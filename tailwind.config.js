@@ -8,7 +8,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: {
+        estudiante: {
           50: '#eff6ff',
           100: '#dbeafe',
           500: '#3b82f6',
@@ -16,7 +16,7 @@ module.exports = {
           700: '#1d4ed8',
           800: '#1e40af',
         },
-        accent: {
+        chofer: {
           50: '#fefce8',
           100: '#fef9c3',
           400: '#facc15',
@@ -25,12 +25,21 @@ module.exports = {
           700: '#a16207',
         },
         admin: {
-          50: '#f0fdf4',
+          50: '#f5fdf0',
+          75: '#ebfbea',
           100: '#dcfce7',
           500: '#22c55e',
           600: '#16a34a',
           700: '#15803d',
           800: '#166534',
+        },
+        padre:{
+          50: '#fdf1ff',
+          100: '#fae1ff',
+          500: '#c026d3',
+          600: '#a21caf',
+          700: '#86198f',
+          800: '#701a75',
         }
       }
     },

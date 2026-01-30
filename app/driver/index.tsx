@@ -1,8 +1,9 @@
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
   Clock,
-  LogOut,
   MapPin,
   Navigation,
   Play,
@@ -15,8 +16,6 @@ import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-nativ
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedButton, AnimatedCard, StatusBadge } from '../../components';
 import { useAuth } from '../../lib/contexts/AuthContext';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
 
 type Student = {
   id: string;
@@ -80,21 +79,21 @@ export default function DriverHomeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-accent-50">
+    <View className="flex-1 bg-chofer-50">
       <StatusBar barStyle="light-content" backgroundColor="#854d0e" />
       
       {/* Header */}
-      <View className="bg-accent-600 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View className="bg-chofer-600 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity 
             onPress={() => router.back()}
-            className="bg-accent-700 p-2 rounded-xl"
+            className="bg-chofer-700 p-2 rounded-xl"
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
           
           <TouchableOpacity
-            className="bg-accent-700 p-2 rounded-xl"
+            className="bg-chofer-700 p-2 rounded-xl"
             onPress={handleSettings}
           >
             <Settings size={24} color="#ffffff" strokeWidth={2.5} />
@@ -108,7 +107,7 @@ export default function DriverHomeScreen() {
             </Text>
             <View className="flex-row items-center mt-2">
               <Clock size={16} color="#fef3c7" strokeWidth={2} />
-              <Text className="text-accent-100 text-sm ml-1">
+              <Text className="text-chofer-100 text-sm ml-1">
                 Hora de salida: {routeTime}
               </Text>
             </View>
@@ -116,7 +115,7 @@ export default function DriverHomeScreen() {
         </View>
 
         {/* Contador de estudiantes */}
-        <View className="bg-accent-700 rounded-xl p-3 mt-4 flex-row items-center justify-between">
+        <View className="bg-chofer-700 rounded-xl p-3 mt-4 flex-row items-center justify-between">
           <View className="flex-row items-center">
             <Users size={20} color="#fef3c7" strokeWidth={2.5} />
             <Text className="text-white font-bold ml-2">
@@ -135,7 +134,7 @@ export default function DriverHomeScreen() {
           title="Mapa de Recorrido"
           icon={Navigation}
           iconColor="#ca8a04"
-          iconBgColor="bg-accent-100"
+          iconBgColor="bg-chofer-100"
           delay={0}
           className="mb-4"
         >
@@ -162,8 +161,8 @@ export default function DriverHomeScreen() {
             <Text className="text-lg font-bold text-gray-800">
               Lista de Estudiantes
             </Text>
-            <View className="bg-accent-100 px-3 py-1 rounded-lg">
-              <Text className="text-accent-700 font-bold text-sm">
+            <View className="bg-chofer-100 px-3 py-1 rounded-lg">
+              <Text className="text-chofer-700 font-bold text-sm">
                 {attendingCount} asisten
               </Text>
             </View>
@@ -202,8 +201,8 @@ export default function DriverHomeScreen() {
         </View>
 
         {/* Nota informativa */}
-        <View className="bg-accent-100 rounded-xl p-4 mb-6">
-          <Text className="text-accent-800 text-sm text-center font-semibold">
+        <View className="bg-chofer-100 rounded-xl p-4 mb-6">
+          <Text className="text-chofer-800 text-sm text-center font-semibold">
             💡 Los estudiantes marcados como "Ausente" han sido notificados por sus padres
           </Text>
         </View>

@@ -1,3 +1,5 @@
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { ArrowLeft, Plus, Trash2, Users } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
@@ -14,8 +16,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from '../../../components/Toast';
 import { eliminarUsuario, obtenerPadres, type Profile } from '../../../lib/services/admin.service';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
 
 export default function ListaPadresScreen() {
   const router = useRouter();
@@ -98,14 +98,14 @@ export default function ListaPadresScreen() {
   };
 
   return (
-    <View className="flex-1 bg-purple-50">
+    <View className="flex-1 bg-padre-50">
       <StatusBar barStyle="light-content" backgroundColor="#7e22ce" />
 
       {/* Header */}
-      <View className="bg-purple-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View className="bg-padre-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center">
           <TouchableOpacity
-            className="bg-purple-600 p-2 rounded-xl mr-4"
+            className="bg-padre-600 p-2 rounded-xl mr-4"
             onPress={() => router.back()}
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
@@ -117,7 +117,7 @@ export default function ListaPadresScreen() {
             </Text>
           </View>
           <TouchableOpacity
-            className="bg-purple-600 p-2 rounded-xl"
+            className="bg-padre-600 p-2 rounded-xl"
             onPress={() => router.push('/admin/padres/crear')}
           >
             <Plus size={24} color="#ffffff" strokeWidth={2.5} />
@@ -144,7 +144,7 @@ export default function ListaPadresScreen() {
                 No hay padres registrados
               </Text>
               <TouchableOpacity
-                className="bg-purple-600 py-3 px-6 rounded-xl mt-4"
+                className="bg-padre-600 py-3 px-6 rounded-xl mt-4"
                 onPress={() => router.push('/admin/padres/crear')}
               >
                 <Text className="text-white font-semibold">Crear Primer Padre</Text>
@@ -156,7 +156,7 @@ export default function ListaPadresScreen() {
                 key={padre.id}
                 className="bg-white rounded-xl p-4 mb-3 flex-row items-center shadow-sm"
               >
-                <View className="bg-purple-100 p-3 rounded-full">
+                <View className="bg-padre-100 p-3 rounded-full">
                   <Users size={28} color="#9333ea" strokeWidth={2} />
                 </View>
                 <View className="flex-1 ml-4">

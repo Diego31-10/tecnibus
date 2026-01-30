@@ -1,3 +1,5 @@
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -22,8 +24,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard, Toast } from '../../components';
 import { useAuth } from '../../lib/contexts/AuthContext';
 import { updateProfile } from '../../lib/services/profile.service';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
 
 export default function DriverProfileScreen() {
   const router = useRouter();
@@ -78,17 +78,17 @@ export default function DriverProfileScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-accent-50"
+      className="flex-1 bg-chofer-50"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle="light-content" backgroundColor="#854d0e" />
 
       {/* Header */}
-      <View className="bg-accent-600 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View className="bg-chofer-600 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="bg-accent-700 p-2 rounded-xl"
+            className="bg-chofer-700 p-2 rounded-xl"
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
@@ -96,7 +96,7 @@ export default function DriverProfileScreen() {
           {!isEditing ? (
             <TouchableOpacity
               onPress={() => setIsEditing(true)}
-              className="bg-accent-700 px-4 py-2 rounded-xl"
+              className="bg-chofer-700 px-4 py-2 rounded-xl"
             >
               <Text className="text-white font-bold">Editar</Text>
             </TouchableOpacity>
@@ -127,14 +127,14 @@ export default function DriverProfileScreen() {
         </View>
 
         <View className="flex-row items-center">
-          <View className="bg-accent-700 p-3 rounded-full mr-4">
+          <View className="bg-chofer-700 p-3 rounded-full mr-4">
             <UserCircle size={28} color="#ffffff" strokeWidth={2.5} />
           </View>
           <View className="flex-1">
             <Text className="text-white text-2xl font-bold">
               Mi Perfil
             </Text>
-            <Text className="text-accent-200 text-sm mt-1">
+            <Text className="text-chofer-200 text-sm mt-1">
               Chofer
             </Text>
           </View>
@@ -239,8 +239,8 @@ export default function DriverProfileScreen() {
                 Rol
               </Text>
             </View>
-            <View className="bg-accent-100 rounded-xl p-4 border-2 border-accent-200">
-              <Text className="text-accent-800 font-bold">
+            <View className="bg-chofer-100 rounded-xl p-4 border-2 border-chofer-200">
+              <Text className="text-chofer-800 font-bold">
                 Chofer
               </Text>
             </View>

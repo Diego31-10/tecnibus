@@ -1,3 +1,5 @@
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
 import {
   BarChart3,
@@ -18,8 +20,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard } from '../../components';
 import { useAuth } from '../../lib/contexts/AuthContext';
 import { DashboardStats, getDashboardStats } from '../../lib/services/stats.service';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
 
 export default function AdminHomeScreen() {
   const router = useRouter();
@@ -110,12 +110,12 @@ export default function AdminHomeScreen() {
             </Text>
             <TouchableOpacity
               onPress={handleRefresh}
-              className={`bg-admin-100 p-2 rounded-lg ${refreshing && 'opacity-60'}`}
+              className={`bg-gray-100 p-2 rounded-lg ${refreshing && 'opacity-60'}`}
               disabled={refreshing}
             >
               <RefreshCw
                 size={20}
-                color="#16a34a"
+                color="black"
                 strokeWidth={2.5}
                 className={refreshing ? 'animate-spin' : ''}
               />
@@ -130,10 +130,10 @@ export default function AdminHomeScreen() {
           ) : (
             <View className="flex-row flex-wrap gap-3">
             {/* Estudiantes */}
-            <View className="flex-1 min-w-[45%] bg-primary-50 rounded-xl p-4">
+            <View className="flex-1 min-w-[45%] bg-estudiante-50 rounded-xl p-4">
               <View className="flex-row items-center justify-between mb-2">
                 <GraduationCap size={24} color="#2563eb" strokeWidth={2.5} />
-                <Text className="text-2xl font-bold text-primary-700">
+                <Text className="text-2xl font-bold text-estudiante-700">
                   {stats.totalStudents}
                 </Text>
               </View>
@@ -143,10 +143,10 @@ export default function AdminHomeScreen() {
             </View>
 
             {/* Choferes */}
-            <View className="flex-1 min-w-[45%] bg-accent-50 rounded-xl p-4">
+            <View className="flex-1 min-w-[45%] bg-chofer-50 rounded-xl p-4">
               <View className="flex-row items-center justify-between mb-2">
                 <UserCircle size={24} color="#ca8a04" strokeWidth={2.5} />
-                <Text className="text-2xl font-bold text-accent-700">
+                <Text className="text-2xl font-bold text-chofer-700">
                   {stats.totalDrivers}
                 </Text>
               </View>
@@ -156,10 +156,10 @@ export default function AdminHomeScreen() {
             </View>
 
             {/* Padres */}
-            <View className="flex-1 min-w-[45%] bg-purple-50 rounded-xl p-4">
+            <View className="flex-1 min-w-[45%] bg-padre-50 rounded-xl p-4">
               <View className="flex-row items-center justify-between mb-2">
                 <Users size={24} color="#9333ea" strokeWidth={2.5} />
-                <Text className="text-2xl font-bold text-purple-700">
+                <Text className="text-2xl font-bold text-padre-700">
                   {stats.totalParents}
                 </Text>
               </View>
@@ -169,10 +169,10 @@ export default function AdminHomeScreen() {
             </View>
 
             {/* Busetas Activas */}
-            <View className="flex-1 min-w-[45%] bg-green-50 rounded-xl p-4">
+            <View className="flex-1 min-w-[45%] bg-admin-75 rounded-xl p-4">
               <View className="flex-row items-center justify-between mb-2">
                 <Bus size={24} color="#16a34a" strokeWidth={2.5} />
-                <Text className="text-2xl font-bold text-green-700">
+                <Text className="text-2xl font-bold text-admin-700">
                   {stats.activeBuses}
                 </Text>
               </View>
@@ -190,21 +190,21 @@ export default function AdminHomeScreen() {
             <Text className="text-lg font-bold text-gray-800">
               Gestión Rápida
             </Text>
-            <BarChart3 size={20} color="#16a34a" strokeWidth={2.5} />
+            <BarChart3 size={20} color="black" strokeWidth={2.5} />
           </View>
 
           <View className="gap-3">
             {/* Gestionar Estudiantes */}
-            <View className="bg-primary-50 rounded-xl p-4 border-2 border-primary-100">
+            <View className="bg-estudiante-50 rounded-xl p-4 border-2 border-estudiante-100">
               <View className="flex-row items-center mb-3">
-                <View className="bg-primary-600 p-2 rounded-lg">
+                <View className="bg-estudiante-600 p-2 rounded-lg">
                   <GraduationCap size={24} color="#ffffff" strokeWidth={2.5} />
                 </View>
                 <View className="ml-3 flex-1">
-                  <Text className="text-primary-800 font-bold text-base">
+                  <Text className="text-estudiante-800 font-bold text-base">
                     Gestionar Estudiantes
                   </Text>
-                  <Text className="text-primary-700 text-xs">
+                  <Text className="text-estudiante-700 text-xs">
                     Administrar estudiantes y asignaciones
                   </Text>
                 </View>
@@ -212,7 +212,7 @@ export default function AdminHomeScreen() {
 
               <View className="flex-row gap-2">
                 <TouchableOpacity
-                  className="flex-1 bg-primary-600 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  className="flex-1 bg-estudiante-600 py-2 px-3 rounded-lg flex-row items-center justify-center"
                   onPress={() => router.push('/admin/estudiantes')}
                   activeOpacity={0.7}
                 >
@@ -223,7 +223,7 @@ export default function AdminHomeScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  className="flex-1 bg-primary-700 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  className="flex-1 bg-estudiante-700 py-2 px-3 rounded-lg flex-row items-center justify-center"
                   onPress={() => router.push('/admin/estudiantes/crear')}
                   activeOpacity={0.7}
                 >
@@ -236,16 +236,16 @@ export default function AdminHomeScreen() {
             </View>
 
             {/* Gestionar Choferes */}
-            <View className="bg-accent-50 rounded-xl p-4 border-2 border-accent-100">
+            <View className="bg-chofer-50 rounded-xl p-4 border-2 border-chofer-100">
               <View className="flex-row items-center mb-3">
-                <View className="bg-accent-600 p-2 rounded-lg">
+                <View className="bg-chofer-600 p-2 rounded-lg">
                   <UserCircle size={24} color="#ffffff" strokeWidth={2.5} />
                 </View>
                 <View className="ml-3 flex-1">
-                  <Text className="text-accent-800 font-bold text-base">
+                  <Text className="text-chofer-800 font-bold text-base">
                     Gestionar Choferes
                   </Text>
-                  <Text className="text-accent-700 text-xs">
+                  <Text className="text-chofer-700 text-xs">
                     Administrar conductores y permisos
                   </Text>
                 </View>
@@ -253,7 +253,7 @@ export default function AdminHomeScreen() {
 
               <View className="flex-row gap-2">
                 <TouchableOpacity
-                  className="flex-1 bg-accent-600 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  className="flex-1 bg-chofer-600 py-2 px-3 rounded-lg flex-row items-center justify-center"
                   onPress={() => router.push('/admin/choferes')}
                   activeOpacity={0.7}
                 >
@@ -264,7 +264,7 @@ export default function AdminHomeScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  className="flex-1 bg-accent-700 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  className="flex-1 bg-chofer-700 py-2 px-3 rounded-lg flex-row items-center justify-center"
                   onPress={() => router.push('/admin/choferes/crear')}
                   activeOpacity={0.7}
                 >
@@ -277,16 +277,16 @@ export default function AdminHomeScreen() {
             </View>
 
             {/* Gestionar Padres */}
-            <View className="bg-purple-50 rounded-xl p-4 border-2 border-purple-200">
+            <View className="bg-padre-50 rounded-xl p-4 border-2 border-padre-100">
               <View className="flex-row items-center mb-3">
-                <View className="bg-purple-600 p-2 rounded-lg">
+                <View className="bg-padre-600 p-2 rounded-lg">
                   <Users size={24} color="#ffffff" strokeWidth={2.5} />
                 </View>
                 <View className="ml-3 flex-1">
-                  <Text className="text-purple-800 font-bold text-base">
+                  <Text className="text-padre-800 font-bold text-base">
                     Gestionar Padres
                   </Text>
-                  <Text className="text-purple-700 text-xs">
+                  <Text className="text-padre-700 text-xs">
                     Administrar cuentas de padres
                   </Text>
                 </View>
@@ -294,7 +294,7 @@ export default function AdminHomeScreen() {
 
               <View className="flex-row gap-2">
                 <TouchableOpacity
-                  className="flex-1 bg-purple-600 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  className="flex-1 bg-padre-600 py-2 px-3 rounded-lg flex-row items-center justify-center"
                   onPress={() => router.push('/admin/padres')}
                   activeOpacity={0.7}
                 >
@@ -305,7 +305,7 @@ export default function AdminHomeScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  className="flex-1 bg-purple-700 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  className="flex-1 bg-padre-700 py-2 px-3 rounded-lg flex-row items-center justify-center"
                   onPress={() => router.push('/admin/padres/crear')}
                   activeOpacity={0.7}
                 >

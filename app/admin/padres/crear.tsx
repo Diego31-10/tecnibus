@@ -1,3 +1,5 @@
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff, Lock, Mail, Save, User } from 'lucide-react-native';
 import { useState } from 'react';
@@ -15,8 +17,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from '../../../components/Toast';
 import { crearUsuario } from '../../../lib/services/admin.service';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
 
 export default function CrearPadreScreen() {
   const router = useRouter();
@@ -87,14 +87,14 @@ export default function CrearPadreScreen() {
   };
 
   return (
-    <View className="flex-1 bg-purple-50">
+    <View className="flex-1 bg-padre-50">
       <StatusBar barStyle="light-content" backgroundColor="#7e22ce" />
 
       {/* Header */}
-      <View className="bg-purple-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View className="bg-padre-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center">
           <TouchableOpacity
-            className="bg-purple-600 p-2 rounded-xl mr-4"
+            className="bg-padre-600 p-2 rounded-xl mr-4"
             onPress={() => router.back()}
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
@@ -191,7 +191,7 @@ export default function CrearPadreScreen() {
             {/* Botón Crear */}
             <TouchableOpacity
               className={`py-4 rounded-xl flex-row items-center justify-center ${
-                loading ? 'bg-purple-400' : 'bg-purple-600'
+                loading ? 'bg-padre-400' : 'bg-padre-600'
               }`}
               onPress={handleCrear}
               disabled={loading}
@@ -208,8 +208,8 @@ export default function CrearPadreScreen() {
             </TouchableOpacity>
           </View>
 
-          <View className="bg-purple-100 rounded-xl p-4 mt-4 mb-6">
-            <Text className="text-purple-800 text-sm text-center">
+          <View className="bg-padre-100 rounded-xl p-4 mt-4 mb-6">
+            <Text className="text-padre-800 text-sm text-center">
               El padre podrá ver información de sus estudiantes y marcar asistencia.
             </Text>
           </View>

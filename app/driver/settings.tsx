@@ -1,3 +1,5 @@
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
 import {
   ChevronRight,
@@ -8,8 +10,6 @@ import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-nativ
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard } from '../../components';
 import { useAuth } from '../../lib/contexts/AuthContext';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
 
 export default function DriverSettingsScreen() {
   const router = useRouter();
@@ -30,20 +30,20 @@ export default function DriverSettingsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-accent-50">
+    <View className="flex-1 bg-chofer-50">
       <StatusBar barStyle="light-content" backgroundColor="#854d0e" />
 
       {/* Header */}
-      <View className="bg-accent-600 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View className="bg-chofer-600 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center">
-          <View className="bg-accent-700 p-3 rounded-full mr-4">
+          <View className="bg-chofer-700 p-3 rounded-full mr-4">
             <UserCircle size={28} color="#ffffff" strokeWidth={2.5} />
           </View>
           <View className="flex-1">
             <Text className="text-white text-2xl font-bold">
               Configuración
             </Text>
-            <Text className="text-accent-200 text-sm mt-1">
+            <Text className="text-chofer-200 text-sm mt-1">
               {profile?.nombre} {profile?.apellido}
             </Text>
           </View>
@@ -64,7 +64,7 @@ export default function DriverSettingsScreen() {
             activeOpacity={0.7}
           >
             <View className="flex-row items-center flex-1">
-              <View className="bg-accent-100 p-2 rounded-lg">
+              <View className="bg-chofer-100 p-2 rounded-lg">
                 <UserCircle size={24} color="#ca8a04" strokeWidth={2.5} />
               </View>
               <View className="ml-3 flex-1">
@@ -110,8 +110,8 @@ export default function DriverSettingsScreen() {
         </AnimatedCard>
 
         {/* Nota informativa */}
-        <View className="bg-accent-100 rounded-xl p-4 mb-6">
-          <Text className="text-accent-800 text-sm text-center font-semibold">
+        <View className="bg-chofer-100 rounded-xl p-4 mb-6">
+          <Text className="text-chofer-800 text-sm text-center font-semibold">
             🚐 Configuración de cuenta de chofer
           </Text>
         </View>

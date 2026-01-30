@@ -1,3 +1,5 @@
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { ArrowLeft, Plus, Trash2, UserCircle } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
@@ -14,8 +16,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from '../../../components/Toast';
 import { eliminarUsuario, obtenerChoferes, type Profile } from '../../../lib/services/admin.service';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
 
 export default function ListaChoferesScreen() {
   const router = useRouter();
@@ -98,14 +98,14 @@ export default function ListaChoferesScreen() {
   };
 
   return (
-    <View className="flex-1 bg-accent-50">
+    <View className="flex-1 bg-chofer-50">
       <StatusBar barStyle="light-content" backgroundColor="#a16207" />
 
       {/* HEADER */}
-      <View className="bg-accent-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View className="bg-chofer-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center">
           <TouchableOpacity
-            className="bg-accent-600 p-2 rounded-xl mr-4"
+            className="bg-chofer-600 p-2 rounded-xl mr-4"
             onPress={() => router.back()}
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
@@ -117,7 +117,7 @@ export default function ListaChoferesScreen() {
             </Text>
           </View>
           <TouchableOpacity
-            className="bg-accent-600 p-2 rounded-xl"
+            className="bg-chofer-600 p-2 rounded-xl"
             onPress={() => router.push('/admin/choferes/crear')}
           >
             <Plus size={24} color="#ffffff" strokeWidth={2.5} />
@@ -144,7 +144,7 @@ export default function ListaChoferesScreen() {
                 No hay choferes registrados
               </Text>
               <TouchableOpacity
-                className="bg-accent-600 py-3 px-6 rounded-xl mt-4"
+                className="bg-chofer-600 py-3 px-6 rounded-xl mt-4"
                 onPress={() => router.push('/admin/choferes/crear')}
               >
                 <Text className="text-white font-semibold">Crear Primer Chofer</Text>
@@ -156,7 +156,7 @@ export default function ListaChoferesScreen() {
                 key={chofer.id}
                 className="bg-white rounded-xl p-4 mb-3 flex-row items-center shadow-sm"
               >
-                <View className="bg-accent-100 p-3 rounded-full">
+                <View className="bg-chofer-100 p-3 rounded-full">
                   <UserCircle size={28} color="#ca8a04" strokeWidth={2} />
                 </View>
                 <View className="flex-1 ml-4">

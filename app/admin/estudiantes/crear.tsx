@@ -1,3 +1,5 @@
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -28,8 +30,6 @@ import {
   getPadresParaAsignar,
   getRutasDisponibles
 } from '../../../lib/services/estudiantes.service';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
 
 type Padre = {
   id: string;
@@ -170,18 +170,18 @@ export default function CrearEstudianteScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#166534" />
 
       {/* Header */}
-      <View className="bg-admin-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View className="bg-estudiante-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="bg-admin-600 p-2 rounded-lg"
+            className="bg-estudiante-600 p-2 rounded-lg"
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
 
         <View className="flex-row items-center">
-          <View className="bg-admin-600 p-3 rounded-full mr-4">
+          <View className="bg-estudiante-600 p-3 rounded-full mr-4">
             <GraduationCap size={28} color="#ffffff" strokeWidth={2.5} />
           </View>
           <View className="flex-1">
@@ -237,7 +237,7 @@ export default function CrearEstudianteScreen() {
           >
             {padreSeleccionado ? (
               <View className="flex-row items-center flex-1">
-                <User size={18} color="#16a34a" strokeWidth={2} />
+                <User size={18} className='text-padre-500' strokeWidth={2} />
                 <Text className="text-base text-gray-800 ml-2">
                   {padreSeleccionado.nombreCompleto}
                 </Text>
@@ -285,7 +285,7 @@ export default function CrearEstudianteScreen() {
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={loading}
-          className={`bg-admin-600 rounded-xl py-4 mb-8 mt-4 ${
+          className={`bg-estudiante-600 rounded-xl py-4 mb-8 mt-4 ${
             loading ? 'opacity-60' : ''
           }`}
         >
@@ -348,8 +348,8 @@ export default function CrearEstudianteScreen() {
                   onPress={() => handleSelectPadre(item)}
                   className="px-6 py-4 border-b border-gray-100 flex-row items-center"
                 >
-                  <View className="bg-primary-100 p-2 rounded-full mr-3">
-                    <User size={20} color="#2563eb" strokeWidth={2} />
+                  <View className="bg-padre-100 p-2 rounded-full mr-3">
+                    <User size={20} className='text-padre-500' strokeWidth={2} />
                   </View>
                   <Text className="text-base text-gray-800 flex-1">
                     {item.nombreCompleto}

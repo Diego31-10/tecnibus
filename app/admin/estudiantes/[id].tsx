@@ -1,3 +1,5 @@
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -32,8 +34,6 @@ import {
   getRutasDisponibles,
   updateEstudiante
 } from '../../../lib/services/estudiantes.service';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
 
 type Padre = {
   id: string;
@@ -429,7 +429,7 @@ export default function EditarEstudianteScreen() {
                   onPress={() => handleSelectPadre(item)}
                   className="px-6 py-4 border-b border-gray-100 flex-row items-center"
                 >
-                  <View className="bg-primary-100 p-2 rounded-full mr-3">
+                  <View className="bg-estudiante-100 p-2 rounded-full mr-3">
                     <User size={20} color="#2563eb" strokeWidth={2} />
                   </View>
                   <Text className="text-base text-gray-800 flex-1">

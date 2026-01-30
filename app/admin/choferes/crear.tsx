@@ -1,3 +1,5 @@
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff, Lock, Mail, Save, User } from 'lucide-react-native';
 import { useState } from 'react';
@@ -15,8 +17,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from '../../../components/Toast';
 import { crearUsuario } from '../../../lib/services/admin.service';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
 
 export default function CrearChoferScreen() {
   const router = useRouter();
@@ -87,14 +87,14 @@ export default function CrearChoferScreen() {
   };
 
   return (
-    <View className="flex-1 bg-accent-50">
+    <View className="flex-1 bg-chofer-50">
       <StatusBar barStyle="light-content" backgroundColor="#a16207" />
 
       {/* Header */}
-      <View className="bg-accent-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View className="bg-chofer-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center">
           <TouchableOpacity
-            className="bg-accent-600 p-2 rounded-xl mr-4"
+            className="bg-chofer-600 p-2 rounded-xl mr-4"
             onPress={() => router.back()}
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
@@ -191,7 +191,7 @@ export default function CrearChoferScreen() {
             {/* Botón Crear */}
             <TouchableOpacity
               className={`py-4 rounded-xl flex-row items-center justify-center ${
-                loading ? 'bg-accent-400' : 'bg-accent-600'
+                loading ? 'bg-chofer-400' : 'bg-chofer-600'
               }`}
               onPress={handleCrear}
               disabled={loading}
@@ -208,8 +208,8 @@ export default function CrearChoferScreen() {
             </TouchableOpacity>
           </View>
 
-          <View className="bg-accent-100 rounded-xl p-4 mt-4 mb-6">
-            <Text className="text-accent-800 text-sm text-center">
+          <View className="bg-chofer-100 rounded-xl p-4 mt-4 mb-6">
+            <Text className="text-chofer-800 text-sm text-center">
               El chofer recibirá acceso para gestionar recorridos y ver estudiantes asignados.
             </Text>
           </View>

@@ -1,3 +1,5 @@
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -23,8 +25,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard, Toast } from '../../components';
 import { useAuth } from '../../lib/contexts/AuthContext';
 import { updateProfile } from '../../lib/services/profile.service';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
 
 export default function AdminProfileScreen() {
   const router = useRouter();
@@ -86,14 +86,21 @@ export default function AdminProfileScreen() {
 
       {/* Header */}
       <View className="bg-admin-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
-        <View className="flex-row items-center justify-between mb-4">
+        <View className="flex-row items-center justify-between">
           <TouchableOpacity
             onPress={() => router.back()}
             className="bg-admin-600 p-2 rounded-xl"
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
-
+          <View className='items-center'>
+            <Text className="text-white text-2xl font-bold ">
+              Mi Perfil
+            </Text>
+            <Text className="text-white text-xl mt-1 ">
+              Administrador
+            </Text>
+          </View>
           {!isEditing ? (
             <TouchableOpacity
               onPress={() => setIsEditing(true)}
@@ -128,14 +135,7 @@ export default function AdminProfileScreen() {
         </View>
 
         <View className="flex-row items-center">
-          <View className="flex-1">
-            <Text className="text-white text-2xl font-bold">
-              Mi Perfil
-            </Text>
-            <Text className="text-admin-200 text-sm mt-1">
-              Administrador
-            </Text>
-          </View>
+          
         </View>
       </View>
 
