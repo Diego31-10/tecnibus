@@ -4,7 +4,6 @@ export type Buseta = {
   id: string;
   placa: string;
   capacidad: number;
-  created_at?: string;
 };
 
 export type CreateBusetaDto = {
@@ -21,7 +20,7 @@ export async function getBusetas(): Promise<Buseta[]> {
   try {
     const { data, error } = await supabase
       .from('busetas')
-      .select('id, placa, capacidad, created_at')
+      .select('id, placa, capacidad')
       .order('placa', { ascending: true });
 
     if (error) {
@@ -44,7 +43,7 @@ export async function searchBusetas(query: string): Promise<Buseta[]> {
   try {
     const { data, error } = await supabase
       .from('busetas')
-      .select('id, placa, capacidad, created_at')
+      .select('id, placa, capacidad')
       .ilike('placa', `%${query}%`)
       .order('placa', { ascending: true });
 
@@ -71,7 +70,7 @@ export async function createBuseta(dto: CreateBusetaDto): Promise<Buseta | null>
         placa: dto.placa.trim().toUpperCase(),
         capacidad: dto.capacidad,
       })
-      .select('id, placa, capacidad, created_at')
+      .select('id, placa, capacidad')
       .single();
 
     if (error) {

@@ -17,7 +17,6 @@ export type Ruta = {
   hora_inicio: string | null;
   hora_fin: string | null;
   estado: string | null;
-  created_at?: string;
   paradas?: Parada[];
 };
 
@@ -55,7 +54,6 @@ export async function getRutas(): Promise<Ruta[]> {
         hora_inicio,
         hora_fin,
         estado,
-        created_at,
         paradas(
           id,
           nombre,
@@ -93,8 +91,7 @@ export async function getRutaById(id: string): Promise<Ruta | null> {
         nombre,
         hora_inicio,
         hora_fin,
-        estado,
-        created_at
+        estado
       `)
       .eq('id', id)
       .single();
@@ -130,7 +127,7 @@ export async function createRuta(dto: CreateRutaDto): Promise<Ruta | null> {
         hora_fin: dto.hora_fin,
         estado: dto.estado || 'activa',
       })
-      .select('id, nombre, hora_inicio, hora_fin, estado, created_at')
+      .select('id, nombre, hora_inicio, hora_fin, estado')
       .single();
 
     if (error) {
