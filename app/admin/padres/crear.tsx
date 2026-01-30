@@ -1,3 +1,4 @@
+import { Colors } from '@/lib/constants/colors';
 import { haptic } from '@/lib/utils/haptics';
 import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
@@ -88,7 +89,7 @@ export default function CrearPadreScreen() {
 
   return (
     <View className="flex-1 bg-padre-50">
-      <StatusBar barStyle="light-content" backgroundColor="#7e22ce" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.padre[700]} translucent={false} />
 
       {/* Header */}
       <View className="bg-padre-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>

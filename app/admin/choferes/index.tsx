@@ -1,3 +1,4 @@
+import { Colors } from '@/lib/constants/colors';
 import { haptic } from '@/lib/utils/haptics';
 import { createShadow } from '@/lib/utils/shadows';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -99,7 +100,7 @@ export default function ListaChoferesScreen() {
 
   return (
     <View className="flex-1 bg-chofer-50">
-      <StatusBar barStyle="light-content" backgroundColor="#a16207" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.chofer[700]} translucent={false} />
 
       {/* HEADER */}
       <View className="bg-chofer-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
