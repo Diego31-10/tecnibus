@@ -61,10 +61,24 @@ export default function AdminHomeScreen() {
   const handleCardPress = (section: string) => {
     haptic.light();
 
-    if (section === 'estudiantes') {
-      router.push('/admin/estudiantes');
-    } else {
-      console.log(`Navegar a: ${section}`);
+    switch (section) {
+      case 'estudiantes':
+        router.push('/admin/estudiantes');
+        break;
+      case 'rutas':
+        router.push('/admin/rutas');
+        break;
+      case 'busetas':
+        router.push('/admin/busetas');
+        break;
+      case 'choferes':
+        router.push('/admin/choferes');
+        break;
+      case 'padres':
+        router.push('/admin/padres');
+        break;
+      default:
+        console.log(`Navegar a: ${section}`);
     }
   };
 
