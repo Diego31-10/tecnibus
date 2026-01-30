@@ -1,3 +1,4 @@
+import { Colors } from '@/lib/constants/colors';
 import { haptic } from '@/lib/utils/haptics';
 import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
@@ -18,7 +19,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard } from '../../components';
-import { useAuth } from '../../lib/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { DashboardStats, getDashboardStats } from '../../lib/services/stats.service';
 
 export default function AdminHomeScreen() {
@@ -89,7 +90,7 @@ export default function AdminHomeScreen() {
 
   return (
     <View className="flex-1 bg-admin-50">
-      <StatusBar barStyle="light-content" backgroundColor="#166534" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.admin[700]} />
       
       {/* Header */}
       <View className="bg-admin-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
@@ -146,7 +147,7 @@ export default function AdminHomeScreen() {
             {/* Estudiantes */}
             <View className="flex-1 min-w-[45%] bg-estudiante-50 rounded-xl p-4">
               <View className="flex-row items-center justify-between mb-2">
-                <GraduationCap size={24} color="#2563eb" strokeWidth={2.5} />
+                <GraduationCap size={24} color={Colors.estudiante[700]} strokeWidth={2.5} />
                 <Text className="text-2xl font-bold text-estudiante-700">
                   {stats.totalStudents}
                 </Text>
@@ -183,10 +184,10 @@ export default function AdminHomeScreen() {
             </View>
 
             {/* Busetas Activas */}
-            <View className="flex-1 min-w-[45%] bg-admin-75 rounded-xl p-4">
+            <View className="flex-1 min-w-[45%] bg-buseta-50 rounded-xl p-4">
               <View className="flex-row items-center justify-between mb-2">
-                <Bus size={24} color="#16a34a" strokeWidth={2.5} />
-                <Text className="text-2xl font-bold text-admin-700">
+                <Bus size={24} color="#279150" strokeWidth={2.5} />
+                <Text className="text-2xl font-bold text-buseta-700">
                   {stats.activeBuses}
                 </Text>
               </View>
@@ -330,50 +331,86 @@ export default function AdminHomeScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+            {/* Gestionar Busetas */}
+            <View className="bg-buseta-50 rounded-xl p-4 border-2 border-buseta-100">
+              <View className="flex-row items-center mb-3">
+                <View className="bg-buseta-600 p-2 rounded-lg">
+                  <Bus size={24} color="#ffffff" strokeWidth={2.5} />
+                </View>
+                <View className="ml-3 flex-1">
+                  <Text className="text-buseta-800 font-bold text-base">
+                    Gestionar Busetas
+                  </Text>
+                  <Text className="text-buseta-700 text-xs">
+                    Administrar vehículos y capacidad
+                  </Text>
+                </View>
+              </View>
 
+              <View className="flex-row gap-2">
+                <TouchableOpacity
+                  className="flex-1 bg-buseta-600 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  onPress={() => router.push('/admin/busetas')}
+                  activeOpacity={0.7}
+                >
+                  <List size={16} color="#ffffff" strokeWidth={2.5} />
+                  <Text className="text-white font-semibold ml-2 text-sm">
+                    Ver Lista
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="flex-1 bg-buseta-700 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  onPress={() => router.push('/admin/busetas/crear')}
+                  activeOpacity={0.7}
+                >
+                  <Plus size={16} color="#ffffff" strokeWidth={2.5} />
+                  <Text className="text-white font-semibold ml-2 text-sm">
+                    Crear Nueva
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
             {/* Gestionar Rutas */}
-            <TouchableOpacity
-              className="bg-blue-50 rounded-xl p-4 flex-row items-center justify-between border-2 border-blue-200"
-              onPress={() => handleCardPress('rutas')}
-              activeOpacity={0.7}
-            >
-              <View className="flex-row items-center flex-1">
-                <View className="bg-blue-600 p-2 rounded-lg">
+            <View className="bg-ruta-50 rounded-xl p-4 border-2 border-ruta-100">
+              <View className="flex-row items-center mb-3">
+                <View className="bg-ruta-600 p-2 rounded-lg">
                   <MapPin size={24} color="#ffffff" strokeWidth={2.5} />
                 </View>
                 <View className="ml-3 flex-1">
-                  <Text className="text-blue-800 font-bold text-base">
+                  <Text className="text-ruta-800 font-bold text-base">
                     Gestionar Rutas
                   </Text>
-                  <Text className="text-blue-700 text-xs">
+                  <Text className="text-ruta-700 text-xs">
                     Configurar recorridos y paradas
                   </Text>
                 </View>
               </View>
-              <Plus size={20} color="#2563eb" strokeWidth={2.5} />
-            </TouchableOpacity>
 
-            {/* Gestionar Busetas */}
-            <TouchableOpacity
-              className="bg-green-50 rounded-xl p-4 flex-row items-center justify-between border-2 border-green-200"
-              onPress={() => handleCardPress('busetas')}
-              activeOpacity={0.7}
-            >
-              <View className="flex-row items-center flex-1">
-                <View className="bg-green-600 p-2 rounded-lg">
-                  <Bus size={24} color="#ffffff" strokeWidth={2.5} />
-                </View>
-                <View className="ml-3 flex-1">
-                  <Text className="text-green-800 font-bold text-base">
-                    Gestionar Busetas
+              <View className="flex-row gap-2">
+                <TouchableOpacity
+                  className="flex-1 bg-ruta-600 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  onPress={() => router.push('/admin/rutas')}
+                  activeOpacity={0.7}
+                >
+                  <List size={16} color="#ffffff" strokeWidth={2.5} />
+                  <Text className="text-white font-semibold ml-2 text-sm">
+                    Ver Lista
                   </Text>
-                  <Text className="text-green-700 text-xs">
-                    Registrar vehículos y asignaciones
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="flex-1 bg-ruta-700 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                  onPress={() => router.push('/admin/rutas/crear')}
+                  activeOpacity={0.7}
+                >
+                  <Plus size={16} color="#ffffff" strokeWidth={2.5} />
+                  <Text className="text-white font-semibold ml-2 text-sm">
+                    Crear Nueva
                   </Text>
-                </View>
+                </TouchableOpacity>
               </View>
-              <Plus size={20} color="#16a34a" strokeWidth={2.5} />
-            </TouchableOpacity>
+            </View>
           </View>
         </AnimatedCard>
 
