@@ -85,14 +85,20 @@ export async function getEstadoRecorridoPorRuta(
   idRuta: string
 ): Promise<EstadoRecorridoConAsignacion | null> {
   try {
+    console.log('🔍 getEstadoRecorridoPorRuta - ID Ruta:', idRuta);
+
     const { data, error } = await supabase.rpc('get_estado_recorrido_por_ruta', {
       p_id_ruta: idRuta,
     });
+
+    console.log('📡 RPC Response - Data:', data, 'Error:', error);
 
     if (error) throw error;
 
     // La función devuelve un array, tomamos el primer elemento
     const estado = Array.isArray(data) && data.length > 0 ? data[0] : null;
+
+    console.log('📊 Estado procesado:', estado);
 
     return estado
       ? {

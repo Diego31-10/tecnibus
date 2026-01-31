@@ -109,9 +109,12 @@ export default function ParentHomeScreen() {
 
   // Suscripción en tiempo real a cambios en estados de recorrido
   useEffect(() => {
-    if (!idAsignacion) return;
+    if (!idAsignacion) {
+      console.log('⚠️ No hay idAsignacion, no se puede suscribir a cambios');
+      return;
+    }
 
-    console.log('🔔 Padre: Suscribiendo a cambios en estado del recorrido...');
+    console.log('🔔 Padre: Suscribiendo a cambios en estado del recorrido para asignación:', idAsignacion);
 
     const channel = supabase
       .channel('estados-recorrido-padre-changes')
@@ -128,7 +131,9 @@ export default function ParentHomeScreen() {
           cargarEstadoRecorrido();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Estado de suscripción a estados_recorrido:', status);
+      });
 
     return () => {
       console.log('🔕 Padre: Desuscribiendo de cambios en estados de recorrido');
@@ -161,14 +166,22 @@ export default function ParentHomeScreen() {
   };
 
   const cargarEstadoRecorrido = async () => {
-    if (!estudianteSeleccionado?.parada?.ruta?.id) return;
+    if (!estudianteSeleccionado?.parada?.ruta?.id) {
+      console.log('⚠️ No hay ruta para cargar estado');
+      return;
+    }
 
     try {
+      console.log('🔍 Cargando estado del recorrido para ruta:', estudianteSeleccionado.parada.ruta.id);
       const estado = await getEstadoRecorridoPorRuta(estudianteSeleccionado.parada.ruta.id);
+      console.log('📊 Estado del recorrido:', estado);
+
       setChoferEnCamino(estado?.activo || false);
       setIdAsignacion(estado?.id_asignacion || null);
+
+      console.log('✅ Estado actualizado - En camino:', estado?.activo, '- ID Asignación:', estado?.id_asignacion);
     } catch (error) {
-      console.error('Error cargando estado del recorrido:', error);
+      console.error('❌ Error cargando estado del recorrido:', error);
       setChoferEnCamino(false);
     }
   };
