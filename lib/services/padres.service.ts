@@ -31,26 +31,8 @@ export async function getMyEstudiantes(): Promise<EstudianteDelPadre[]> {
       return [];
     }
 
-    const { data, error } = await supabase
-      .from('estudiantes')
-      .select(
-        `
-        id,
-        nombre,
-        apellido,
-        id_parada,
-        paradas(
-          id,
-          nombre,
-          rutas(
-            id,
-            nombre
-          )
-        )
-      `
-      )
-      .eq('id_padre', user.id)
-      .order('nombre', { ascending: true });
+    // Usar función RPC para evitar recursión en RLS
+    const { data, error } = await supabase.rpc('get_mis_estudiantes_con_ruta');
 
     if (error) {
       console.error('❌ Error obteniendo mis estudiantes:', error);
@@ -64,14 +46,14 @@ export async function getMyEstudiantes(): Promise<EstudianteDelPadre[]> {
       apellido: est.apellido,
       nombreCompleto: `${est.nombre} ${est.apellido}`,
       id_parada: est.id_parada,
-      parada: est.paradas
+      parada: est.id_parada
         ? {
-            id: est.paradas.id,
-            nombre: est.paradas.nombre,
-            ruta: est.paradas.rutas
+            id: est.id_parada,
+            nombre: est.parada_nombre,
+            ruta: est.ruta_id
               ? {
-                  id: est.paradas.rutas.id,
-                  nombre: est.paradas.rutas.nombre,
+                  id: est.ruta_id,
+                  nombre: est.ruta_nombre,
                 }
               : undefined,
           }
