@@ -2,7 +2,7 @@ import { View, Text } from 'react-native';
 import { CheckCircle2, XCircle, LucideIcon } from 'lucide-react-native';
 
 type StatusBadgeProps = {
-  status: 'attending' | 'absent' | 'active' | 'inactive';
+  status: 'attending' | 'absent' | 'active' | 'inactive' | 'success' | 'warning' | 'pending';
   size?: 'sm' | 'md' | 'lg';
   showIcon?: boolean;
   customLabel?: string;
@@ -44,6 +44,27 @@ export default function StatusBadge({
       iconColor: '#ffffff',
       icon: XCircle,
       label: 'INACTIVO',
+    },
+    success: {
+      bgColor: 'bg-blue-100',
+      textColor: 'text-blue-700',
+      iconColor: '#2563eb',
+      icon: CheckCircle2,
+      label: 'Completado',
+    },
+    warning: {
+      bgColor: 'bg-yellow-100',
+      textColor: 'text-yellow-700',
+      iconColor: '#ca8a04',
+      icon: CheckCircle2,
+      label: 'Pendiente',
+    },
+    pending: {
+      bgColor: 'bg-gray-100',
+      textColor: 'text-gray-700',
+      iconColor: '#6b7280',
+      icon: CheckCircle2,
+      label: 'Pendiente',
     },
   };
 
