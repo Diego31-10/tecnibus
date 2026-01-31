@@ -8,6 +8,7 @@ import {
   GraduationCap,
   List,
   MapPin,
+  Navigation,
   Plus,
   RefreshCw,
   Settings,
@@ -410,6 +411,34 @@ export default function AdminHomeScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
+            </View>
+
+            {/* Gestionar Asignaciones */}
+            <View className="bg-admin-50 rounded-xl p-4 border-2 border-admin-200">
+              <View className="flex-row items-center mb-3">
+                <View className="bg-admin-600 p-2 rounded-lg">
+                  <Navigation size={24} color="#ffffff" strokeWidth={2.5} />
+                </View>
+                <View className="ml-3 flex-1">
+                  <Text className="text-admin-800 font-bold text-base">
+                    Gestionar Asignaciones
+                  </Text>
+                  <Text className="text-admin-700 text-xs">
+                    Asignar busetas y recorridos a choferes
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                className="bg-admin-600 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                onPress={() => router.push('/admin/asignaciones')}
+                activeOpacity={0.7}
+              >
+                <Settings size={16} color="#ffffff" strokeWidth={2.5} />
+                <Text className="text-white font-semibold ml-2 text-sm">
+                  Configurar
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </AnimatedCard>
