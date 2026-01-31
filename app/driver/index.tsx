@@ -22,8 +22,9 @@ import { AnimatedButton, AnimatedCard, StatusBadge } from '../../components';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   getEstudiantesConAsistencia,
-  registrarAsistencia,
-  type EstudianteConAsistencia
+  marcarAsistencia,
+  type EstudianteConAsistencia,
+  type EstadoAsistencia
 } from '@/lib/services/asistencias.service';
 import {
   getRecorridosHoy,
@@ -92,18 +93,18 @@ export default function DriverHomeScreen() {
     }
   }, [recorridoActual, cargarEstudiantes]);
 
-  const handleCheckIn = async (idEstudiante: string, tipo: 'subida' | 'bajada') => {
+  const handleMarcarEstado = async (idEstudiante: string, nuevoEstado: EstadoAsistencia) => {
     if (!profile?.id || !recorridoActual) return;
 
     try {
       setProcessingStudent(idEstudiante);
       haptic.medium();
 
-      const result = await registrarAsistencia({
+      const result = await marcarAsistencia({
         id_estudiante: idEstudiante,
         id_chofer: profile.id,
-        id_asignacion: recorridoActual.id, // Incluir recorrido actual
-        tipo,
+        id_ruta: recorridoActual.id_ruta,
+        estado: nuevoEstado,
       });
 
       if (result) {
@@ -112,10 +113,10 @@ export default function DriverHomeScreen() {
         haptic.success();
       } else {
         haptic.error();
-        Alert.alert('Error', 'No se pudo registrar la asistencia');
+        Alert.alert('Error', 'No se pudo actualizar la asistencia');
       }
     } catch (error) {
-      console.error('Error en check-in:', error);
+      console.error('Error actualizando asistencia:', error);
       haptic.error();
       Alert.alert('Error', 'Ocurrió un error al registrar');
     } finally {
@@ -123,12 +124,46 @@ export default function DriverHomeScreen() {
     }
   };
 
-  const attendingCount = estudiantes.filter(e => e.enBuseta).length;
+  const abordoCount = estudiantes.filter(e => e.estado === 'abordo').length;
+  const ausentesCount = estudiantes.filter(e => e.estado === 'ausente').length;
   const totalStudents = estudiantes.length;
 
   const renderStudentItem = (item: EstudianteConAsistencia) => {
     const isProcessing = processingStudent === item.id;
-    const isInBus = item.enBuseta;
+    const { estado } = item;
+
+    // Determinar color y texto del badge según estado
+    const getBadgeStatus = () => {
+      switch (estado) {
+        case 'abordo':
+          return 'attending';
+        case 'ausente':
+          return 'absent';
+        case 'dejado':
+          return 'success';
+        default:
+          return 'warning';
+      }
+    };
+
+    const getEstadoTexto = () => {
+      switch (estado) {
+        case 'pendiente':
+          return 'Pendiente';
+        case 'recogiendo':
+          return 'Recogiendo';
+        case 'abordo':
+          return 'Abordo';
+        case 'ausente':
+          return 'Ausente';
+        case 'dejando':
+          return 'Dejando';
+        case 'dejado':
+          return 'Dejado';
+        default:
+          return 'Pendiente';
+      }
+    };
 
     return (
       <View key={item.id} className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-gray-100">
@@ -146,74 +181,99 @@ export default function DriverHomeScreen() {
                 </Text>
               </View>
             )}
-            {item.ultimaAsistencia && (
+            {item.asistenciaHoy && (
               <View className="flex-row items-center">
                 <Clock size={12} color="#9ca3af" strokeWidth={2} />
                 <Text className="text-xs text-gray-500 ml-1">
-                  {isInBus ? 'Subió' : 'Bajó'} {new Date(item.ultimaAsistencia.fecha_hora).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                  Estado: {getEstadoTexto()}
+                  {item.asistenciaHoy.hora_recogida &&
+                    ` • ${new Date(item.asistenciaHoy.hora_recogida).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`
+                  }
                 </Text>
               </View>
             )}
           </View>
 
           <StatusBadge
-            status={isInBus ? 'attending' : 'absent'}
+            status={getBadgeStatus()}
             size="md"
           />
         </View>
 
-        {/* Botones de check-in */}
+        {/* Botones según estado */}
         <View className="flex-row gap-2">
+          {/* Botón Abordo */}
           <TouchableOpacity
             className={`flex-1 flex-row items-center justify-center py-2.5 px-3 rounded-lg ${
-              isInBus ? 'bg-gray-100' : 'bg-green-500'
-            }`}
-            onPress={() => handleCheckIn(item.id, 'subida')}
-            disabled={isProcessing || isInBus}
+              estado === 'abordo' ? 'bg-green-600' : 'bg-green-500'
+            } ${(estado === 'ausente' || estado === 'dejado') ? 'opacity-50' : ''}`}
+            onPress={() => handleMarcarEstado(item.id, 'abordo')}
+            disabled={isProcessing || estado === 'ausente' || estado === 'dejado'}
           >
-            {isProcessing && !isInBus ? (
+            {isProcessing && estado !== 'abordo' ? (
               <ActivityIndicator size="small" color="#ffffff" />
             ) : (
               <>
-                <ArrowUp
+                <CheckCircle2
                   size={16}
-                  color={isInBus ? '#9ca3af' : '#ffffff'}
+                  color="#ffffff"
                   strokeWidth={2.5}
                 />
-                <Text className={`ml-1.5 font-semibold text-sm ${
-                  isInBus ? 'text-gray-400' : 'text-white'
-                }`}>
-                  Subió
+                <Text className="ml-1.5 font-semibold text-sm text-white">
+                  {estado === 'abordo' ? '✓ Abordo' : 'Abordo'}
                 </Text>
               </>
             )}
           </TouchableOpacity>
 
+          {/* Botón Ausente */}
           <TouchableOpacity
             className={`flex-1 flex-row items-center justify-center py-2.5 px-3 rounded-lg ${
-              !isInBus ? 'bg-gray-100' : 'bg-red-500'
-            }`}
-            onPress={() => handleCheckIn(item.id, 'bajada')}
-            disabled={isProcessing || !isInBus}
+              estado === 'ausente' ? 'bg-red-600' : 'bg-red-500'
+            } ${estado === 'dejado' ? 'opacity-50' : ''}`}
+            onPress={() => handleMarcarEstado(item.id, 'ausente')}
+            disabled={isProcessing || estado === 'dejado'}
           >
-            {isProcessing && isInBus ? (
+            {isProcessing && estado !== 'ausente' ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <>
+                <XCircle
+                  size={16}
+                  color="#ffffff"
+                  strokeWidth={2.5}
+                />
+                <Text className="ml-1.5 font-semibold text-sm text-white">
+                  {estado === 'ausente' ? '✓ Ausente' : 'Ausente'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Botón Dejado (solo si está abordo) */}
+        {estado === 'abordo' && (
+          <TouchableOpacity
+            className="mt-2 flex-row items-center justify-center py-2.5 px-3 rounded-lg bg-blue-500"
+            onPress={() => handleMarcarEstado(item.id, 'dejado')}
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
               <ActivityIndicator size="small" color="#ffffff" />
             ) : (
               <>
                 <ArrowDown
                   size={16}
-                  color={!isInBus ? '#9ca3af' : '#ffffff'}
+                  color="#ffffff"
                   strokeWidth={2.5}
                 />
-                <Text className={`ml-1.5 font-semibold text-sm ${
-                  !isInBus ? 'text-gray-400' : 'text-white'
-                }`}>
-                  Bajó
+                <Text className="ml-1.5 font-semibold text-sm text-white">
+                  Dejado en parada
                 </Text>
               </>
             )}
           </TouchableOpacity>
-        </View>
+        )}
       </View>
     );
   };
@@ -276,11 +336,25 @@ export default function DriverHomeScreen() {
 
         {/* Contador de estudiantes */}
         <View className="bg-chofer-700 rounded-xl p-3 mt-4 flex-row items-center justify-between">
-          <View className="flex-row items-center">
-            <Users size={20} color="#fef3c7" strokeWidth={2.5} />
-            <Text className="text-white font-bold ml-2">
-              En buseta: {attendingCount}/{totalStudents}
-            </Text>
+          <View className="flex-row items-center gap-4">
+            <View className="flex-row items-center">
+              <CheckCircle2 size={18} color="#10b981" strokeWidth={2.5} />
+              <Text className="text-white font-bold ml-1.5">
+                {abordoCount}
+              </Text>
+            </View>
+            <View className="flex-row items-center">
+              <XCircle size={18} color="#ef4444" strokeWidth={2.5} />
+              <Text className="text-white font-bold ml-1.5">
+                {ausentesCount}
+              </Text>
+            </View>
+            <View className="flex-row items-center">
+              <Users size={18} color="#fef3c7" strokeWidth={2.5} />
+              <Text className="text-white font-bold ml-1.5">
+                {totalStudents}
+              </Text>
+            </View>
           </View>
           {routeActive && (
             <StatusBadge status="active" size="sm" showIcon={false} />
