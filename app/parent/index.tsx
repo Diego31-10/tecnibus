@@ -157,7 +157,7 @@ export default function ParentHomeScreen() {
                 {estudianteSeleccionado?.nombreCompleto}
               </Text>
               <Text className="text-primary-200 text-xs">
-                {estudianteSeleccionado?.ruta?.nombre || 'Sin ruta asignada'}
+                {estudianteSeleccionado?.parada?.ruta?.nombre || 'Sin ruta asignada'}
               </Text>
             </View>
             <ChevronDown size={20} color="#ffffff" strokeWidth={2.5} />
@@ -172,7 +172,7 @@ export default function ParentHomeScreen() {
                 {estudianteSeleccionado?.nombreCompleto}
               </Text>
               <Text className="text-primary-200 text-sm mt-1">
-                {estudianteSeleccionado?.ruta?.nombre || 'Sin ruta asignada'}
+                {estudianteSeleccionado?.parada?.ruta?.nombre || 'Sin ruta asignada'}
               </Text>
             </View>
           </View>
@@ -235,7 +235,7 @@ export default function ParentHomeScreen() {
                     {busStatus}
                   </Text>
                   <Text className="text-primary-600 text-sm">
-                    Ruta: {estudianteSeleccionado.ruta.nombre}
+                    Ruta: {estudianteSeleccionado.parada?.ruta?.nombre || 'Sin ruta'}
                   </Text>
                 </View>
               </View>
@@ -336,7 +336,7 @@ export default function ParentHomeScreen() {
                         {item.nombreCompleto}
                       </Text>
                       <Text className="text-gray-500 text-sm mt-1">
-                        {item.ruta?.nombre || 'Sin ruta asignada'}
+                        {item.parada?.ruta?.nombre || 'Sin ruta asignada'}
                       </Text>
                     </View>
                     {estudianteSeleccionado?.id === item.id && (

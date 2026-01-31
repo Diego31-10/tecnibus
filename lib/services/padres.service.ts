@@ -5,10 +5,14 @@ export type EstudianteDelPadre = {
   nombre: string;
   apellido: string;
   nombreCompleto: string;
-  id_ruta: string | null;
-  ruta?: {
+  id_parada: string | null;
+  parada?: {
     id: string;
-    nombre: string;
+    nombre: string | null;
+    ruta?: {
+      id: string;
+      nombre: string;
+    };
   };
 };
 
@@ -34,10 +38,14 @@ export async function getMyEstudiantes(): Promise<EstudianteDelPadre[]> {
         id,
         nombre,
         apellido,
-        id_ruta,
-        rutas(
+        id_parada,
+        paradas(
           id,
-          nombre
+          nombre,
+          rutas(
+            id,
+            nombre
+          )
         )
       `
       )
@@ -55,11 +63,17 @@ export async function getMyEstudiantes(): Promise<EstudianteDelPadre[]> {
       nombre: est.nombre,
       apellido: est.apellido,
       nombreCompleto: `${est.nombre} ${est.apellido}`,
-      id_ruta: est.id_ruta,
-      ruta: est.rutas
+      id_parada: est.id_parada,
+      parada: est.paradas
         ? {
-            id: est.rutas.id,
-            nombre: est.rutas.nombre,
+            id: est.paradas.id,
+            nombre: est.paradas.nombre,
+            ruta: est.paradas.rutas
+              ? {
+                  id: est.paradas.rutas.id,
+                  nombre: est.paradas.rutas.nombre,
+                }
+              : undefined,
           }
         : undefined,
     }));
