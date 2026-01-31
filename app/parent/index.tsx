@@ -156,18 +156,22 @@ export default function ParentHomeScreen() {
       setProcessingAttendance(true);
       haptic.medium();
 
-      const nuevoEstado = !isAttending; // Toggle
+      // Si está presente (true), marcar ausente (true)
+      // Si está ausente (false), marcar presente (false)
+      const marcarComoAusente = isAttending;
+
       const success = await toggleAsistencia(
         estudianteSeleccionado.id,
         estudianteSeleccionado.parada.ruta.id,
-        nuevoEstado // true = ausente, false = presente
+        marcarComoAusente
       );
 
       if (success) {
-        setIsAttending(!nuevoEstado);
+        // Invertir el estado actual
+        setIsAttending(!isAttending);
         haptic.success();
 
-        if (nuevoEstado) {
+        if (marcarComoAusente) {
           Alert.alert(
             'Ausencia registrada',
             'El chofer ha sido notificado que el estudiante no asistirá hoy.'
