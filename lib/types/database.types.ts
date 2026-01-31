@@ -162,6 +162,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "choferes_id_buseta_fkey"
+            columns: ["id_buseta"]
+            isOneToOne: false
+            referencedRelation: "busetas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "choferes_id_fkey"
             columns: ["id"]
             isOneToOne: true
