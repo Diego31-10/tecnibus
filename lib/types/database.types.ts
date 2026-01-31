@@ -14,41 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
-      asignaciones_chofer: {
+      asignaciones_ruta: {
         Row: {
-          fecha_fin: string | null
-          fecha_inicio: string | null
+          activo: boolean | null
+          created_at: string | null
+          descripcion: string | null
+          dias_semana: string[] | null
+          hora_fin: string
+          hora_inicio: string
           id: string
-          id_buseta: string | null
-          id_chofer: string | null
+          id_chofer: string
+          id_ruta: string
         }
         Insert: {
-          fecha_fin?: string | null
-          fecha_inicio?: string | null
+          activo?: boolean | null
+          created_at?: string | null
+          descripcion?: string | null
+          dias_semana?: string[] | null
+          hora_fin: string
+          hora_inicio: string
           id?: string
-          id_buseta?: string | null
-          id_chofer?: string | null
+          id_chofer: string
+          id_ruta: string
         }
         Update: {
-          fecha_fin?: string | null
-          fecha_inicio?: string | null
+          activo?: boolean | null
+          created_at?: string | null
+          descripcion?: string | null
+          dias_semana?: string[] | null
+          hora_fin?: string
+          hora_inicio?: string
           id?: string
-          id_buseta?: string | null
-          id_chofer?: string | null
+          id_chofer?: string
+          id_ruta?: string
         }
         Relationships: [
           {
-            foreignKeyName: "asignaciones_chofer_id_buseta_fkey"
-            columns: ["id_buseta"]
-            isOneToOne: false
-            referencedRelation: "busetas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "asignaciones_chofer_id_chofer_fkey"
+            foreignKeyName: "asignaciones_ruta_id_chofer_fkey"
             columns: ["id_chofer"]
             isOneToOne: false
             referencedRelation: "choferes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asignaciones_ruta_id_ruta_fkey"
+            columns: ["id_ruta"]
+            isOneToOne: false
+            referencedRelation: "rutas"
             referencedColumns: ["id"]
           },
         ]
@@ -58,6 +70,7 @@ export type Database = {
           created_at: string | null
           fecha_hora: string
           id: string
+          id_asignacion: string | null
           id_chofer: string
           id_estudiante: string
           latitud: number | null
@@ -69,6 +82,7 @@ export type Database = {
           created_at?: string | null
           fecha_hora?: string
           id?: string
+          id_asignacion?: string | null
           id_chofer: string
           id_estudiante: string
           latitud?: number | null
@@ -80,6 +94,7 @@ export type Database = {
           created_at?: string | null
           fecha_hora?: string
           id?: string
+          id_asignacion?: string | null
           id_chofer?: string
           id_estudiante?: string
           latitud?: number | null
@@ -88,6 +103,13 @@ export type Database = {
           tipo?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "asistencias_id_asignacion_fkey"
+            columns: ["id_asignacion"]
+            isOneToOne: false
+            referencedRelation: "asignaciones_ruta"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "asistencias_id_chofer_fkey"
             columns: ["id_chofer"]
@@ -154,7 +176,7 @@ export type Database = {
           created_at: string | null
           id: string
           id_padre: string | null
-          id_ruta: string | null
+          id_parada: string | null
           nombre: string
         }
         Insert: {
@@ -162,7 +184,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           id_padre?: string | null
-          id_ruta?: string | null
+          id_parada?: string | null
           nombre: string
         }
         Update: {
@@ -170,7 +192,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           id_padre?: string | null
-          id_ruta?: string | null
+          id_parada?: string | null
           nombre?: string
         }
         Relationships: [
@@ -182,10 +204,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "estudiantes_id_ruta_fkey"
-            columns: ["id_ruta"]
+            foreignKeyName: "estudiantes_id_parada_fkey"
+            columns: ["id_parada"]
             isOneToOne: false
-            referencedRelation: "rutas"
+            referencedRelation: "paradas"
             referencedColumns: ["id"]
           },
         ]
@@ -311,42 +333,25 @@ export type Database = {
         }
         Relationships: []
       }
-      rutas_buseta: {
-        Row: {
-          id_buseta: string
-          id_ruta: string
-        }
-        Insert: {
-          id_buseta: string
-          id_ruta: string
-        }
-        Update: {
-          id_buseta?: string
-          id_ruta?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "rutas_buseta_id_buseta_fkey"
-            columns: ["id_buseta"]
-            isOneToOne: false
-            referencedRelation: "busetas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "rutas_buseta_id_ruta_fkey"
-            columns: ["id_ruta"]
-            isOneToOne: false
-            referencedRelation: "rutas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      es_hora_recorrido: { Args: { p_id_asignacion: string }; Returns: boolean }
       esta_en_buseta: { Args: { p_id_estudiante: string }; Returns: boolean }
+      get_recorridos_chofer_hoy: {
+        Args: { p_id_chofer: string }
+        Returns: {
+          descripcion: string
+          estado_ruta: string
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          id_ruta: string
+          nombre_ruta: string
+        }[]
+      }
       get_ultima_asistencia_hoy: {
         Args: { p_id_estudiante: string }
         Returns: {

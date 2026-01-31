@@ -18,6 +18,7 @@ export type CreateAsistenciaDto = {
   id_estudiante: string;
   id_chofer: string;
   tipo: TipoAsistencia;
+  id_asignacion?: string; // Referencia al recorrido actual
   latitud?: number;
   longitud?: number;
   notas?: string;
@@ -27,7 +28,11 @@ export type EstudianteConAsistencia = {
   id: string;
   nombre: string;
   apellido: string;
-  id_ruta: string | null;
+  parada: {
+    id: string;
+    nombre: string | null;
+    orden: number | null;
+  } | null;
   ultimaAsistencia: {
     tipo: TipoAsistencia;
     fecha_hora: string;
@@ -48,6 +53,7 @@ export async function registrarAsistencia(
         id_estudiante: dto.id_estudiante,
         id_chofer: dto.id_chofer,
         tipo: dto.tipo,
+        id_asignacion: dto.id_asignacion || null,
         latitud: dto.latitud || null,
         longitud: dto.longitud || null,
         notas: dto.notas || null,
@@ -97,17 +103,28 @@ export async function getAsistenciasHoy(idChofer: string): Promise<Asistencia[]>
 
 /**
  * Obtiene estudiantes de la ruta con su estado de asistencia
+ * Ahora obtiene estudiantes por parada (ubicación fija)
  */
 export async function getEstudiantesConAsistencia(
   idRuta: string,
   idChofer: string
 ): Promise<EstudianteConAsistencia[]> {
   try {
-    // 1. Obtener estudiantes de la ruta
+    // 1. Obtener estudiantes de la ruta via paradas
     const { data: estudiantes, error: errorEstudiantes } = await supabase
       .from('estudiantes')
-      .select('id, nombre, apellido, id_ruta')
-      .eq('id_ruta', idRuta)
+      .select(`
+        id,
+        nombre,
+        apellido,
+        paradas!inner(
+          id,
+          id_ruta,
+          nombre,
+          orden
+        )
+      `)
+      .eq('paradas.id_ruta', idRuta)
       .order('apellido', { ascending: true });
 
     if (errorEstudiantes) {
@@ -136,7 +153,7 @@ export async function getEstudiantesConAsistencia(
     }
 
     // 3. Combinar datos
-    const estudiantesConAsistencia: EstudianteConAsistencia[] = estudiantes.map((est) => {
+    const estudiantesConAsistencia: EstudianteConAsistencia[] = estudiantes.map((est: any) => {
       // Buscar la última asistencia de este estudiante hoy
       const ultimaAsistencia = asistencias?.find(
         (asist) => asist.id_estudiante === est.id
@@ -148,7 +165,11 @@ export async function getEstudiantesConAsistencia(
         id: est.id,
         nombre: est.nombre,
         apellido: est.apellido,
-        id_ruta: est.id_ruta,
+        parada: est.paradas ? {
+          id: est.paradas.id,
+          nombre: est.paradas.nombre,
+          orden: est.paradas.orden,
+        } : null,
         ultimaAsistencia: ultimaAsistencia
           ? {
               tipo: ultimaAsistencia.tipo as TipoAsistencia,

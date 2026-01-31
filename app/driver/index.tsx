@@ -25,6 +25,10 @@ import {
   registrarAsistencia,
   type EstudianteConAsistencia
 } from '@/lib/services/asistencias.service';
+import {
+  getRecorridosHoy,
+  type RecorridoChofer
+} from '@/lib/services/asignaciones.service';
 
 export default function DriverHomeScreen() {
   const router = useRouter();
@@ -32,24 +36,43 @@ export default function DriverHomeScreen() {
   const insets = useSafeAreaInsets();
   const [routeActive, setRouteActive] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingRecorridos, setLoadingRecorridos] = useState(true);
+  const [recorridos, setRecorridos] = useState<RecorridoChofer[]>([]);
+  const [recorridoActual, setRecorridoActual] = useState<RecorridoChofer | null>(null);
   const [estudiantes, setEstudiantes] = useState<EstudianteConAsistencia[]>([]);
   const [processingStudent, setProcessingStudent] = useState<string | null>(null);
 
   const paddingTop = Math.max(insets.top + 8, 48);
   const shadow = createShadow('lg');
 
-  // TODO: Obtener de la DB cuando tengamos choferes con rutas asignadas
-  const routeName = "Ruta Centro - Norte";
-  const routeTime = "07:00 AM";
-  const idRutaDemo = "ruta-demo-123"; // Temporal
-
-  // Cargar estudiantes
-  const cargarEstudiantes = useCallback(async () => {
+  // Cargar recorridos del día
+  const cargarRecorridos = useCallback(async () => {
     if (!profile?.id) return;
 
     try {
+      setLoadingRecorridos(true);
+      const data = await getRecorridosHoy(profile.id);
+      setRecorridos(data);
+
+      // Auto-seleccionar el primer recorrido si hay
+      if (data.length > 0 && !recorridoActual) {
+        setRecorridoActual(data[0]);
+      }
+    } catch (error) {
+      console.error('Error cargando recorridos:', error);
+      Alert.alert('Error', 'No se pudieron cargar los recorridos');
+    } finally {
+      setLoadingRecorridos(false);
+    }
+  }, [profile?.id]);
+
+  // Cargar estudiantes del recorrido actual
+  const cargarEstudiantes = useCallback(async () => {
+    if (!profile?.id || !recorridoActual) return;
+
+    try {
       setLoading(true);
-      const data = await getEstudiantesConAsistencia(idRutaDemo, profile.id);
+      const data = await getEstudiantesConAsistencia(recorridoActual.id_ruta, profile.id);
       setEstudiantes(data);
     } catch (error) {
       console.error('Error cargando estudiantes:', error);
@@ -57,14 +80,20 @@ export default function DriverHomeScreen() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.id]);
+  }, [profile?.id, recorridoActual]);
 
   useEffect(() => {
-    cargarEstudiantes();
-  }, [cargarEstudiantes]);
+    cargarRecorridos();
+  }, [cargarRecorridos]);
+
+  useEffect(() => {
+    if (recorridoActual) {
+      cargarEstudiantes();
+    }
+  }, [recorridoActual, cargarEstudiantes]);
 
   const handleCheckIn = async (idEstudiante: string, tipo: 'subida' | 'bajada') => {
-    if (!profile?.id) return;
+    if (!profile?.id || !recorridoActual) return;
 
     try {
       setProcessingStudent(idEstudiante);
@@ -73,6 +102,7 @@ export default function DriverHomeScreen() {
       const result = await registrarAsistencia({
         id_estudiante: idEstudiante,
         id_chofer: profile.id,
+        id_asignacion: recorridoActual.id, // Incluir recorrido actual
         tipo,
       });
 
@@ -107,6 +137,15 @@ export default function DriverHomeScreen() {
             <Text className="text-base font-bold text-gray-800 mb-1">
               {item.nombre} {item.apellido}
             </Text>
+            {item.parada && (
+              <View className="flex-row items-center mb-1">
+                <MapPin size={12} color="#ca8a04" strokeWidth={2} />
+                <Text className="text-xs text-chofer-700 ml-1 font-semibold">
+                  Parada: {item.parada.nombre || 'Sin nombre'}
+                  {item.parada.orden && ` (#${item.parada.orden})`}
+                </Text>
+              </View>
+            )}
             {item.ultimaAsistencia && (
               <View className="flex-row items-center">
                 <Clock size={12} color="#9ca3af" strokeWidth={2} />
@@ -208,15 +247,30 @@ export default function DriverHomeScreen() {
 
         <View className="flex-row items-center justify-between">
           <View className="flex-1">
-            <Text className="text-white text-2xl font-bold">
-              {routeName}
-            </Text>
-            <View className="flex-row items-center mt-2">
-              <Clock size={16} color="#fef3c7" strokeWidth={2} />
-              <Text className="text-chofer-100 text-sm ml-1">
-                Hora de salida: {routeTime}
+            {loadingRecorridos ? (
+              <ActivityIndicator size="small" color="#fef3c7" />
+            ) : recorridos.length === 0 ? (
+              <Text className="text-white text-base">
+                No tienes recorridos asignados hoy
               </Text>
-            </View>
+            ) : (
+              <>
+                <Text className="text-white text-2xl font-bold">
+                  {recorridoActual?.nombre_ruta || 'Selecciona recorrido'}
+                </Text>
+                <View className="flex-row items-center mt-2">
+                  <Clock size={16} color="#fef3c7" strokeWidth={2} />
+                  <Text className="text-chofer-100 text-sm ml-1">
+                    {recorridoActual?.hora_inicio} - {recorridoActual?.hora_fin}
+                  </Text>
+                  {recorridoActual?.descripcion && (
+                    <Text className="text-chofer-100 text-xs ml-2">
+                      ({recorridoActual.descripcion})
+                    </Text>
+                  )}
+                </View>
+              </>
+            )}
           </View>
         </View>
 
@@ -233,6 +287,47 @@ export default function DriverHomeScreen() {
           )}
         </View>
       </View>
+
+      {/* Selector de recorridos (si hay más de uno) */}
+      {recorridos.length > 1 && (
+        <View className="px-6 pt-4">
+          <Text className="text-gray-700 font-semibold mb-2">Mis recorridos hoy:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2">
+            {recorridos.map((rec) => (
+              <TouchableOpacity
+                key={rec.id}
+                onPress={() => {
+                  haptic.light();
+                  setRecorridoActual(rec);
+                }}
+                className={`px-4 py-3 rounded-xl border-2 ${
+                  recorridoActual?.id === rec.id
+                    ? 'bg-chofer-100 border-chofer-600'
+                    : 'bg-white border-gray-200'
+                }`}
+              >
+                <Text className={`font-bold text-sm ${
+                  recorridoActual?.id === rec.id ? 'text-chofer-800' : 'text-gray-700'
+                }`}>
+                  {rec.nombre_ruta}
+                </Text>
+                <Text className={`text-xs mt-1 ${
+                  recorridoActual?.id === rec.id ? 'text-chofer-600' : 'text-gray-500'
+                }`}>
+                  {rec.hora_inicio} - {rec.hora_fin}
+                </Text>
+                {rec.descripcion && (
+                  <Text className={`text-xs mt-0.5 ${
+                    recorridoActual?.id === rec.id ? 'text-chofer-600' : 'text-gray-400'
+                  }`}>
+                    {rec.descripcion}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       <ScrollView className="flex-1 px-6 pt-4" showsVerticalScrollIndicator={false}>
         {/* Card del Mapa */}
@@ -276,7 +371,17 @@ export default function DriverHomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {loading && estudiantes.length === 0 ? (
+          {!recorridoActual ? (
+            <View className="py-8 items-center">
+              <Navigation size={48} color="#9ca3af" strokeWidth={1.5} />
+              <Text className="text-gray-500 mt-3 font-semibold">
+                Selecciona un recorrido
+              </Text>
+              <Text className="text-gray-400 text-xs mt-1">
+                Elige tu recorrido arriba para ver los estudiantes
+              </Text>
+            </View>
+          ) : loading && estudiantes.length === 0 ? (
             <View className="py-8 items-center">
               <ActivityIndicator size="large" color="#ca8a04" />
               <Text className="text-gray-500 mt-3">Cargando estudiantes...</Text>
@@ -285,10 +390,10 @@ export default function DriverHomeScreen() {
             <View className="py-8 items-center">
               <Users size={48} color="#9ca3af" strokeWidth={1.5} />
               <Text className="text-gray-500 mt-3 font-semibold">
-                No hay estudiantes asignados
+                No hay estudiantes en esta ruta
               </Text>
               <Text className="text-gray-400 text-xs mt-1">
-                Contacta al administrador
+                Contacta al administrador si esto es un error
               </Text>
             </View>
           ) : (
