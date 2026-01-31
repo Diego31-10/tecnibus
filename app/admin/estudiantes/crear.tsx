@@ -29,7 +29,7 @@ import Toast from '../../../components/Toast';
 import {
   createEstudiante,
   getPadresParaAsignar,
-  getRutasDisponibles
+  getParadasDisponibles
 } from '../../../lib/services/estudiantes.service';
 
 type Padre = {
@@ -39,9 +39,15 @@ type Padre = {
   nombreCompleto: string;
 };
 
-type Ruta = {
+type Parada = {
   id: string;
-  nombre: string;
+  nombre: string | null;
+  direccion: string | null;
+  orden: number | null;
+  ruta: {
+    id: string;
+    nombre: string;
+  } | null;
 };
 
 export default function CrearEstudianteScreen() {
@@ -54,17 +60,17 @@ export default function CrearEstudianteScreen() {
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
   const [padreSeleccionado, setPadreSeleccionado] = useState<Padre | null>(null);
-  const [rutaSeleccionada, setRutaSeleccionada] = useState<Ruta | null>(null);
+  const [paradaSeleccionada, setParadaSeleccionada] = useState<Parada | null>(null);
 
   // Lists
   const [padres, setPadres] = useState<Padre[]>([]);
-  const [rutas, setRutas] = useState<Ruta[]>([]);
+  const [paradas, setParadas] = useState<Parada[]>([]);
 
   // UI State
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [showPadresModal, setShowPadresModal] = useState(false);
-  const [showRutasModal, setShowRutasModal] = useState(false);
+  const [showParadasModal, setShowParadasModal] = useState(false);
   const [searchPadre, setSearchPadre] = useState('');
   const [toast, setToast] = useState<{
     visible: boolean;
@@ -82,12 +88,12 @@ export default function CrearEstudianteScreen() {
 
   const loadData = async () => {
     setLoadingData(true);
-    const [padresData, rutasData] = await Promise.all([
+    const [padresData, paradasData] = await Promise.all([
       getPadresParaAsignar(),
-      getRutasDisponibles(),
+      getParadasDisponibles(),
     ]);
     setPadres(padresData);
-    setRutas(rutasData);
+    setParadas(paradasData);
     setLoadingData(false);
   };
 
@@ -102,10 +108,10 @@ export default function CrearEstudianteScreen() {
     setSearchPadre('');
   };
 
-  const handleSelectRuta = (ruta: Ruta) => {
+  const handleSelectParada = (parada: Parada) => {
     haptic.light();
-    setRutaSeleccionada(ruta);
-    setShowRutasModal(false);
+    setParadaSeleccionada(parada);
+    setShowParadasModal(false);
   };
 
   const handleSubmit = async () => {
@@ -136,7 +142,7 @@ export default function CrearEstudianteScreen() {
       nombre: nombre.trim(),
       apellido: apellido.trim(),
       id_padre: padreSeleccionado.id,
-      id_ruta: rutaSeleccionada?.id || null,
+      id_parada: paradaSeleccionada?.id || null,
     });
 
     setLoading(false);
@@ -255,27 +261,34 @@ export default function CrearEstudianteScreen() {
           )}
         </AnimatedCard>
 
-        {/* Ruta (Dropdown) */}
+        {/* Parada (Dropdown) */}
         <AnimatedCard delay={300} className="mb-4">
           <Text className="text-sm font-semibold text-gray-700 mb-2">
-            Ruta (Opcional)
+            Parada (Opcional)
           </Text>
           <TouchableOpacity
-            onPress={() => setShowRutasModal(true)}
+            onPress={() => setShowParadasModal(true)}
             className="bg-gray-50 rounded-lg px-4 py-3 flex-row items-center justify-between"
           >
-            {rutaSeleccionada ? (
-              <View className="flex-row items-center flex-1">
-                <MapPin size={18} color="#16a34a" strokeWidth={2} />
-                <Text className="text-base text-gray-800 ml-2">
-                  {rutaSeleccionada.nombre}
-                </Text>
+            {paradaSeleccionada ? (
+              <View className="flex-1">
+                <View className="flex-row items-center">
+                  <MapPin size={18} color="#16a34a" strokeWidth={2} />
+                  <Text className="text-base text-gray-800 ml-2">
+                    {paradaSeleccionada.nombre || 'Sin nombre'}
+                  </Text>
+                </View>
+                {paradaSeleccionada.ruta && (
+                  <Text className="text-xs text-gray-500 ml-6 mt-1">
+                    Ruta: {paradaSeleccionada.ruta.nombre}
+                  </Text>
+                )}
               </View>
             ) : (
-              <Text className="text-base text-gray-400">Sin ruta asignada</Text>
+              <Text className="text-base text-gray-400">Sin parada asignada</Text>
             )}
-            {rutaSeleccionada && (
-              <TouchableOpacity onPress={() => setRutaSeleccionada(null)}>
+            {paradaSeleccionada && (
+              <TouchableOpacity onPress={() => setParadaSeleccionada(null)}>
                 <X size={18} color="#9ca3af" strokeWidth={2} />
               </TouchableOpacity>
             )}
@@ -370,51 +383,65 @@ export default function CrearEstudianteScreen() {
         </View>
       </Modal>
 
-      {/* Modal Seleccionar Ruta */}
+      {/* Modal Seleccionar Parada */}
       <Modal
-        visible={showRutasModal}
+        visible={showParadasModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowRutasModal(false)}
+        onRequestClose={() => setShowParadasModal(false)}
       >
         <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-3xl" style={{ maxHeight: '60%' }}>
+          <View className="bg-white rounded-t-3xl" style={{ maxHeight: '70%' }}>
             {/* Header Modal */}
             <View className="p-6 border-b border-gray-200 flex-row items-center justify-between">
               <Text className="text-xl font-bold text-gray-800">
-                Seleccionar Ruta
+                Seleccionar Parada
               </Text>
               <TouchableOpacity
-                onPress={() => setShowRutasModal(false)}
+                onPress={() => setShowParadasModal(false)}
                 className="bg-gray-100 p-2 rounded-lg"
               >
                 <X size={20} color="#374151" strokeWidth={2} />
               </TouchableOpacity>
             </View>
 
-            {/* Lista de Rutas */}
+            {/* Lista de Paradas */}
             <FlatList
-              data={rutas}
+              data={paradas}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  onPress={() => handleSelectRuta(item)}
-                  className="px-6 py-4 border-b border-gray-100 flex-row items-center"
+                  onPress={() => handleSelectParada(item)}
+                  className="px-6 py-4 border-b border-gray-100"
                 >
-                  <View className="bg-amber-100 p-2 rounded-full mr-3">
-                    <MapPin size={20} color="#f59e0b" strokeWidth={2} />
+                  <View className="flex-row items-center">
+                    <View className="bg-amber-100 p-2 rounded-full mr-3">
+                      <MapPin size={20} color="#f59e0b" strokeWidth={2} />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-base text-gray-800 font-semibold">
+                        {item.nombre || 'Sin nombre'}
+                      </Text>
+                      {item.ruta && (
+                        <Text className="text-sm text-gray-500 mt-1">
+                          Ruta: {item.ruta.nombre}
+                        </Text>
+                      )}
+                      {item.direccion && (
+                        <Text className="text-xs text-gray-400 mt-1">
+                          {item.direccion}
+                        </Text>
+                      )}
+                    </View>
+                    {paradaSeleccionada?.id === item.id && (
+                      <Check size={20} color="#16a34a" strokeWidth={2.5} />
+                    )}
                   </View>
-                  <Text className="text-base text-gray-800 flex-1">
-                    {item.nombre}
-                  </Text>
-                  {rutaSeleccionada?.id === item.id && (
-                    <Check size={20} color="#16a34a" strokeWidth={2.5} />
-                  )}
                 </TouchableOpacity>
               )}
               ListEmptyComponent={
                 <View className="py-12 items-center">
-                  <Text className="text-gray-500">No hay rutas disponibles</Text>
+                  <Text className="text-gray-500">No hay paradas disponibles</Text>
                 </View>
               }
             />

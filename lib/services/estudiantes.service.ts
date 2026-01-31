@@ -5,7 +5,7 @@ export type Estudiante = {
   nombre: string;
   apellido: string;
   id_padre: string | null;
-  id_ruta: string | null;
+  id_parada: string | null;
   created_at: string;
   // Relaciones
   padre?: {
@@ -13,9 +13,13 @@ export type Estudiante = {
     nombre: string;
     apellido: string;
   };
-  ruta?: {
+  parada?: {
     id: string;
-    nombre: string;
+    nombre: string | null;
+    ruta?: {
+      id: string;
+      nombre: string;
+    };
   };
 };
 
@@ -23,7 +27,7 @@ export type CreateEstudianteDto = {
   nombre: string;
   apellido: string;
   id_padre: string | null;
-  id_ruta: string | null;
+  id_parada: string | null;
 };
 
 export type UpdateEstudianteDto = Partial<CreateEstudianteDto>;
@@ -41,7 +45,7 @@ export async function getEstudiantes(): Promise<Estudiante[]> {
         nombre,
         apellido,
         id_padre,
-        id_ruta,
+        id_parada,
         created_at,
         padres(
           profiles(
@@ -50,9 +54,13 @@ export async function getEstudiantes(): Promise<Estudiante[]> {
             apellido
           )
         ),
-        rutas(
+        paradas(
           id,
-          nombre
+          nombre,
+          rutas(
+            id,
+            nombre
+          )
         )
       `)
       .order('apellido', { ascending: true })
@@ -69,16 +77,20 @@ export async function getEstudiantes(): Promise<Estudiante[]> {
       nombre: est.nombre,
       apellido: est.apellido,
       id_padre: est.id_padre,
-      id_ruta: est.id_ruta,
+      id_parada: est.id_parada,
       created_at: est.created_at,
       padre: est.padres?.profiles ? {
         id: est.padres.profiles.id,
         nombre: est.padres.profiles.nombre,
         apellido: est.padres.profiles.apellido,
       } : undefined,
-      ruta: est.rutas ? {
-        id: est.rutas.id,
-        nombre: est.rutas.nombre,
+      parada: est.paradas ? {
+        id: est.paradas.id,
+        nombre: est.paradas.nombre,
+        ruta: est.paradas.rutas ? {
+          id: est.paradas.rutas.id,
+          nombre: est.paradas.rutas.nombre,
+        } : undefined,
       } : undefined,
     }));
 
@@ -102,7 +114,7 @@ export async function searchEstudiantes(query: string): Promise<Estudiante[]> {
         nombre,
         apellido,
         id_padre,
-        id_ruta,
+        id_parada,
         created_at,
         padres(
           profiles(
@@ -111,9 +123,13 @@ export async function searchEstudiantes(query: string): Promise<Estudiante[]> {
             apellido
           )
         ),
-        rutas(
+        paradas(
           id,
-          nombre
+          nombre,
+          rutas(
+            id,
+            nombre
+          )
         )
       `)
       .or(`nombre.ilike.%${query}%,apellido.ilike.%${query}%`)
@@ -129,16 +145,20 @@ export async function searchEstudiantes(query: string): Promise<Estudiante[]> {
       nombre: est.nombre,
       apellido: est.apellido,
       id_padre: est.id_padre,
-      id_ruta: est.id_ruta,
+      id_parada: est.id_parada,
       created_at: est.created_at,
       padre: est.padres?.profiles ? {
         id: est.padres.profiles.id,
         nombre: est.padres.profiles.nombre,
         apellido: est.padres.profiles.apellido,
       } : undefined,
-      ruta: est.rutas ? {
-        id: est.rutas.id,
-        nombre: est.rutas.nombre,
+      parada: est.paradas ? {
+        id: est.paradas.id,
+        nombre: est.paradas.nombre,
+        ruta: est.paradas.rutas ? {
+          id: est.paradas.rutas.id,
+          nombre: est.paradas.rutas.nombre,
+        } : undefined,
       } : undefined,
     }));
   } catch (error) {
@@ -158,14 +178,14 @@ export async function createEstudiante(dto: CreateEstudianteDto): Promise<Estudi
         nombre: dto.nombre.trim(),
         apellido: dto.apellido.trim(),
         id_padre: dto.id_padre,
-        id_ruta: dto.id_ruta,
+        id_parada: dto.id_parada,
       })
       .select(`
         id,
         nombre,
         apellido,
         id_padre,
-        id_ruta,
+        id_parada,
         created_at,
         padres(
           profiles(
@@ -174,9 +194,13 @@ export async function createEstudiante(dto: CreateEstudianteDto): Promise<Estudi
             apellido
           )
         ),
-        rutas(
+        paradas(
           id,
-          nombre
+          nombre,
+          rutas(
+            id,
+            nombre
+          )
         )
       `)
       .single();
@@ -207,7 +231,7 @@ export async function updateEstudiante(
     if (dto.nombre !== undefined) updateData.nombre = dto.nombre.trim();
     if (dto.apellido !== undefined) updateData.apellido = dto.apellido.trim();
     if (dto.id_padre !== undefined) updateData.id_padre = dto.id_padre;
-    if (dto.id_ruta !== undefined) updateData.id_ruta = dto.id_ruta;
+    if (dto.id_parada !== undefined) updateData.id_parada = dto.id_parada;
 
     const { error } = await supabase
       .from('estudiantes')
@@ -306,6 +330,55 @@ export async function getRutasDisponibles(): Promise<Array<{
     return data || [];
   } catch (error) {
     console.error('❌ Error en getRutasDisponibles:', error);
+    return [];
+  }
+}
+
+/**
+ * Obtiene la lista de paradas disponibles con información de su ruta
+ */
+export async function getParadasDisponibles(): Promise<Array<{
+  id: string;
+  nombre: string | null;
+  direccion: string | null;
+  orden: number | null;
+  ruta: {
+    id: string;
+    nombre: string;
+  } | null;
+}>> {
+  try {
+    const { data, error } = await supabase
+      .from('paradas')
+      .select(`
+        id,
+        nombre,
+        direccion,
+        orden,
+        rutas(
+          id,
+          nombre
+        )
+      `)
+      .order('orden', { ascending: true });
+
+    if (error) {
+      console.error('❌ Error obteniendo paradas:', error);
+      throw error;
+    }
+
+    return (data || []).map((parada: any) => ({
+      id: parada.id,
+      nombre: parada.nombre,
+      direccion: parada.direccion,
+      orden: parada.orden,
+      ruta: parada.rutas ? {
+        id: parada.rutas.id,
+        nombre: parada.rutas.nombre,
+      } : null,
+    }));
+  } catch (error) {
+    console.error('❌ Error en getParadasDisponibles:', error);
     return [];
   }
 }

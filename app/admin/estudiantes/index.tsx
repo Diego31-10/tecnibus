@@ -136,19 +136,20 @@ export default function EstudiantesListScreen() {
             )}
           </View>
 
-        {/* Ruta asignada */}
+        {/* Parada asignada */}
           <View className="flex-row items-center mt-1">
-            {item.ruta ? (
+            {item.parada ? (
               <>
                 <MapPin size={14} color="#6b7280" strokeWidth={2} />
                 <Text className="text-sm text-gray-600 ml-1">
-                  Ruta: {item.ruta.nombre}
+                  {item.parada.nombre || 'Parada sin nombre'}
+                  {item.parada.ruta && ` - ${item.parada.ruta.nombre}`}
                 </Text>
               </>
             ) : (
               <>
                 <MapPin size={14} color="#f59e0b" strokeWidth={2} />
-                <Text className="text-sm text-amber-600 ml-1">Sin ruta asignada</Text>
+                <Text className="text-sm text-amber-600 ml-1">Sin parada asignada</Text>
               </>
             )}
           </View>
