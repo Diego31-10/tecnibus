@@ -65,17 +65,12 @@ export async function toggleAsistencia(
 
       if (error) throw error;
     } else {
-      // Obtener el chofer asignado a esta ruta (el primero si hay múltiples)
-      const { data: asignacion, error: errorAsignacion } = await supabase
-        .from('asignaciones_ruta')
-        .select('id_chofer')
-        .eq('id_ruta', idRuta)
-        .eq('activo', true)
-        .limit(1)
-        .maybeSingle();
+      // Obtener el chofer asignado a esta ruta usando RPC (bypassing RLS)
+      const { data: idChofer, error: errorChofer } = await supabase
+        .rpc('get_chofer_de_ruta', { p_id_ruta: idRuta });
 
-      if (errorAsignacion || !asignacion?.id_chofer) {
-        console.error('❌ No hay chofer asignado a la ruta:', idRuta);
+      if (errorChofer || !idChofer) {
+        console.error('❌ No hay chofer asignado a la ruta:', idRuta, errorChofer);
         throw new Error('No hay chofer asignado a esta ruta');
       }
 
@@ -84,7 +79,7 @@ export async function toggleAsistencia(
         .from('asistencias')
         .insert({
           id_estudiante: idEstudiante,
-          id_chofer: asignacion.id_chofer,
+          id_chofer: idChofer,
           id_ruta: idRuta,
           estado: nuevoEstado,
           fecha: hoy,
