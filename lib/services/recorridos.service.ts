@@ -22,6 +22,14 @@ export async function iniciarRecorrido(idAsignacion: string): Promise<boolean> {
     if (error) throw error;
 
     console.log('✅ Recorrido iniciado:', idAsignacion);
+
+    // Notificar via broadcast para actualización instantánea
+    await supabase.channel('recorrido-status').send({
+      type: 'broadcast',
+      event: 'recorrido_iniciado',
+      payload: { id_asignacion: idAsignacion, activo: true },
+    });
+
     return data || true;
   } catch (error) {
     console.error('❌ Error iniciando recorrido:', error);
@@ -41,6 +49,14 @@ export async function finalizarRecorrido(idAsignacion: string): Promise<boolean>
     if (error) throw error;
 
     console.log('✅ Recorrido finalizado:', idAsignacion);
+
+    // Notificar via broadcast para actualización instantánea
+    await supabase.channel('recorrido-status').send({
+      type: 'broadcast',
+      event: 'recorrido_finalizado',
+      payload: { id_asignacion: idAsignacion, activo: false },
+    });
+
     return data || true;
   } catch (error) {
     console.error('❌ Error finalizando recorrido:', error);

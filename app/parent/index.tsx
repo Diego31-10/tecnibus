@@ -107,54 +107,40 @@ export default function ParentHomeScreen() {
     };
   }, [estudianteSeleccionado?.id]);
 
-  // Suscripción en tiempo real a cambios en estados de recorrido
+  // Suscripción a broadcast de estados de recorrido (más eficiente que postgres_changes)
   useEffect(() => {
-    if (!idAsignacion) {
-      console.log('⚠️ No hay idAsignacion, no se puede suscribir a cambios');
+    if (!estudianteSeleccionado?.parada?.ruta?.id) {
+      console.log('⚠️ No hay ruta, no se puede suscribir a cambios');
       return;
     }
 
-    console.log('🔔 Padre: Suscribiendo a cambios en estado del recorrido para asignación:', idAsignacion);
+    console.log('🔔 Padre: Suscribiendo a broadcast de recorrido-status...');
 
     const channel = supabase
-      .channel('estados-recorrido-padre-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'estados_recorrido',
-          filter: `id_asignacion=eq.${idAsignacion}`,
-        },
-        (payload) => {
-          console.log('🔔 Padre: Cambio detectado en estado de recorrido:', payload);
-          cargarEstadoRecorrido();
+      .channel('recorrido-status')
+      .on('broadcast', { event: 'recorrido_iniciado' }, (payload: any) => {
+        console.log('🔔 Padre: Recorrido iniciado broadcast:', payload);
+        if (payload.payload.id_asignacion === idAsignacion) {
+          console.log('✅ Es nuestra asignación, actualizando...');
+          setChoferEnCamino(true);
         }
-      )
+      })
+      .on('broadcast', { event: 'recorrido_finalizado' }, (payload: any) => {
+        console.log('🔔 Padre: Recorrido finalizado broadcast:', payload);
+        if (payload.payload.id_asignacion === idAsignacion) {
+          console.log('✅ Es nuestra asignación, actualizando...');
+          setChoferEnCamino(false);
+        }
+      })
       .subscribe((status) => {
-        console.log('📡 Estado de suscripción a estados_recorrido:', status);
+        console.log('📡 Estado de suscripción a broadcast:', status);
       });
 
     return () => {
-      console.log('🔕 Padre: Desuscribiendo de cambios en estados de recorrido');
+      console.log('🔕 Padre: Desuscribiendo de broadcast');
       supabase.removeChannel(channel);
     };
-  }, [idAsignacion]);
-
-  // Polling como fallback (cada 10 segundos)
-  useEffect(() => {
-    if (!estudianteSeleccionado?.parada?.ruta?.id) return;
-
-    const interval = setInterval(() => {
-      console.log('🔄 Polling: Verificando estado del recorrido...');
-      cargarEstadoRecorrido();
-    }, 10000); // Cada 10 segundos
-
-    return () => {
-      console.log('⏹️ Deteniendo polling');
-      clearInterval(interval);
-    };
-  }, [estudianteSeleccionado?.parada?.ruta?.id]);
+  }, [estudianteSeleccionado?.parada?.ruta?.id, idAsignacion]);
 
   const cargarEstadoAsistencia = async () => {
     if (!estudianteSeleccionado?.id) return;
