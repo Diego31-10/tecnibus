@@ -53,6 +53,57 @@ export type Database = {
           },
         ]
       }
+      asistencias: {
+        Row: {
+          created_at: string | null
+          fecha_hora: string
+          id: string
+          id_chofer: string
+          id_estudiante: string
+          latitud: number | null
+          longitud: number | null
+          notas: string | null
+          tipo: string
+        }
+        Insert: {
+          created_at?: string | null
+          fecha_hora?: string
+          id?: string
+          id_chofer: string
+          id_estudiante: string
+          latitud?: number | null
+          longitud?: number | null
+          notas?: string | null
+          tipo: string
+        }
+        Update: {
+          created_at?: string | null
+          fecha_hora?: string
+          id?: string
+          id_chofer?: string
+          id_estudiante?: string
+          latitud?: number | null
+          longitud?: number | null
+          notas?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asistencias_id_chofer_fkey"
+            columns: ["id_chofer"]
+            isOneToOne: false
+            referencedRelation: "choferes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asistencias_id_estudiante_fkey"
+            columns: ["id_estudiante"]
+            isOneToOne: false
+            referencedRelation: "estudiantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       busetas: {
         Row: {
           capacidad: number
@@ -128,6 +179,13 @@ export type Database = {
             columns: ["id_padre"]
             isOneToOne: false
             referencedRelation: "padres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estudiantes_id_ruta_fkey"
+            columns: ["id_ruta"]
+            isOneToOne: false
+            referencedRelation: "rutas"
             referencedColumns: ["id"]
           },
         ]
@@ -288,6 +346,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      esta_en_buseta: { Args: { p_id_estudiante: string }; Returns: boolean }
+      get_ultima_asistencia_hoy: {
+        Args: { p_id_estudiante: string }
+        Returns: {
+          fecha_hora: string
+          id: string
+          tipo: string
+        }[]
+      }
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
