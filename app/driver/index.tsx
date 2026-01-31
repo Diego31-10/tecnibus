@@ -31,6 +31,11 @@ import {
   getRecorridosHoy,
   type RecorridoChofer
 } from '@/lib/services/asignaciones.service';
+import {
+  iniciarRecorrido,
+  finalizarRecorrido,
+  getEstadoRecorrido,
+} from '@/lib/services/recorridos.service';
 
 export default function DriverHomeScreen() {
   const router = useRouter();
@@ -91,8 +96,21 @@ export default function DriverHomeScreen() {
   useEffect(() => {
     if (recorridoActual) {
       cargarEstudiantes();
+      cargarEstadoRecorrido();
     }
   }, [recorridoActual, cargarEstudiantes]);
+
+  // Cargar estado del recorrido
+  const cargarEstadoRecorrido = useCallback(async () => {
+    if (!recorridoActual) return;
+
+    try {
+      const estado = await getEstadoRecorrido(recorridoActual.id);
+      setRouteActive(estado?.activo || false);
+    } catch (error) {
+      console.error('Error cargando estado del recorrido:', error);
+    }
+  }, [recorridoActual]);
 
   // Suscripción en tiempo real a cambios en asistencias
   useEffect(() => {
@@ -122,6 +140,35 @@ export default function DriverHomeScreen() {
       supabase.removeChannel(channel);
     };
   }, [recorridoActual, cargarEstudiantes]);
+
+  // Suscripción en tiempo real a cambios en estados de recorrido
+  useEffect(() => {
+    if (!recorridoActual) return;
+
+    console.log('🔔 Suscribiendo a cambios en estados de recorrido...');
+
+    const channel = supabase
+      .channel('estados-recorrido-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'estados_recorrido',
+          filter: `id_asignacion=eq.${recorridoActual.id}`,
+        },
+        (payload) => {
+          console.log('🔔 Cambio detectado en estado de recorrido:', payload);
+          cargarEstadoRecorrido();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('🔕 Desuscribiendo de cambios en estados de recorrido');
+      supabase.removeChannel(channel);
+    };
+  }, [recorridoActual, cargarEstadoRecorrido]);
 
   const handleMarcarAusente = async (idEstudiante: string) => {
     if (!profile?.id || !recorridoActual) return;
@@ -422,9 +469,17 @@ export default function DriverHomeScreen() {
           {!routeActive ? (
             <AnimatedButton
               title="Iniciar Recorrido"
-              onPress={() => {
+              onPress={async () => {
+                if (!recorridoActual) return;
                 haptic.heavy();
-                setRouteActive(true);
+                const success = await iniciarRecorrido(recorridoActual.id);
+                if (success) {
+                  setRouteActive(true);
+                  haptic.success();
+                } else {
+                  haptic.error();
+                  Alert.alert('Error', 'No se pudo iniciar el recorrido');
+                }
               }}
               variant="success"
               icon={Play}
@@ -433,9 +488,17 @@ export default function DriverHomeScreen() {
           ) : (
             <AnimatedButton
               title="Finalizar Recorrido"
-              onPress={() => {
+              onPress={async () => {
+                if (!recorridoActual) return;
                 haptic.heavy();
-                setRouteActive(false);
+                const success = await finalizarRecorrido(recorridoActual.id);
+                if (success) {
+                  setRouteActive(false);
+                  haptic.success();
+                } else {
+                  haptic.error();
+                  Alert.alert('Error', 'No se pudo finalizar el recorrido');
+                }
               }}
               variant="danger"
               icon={Square}

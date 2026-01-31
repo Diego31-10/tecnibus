@@ -39,6 +39,7 @@ import {
   getEstadoAsistencia
 } from '@/lib/services/asistencias.service';
 import { supabase } from '@/lib/services/supabase';
+import { getEstadoRecorridoPorRuta } from '@/lib/services/recorridos.service';
 
 export default function ParentHomeScreen() {
   const router = useRouter();
@@ -54,13 +55,15 @@ export default function ParentHomeScreen() {
   const [isAttending, setIsAttending] = useState(true);
   const [processingAttendance, setProcessingAttendance] = useState(false);
   const [marcadoPorChofer, setMarcadoPorChofer] = useState(false);
+  const [choferEnCamino, setChoferEnCamino] = useState(false);
+  const [idAsignacion, setIdAsignacion] = useState<string | null>(null);
 
   const paddingTop = Math.max(insets.top + 8, 48);
   const shadow = createShadow('lg');
 
   // Datos temporales (hasta implementar funcionalidad completa)
   const estimatedTime = '15 minutos';
-  const busStatus = 'En camino';
+  const busStatus = choferEnCamino ? 'En camino' : 'No iniciado';
 
   useEffect(() => {
     loadEstudiantes();
@@ -70,6 +73,7 @@ export default function ParentHomeScreen() {
   useEffect(() => {
     if (estudianteSeleccionado?.id) {
       cargarEstadoAsistencia();
+      cargarEstadoRecorrido();
     }
   }, [estudianteSeleccionado?.id]);
 
@@ -103,6 +107,35 @@ export default function ParentHomeScreen() {
     };
   }, [estudianteSeleccionado?.id]);
 
+  // Suscripción en tiempo real a cambios en estados de recorrido
+  useEffect(() => {
+    if (!idAsignacion) return;
+
+    console.log('🔔 Padre: Suscribiendo a cambios en estado del recorrido...');
+
+    const channel = supabase
+      .channel('estados-recorrido-padre-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'estados_recorrido',
+          filter: `id_asignacion=eq.${idAsignacion}`,
+        },
+        (payload) => {
+          console.log('🔔 Padre: Cambio detectado en estado de recorrido:', payload);
+          cargarEstadoRecorrido();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('🔕 Padre: Desuscribiendo de cambios en estados de recorrido');
+      supabase.removeChannel(channel);
+    };
+  }, [idAsignacion]);
+
   const cargarEstadoAsistencia = async () => {
     if (!estudianteSeleccionado?.id) return;
 
@@ -124,6 +157,19 @@ export default function ParentHomeScreen() {
       // Si no hay registro, está presente por defecto
       setIsAttending(true);
       setMarcadoPorChofer(false);
+    }
+  };
+
+  const cargarEstadoRecorrido = async () => {
+    if (!estudianteSeleccionado?.parada?.ruta?.id) return;
+
+    try {
+      const estado = await getEstadoRecorridoPorRuta(estudianteSeleccionado.parada.ruta.id);
+      setChoferEnCamino(estado?.activo || false);
+      setIdAsignacion(estado?.id_asignacion || null);
+    } catch (error) {
+      console.error('Error cargando estado del recorrido:', error);
+      setChoferEnCamino(false);
     }
   };
 
