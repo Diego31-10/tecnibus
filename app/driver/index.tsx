@@ -129,51 +129,66 @@ export default function DriverHomeScreen() {
   const renderStudentItem = (item: EstudianteConAsistencia) => {
     const isProcessing = processingStudent === item.id;
     const { estado } = item;
+    const estaAusente = estado === 'ausente';
 
     return (
       <View key={item.id} className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-gray-100">
-        <View className="flex-row items-center justify-between">
+        <View className="flex-row items-start justify-between">
           <View className="flex-1">
+            {/* Nombre */}
             <Text className="text-base font-bold text-gray-800 mb-1">
               {item.nombre} {item.apellido}
             </Text>
+
+            {/* Parada */}
             {item.parada && (
-              <View className="flex-row items-center">
+              <View className="flex-row items-center mb-1">
                 <MapPin size={12} color="#ca8a04" strokeWidth={2} />
                 <Text className="text-xs text-chofer-700 ml-1 font-semibold">
-                  Parada: {item.parada.nombre || 'Sin nombre'}
+                  {item.parada.nombre || 'Sin nombre'}
                   {item.parada.orden && ` (#${item.parada.orden})`}
                 </Text>
               </View>
             )}
+
+            {/* Estado */}
+            <View className="flex-row items-center mt-1">
+              {estaAusente ? (
+                <>
+                  <XCircle size={14} color="#dc2626" strokeWidth={2.5} />
+                  <Text className="text-red-600 font-semibold text-sm ml-1">
+                    No asiste
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={14} color="#16a34a" strokeWidth={2.5} />
+                  <Text className="text-green-600 font-semibold text-sm ml-1">
+                    Asiste
+                  </Text>
+                </>
+              )}
+            </View>
           </View>
 
-          <View className="items-end gap-2">
-            <StatusBadge
-              status={estado === 'ausente' ? 'absent' : 'attending'}
-              size="md"
-            />
-
-            {/* Solo mostrar botón si está presente */}
-            {estado === 'presente' && (
-              <TouchableOpacity
-                className="bg-red-500 px-3 py-1.5 rounded-lg flex-row items-center"
-                onPress={() => handleMarcarAusente(item.id)}
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <>
-                    <XCircle size={14} color="#ffffff" strokeWidth={2.5} />
-                    <Text className="text-white font-semibold text-xs ml-1">
-                      Ausente
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
+          {/* Botón Ausente (solo si está presente) */}
+          {!estaAusente && (
+            <TouchableOpacity
+              className="bg-red-500 px-4 py-2 rounded-lg"
+              onPress={() => handleMarcarAusente(item.id)}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Text className="text-white font-bold text-sm">
+                  Marcar
+                  {'\n'}
+                  Ausente
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
