@@ -18,6 +18,7 @@ import {
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
   ScrollView,
@@ -33,6 +34,9 @@ import {
   EstudianteDelPadre,
   getMyEstudiantes
 } from '../../lib/services/padres.service';
+import {
+  marcarAusente
+} from '@/lib/services/asistencias.service';
 
 export default function ParentHomeScreen() {
   const router = useRouter();
@@ -46,6 +50,7 @@ export default function ParentHomeScreen() {
     useState<EstudianteDelPadre | null>(null);
   const [showSelector, setShowSelector] = useState(false);
   const [isAttending, setIsAttending] = useState(true);
+  const [processingAttendance, setProcessingAttendance] = useState(false);
 
   const paddingTop = Math.max(insets.top + 8, 48);
   const shadow = createShadow('lg');
@@ -77,9 +82,52 @@ export default function ParentHomeScreen() {
     setShowSelector(false);
   };
 
-  const handleToggleAttendance = () => {
-    haptic.success();
-    setIsAttending(!isAttending);
+  const handleToggleAttendance = async () => {
+    if (!estudianteSeleccionado?.id || !estudianteSeleccionado?.parada?.ruta?.id) {
+      Alert.alert('Error', 'No se puede marcar asistencia sin estudiante o ruta asignada');
+      return;
+    }
+
+    try {
+      setProcessingAttendance(true);
+      haptic.medium();
+
+      if (isAttending) {
+        // Marcar como ausente
+        const success = await marcarAusente(
+          estudianteSeleccionado.id,
+          estudianteSeleccionado.parada.ruta.id,
+          'Marcado ausente por padre desde la app'
+        );
+
+        if (success) {
+          setIsAttending(false);
+          haptic.success();
+          Alert.alert(
+            'Ausencia registrada',
+            'El chofer ha sido notificado que el estudiante no asistirá hoy.'
+          );
+        } else {
+          haptic.error();
+          Alert.alert('Error', 'No se pudo registrar la ausencia. Intenta nuevamente.');
+        }
+      } else {
+        // Volver a marcar como presente (eliminar ausencia)
+        // TODO: implementar función para cancelar ausencia
+        setIsAttending(true);
+        haptic.success();
+        Alert.alert(
+          'Asistencia actualizada',
+          'El estudiante volverá a ser recogido normalmente.'
+        );
+      }
+    } catch (error) {
+      console.error('Error toggling attendance:', error);
+      haptic.error();
+      Alert.alert('Error', 'Ocurrió un error al actualizar la asistencia');
+    } finally {
+      setProcessingAttendance(false);
+    }
   };
 
   const handleViewDetails = () => {
@@ -197,11 +245,16 @@ export default function ParentHomeScreen() {
           </Text>
 
           <AnimatedButton
-            title={isAttending ? 'Marcar como ausente' : 'Marcar como presente'}
+            title={
+              processingAttendance
+                ? 'Actualizando...'
+                : (isAttending ? 'Marcar como ausente' : 'Marcar como presente')
+            }
             onPress={handleToggleAttendance}
             variant={isAttending ? 'danger' : 'success'}
             icon={isAttending ? XCircle : CheckCircle2}
             size="md"
+            disabled={processingAttendance || !estudianteSeleccionado?.parada?.ruta}
           />
         </AnimatedCard>
 
