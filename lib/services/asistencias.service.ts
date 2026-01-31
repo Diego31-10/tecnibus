@@ -112,8 +112,26 @@ export async function getEstudiantesConAsistencia(
   try {
     console.log(`🔍 Buscando estudiantes para ruta: ${idRuta}, chofer: ${idChofer}`);
 
-    // 1. Obtener estudiantes de la ruta via paradas
-    // Usar el nombre de la FK explícitamente: estudiantes_id_parada_fkey → paradas
+    // 1. Primero obtener IDs de paradas de esta ruta
+    const { data: paradasRuta, error: errorParadas } = await supabase
+      .from('paradas')
+      .select('id')
+      .eq('id_ruta', idRuta);
+
+    if (errorParadas) {
+      console.error('❌ Error obteniendo paradas:', errorParadas);
+      throw errorParadas;
+    }
+
+    const paradasIds = (paradasRuta || []).map(p => p.id);
+    console.log(`📍 Paradas en ruta: ${paradasIds.length}`);
+
+    if (paradasIds.length === 0) {
+      console.log('⚠️ No hay paradas en esta ruta');
+      return [];
+    }
+
+    // 2. Obtener estudiantes de esas paradas (RLS se encarga del filtrado)
     const { data: estudiantes, error: errorEstudiantes } = await supabase
       .from('estudiantes')
       .select(`
@@ -121,14 +139,13 @@ export async function getEstudiantesConAsistencia(
         nombre,
         apellido,
         id_parada,
-        paradas!estudiantes_id_parada_fkey!inner(
+        paradas(
           id,
-          id_ruta,
           nombre,
           orden
         )
       `)
-      .eq('paradas.id_ruta', idRuta)
+      .in('id_parada', paradasIds)
       .order('apellido', { ascending: true });
 
     if (errorEstudiantes) {
