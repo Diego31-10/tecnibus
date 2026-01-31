@@ -25,22 +25,9 @@ USING (
   )
 );
 
--- Nueva política: Padres pueden ver paradas donde están sus estudiantes
-CREATE POLICY "Parents can view paradas of their students"
-ON public.paradas
-FOR SELECT
-TO public
-USING (
-  EXISTS (
-    SELECT 1
-    FROM estudiantes e
-    WHERE e.id_parada = paradas.id
-      AND e.id_padre = auth.uid()
-  )
-);
+-- NOTA: No se crea política para padres ver paradas porque causaría recursión infinita
+-- (estudiantes → paradas → estudiantes). Los padres verán info de paradas a través
+-- de otras estrategias (RPC functions, vistas, o queries directos sin RLS en el servicio)
 
 COMMENT ON POLICY "Choferes can view paradas of assigned routes" ON public.paradas
 IS 'Permite a choferes ver paradas de rutas asignadas sin recursión';
-
-COMMENT ON POLICY "Parents can view paradas of their students" ON public.paradas
-IS 'Permite a padres ver paradas donde están sus estudiantes sin recursión';
