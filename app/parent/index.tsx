@@ -141,6 +141,21 @@ export default function ParentHomeScreen() {
     };
   }, [idAsignacion]);
 
+  // Polling como fallback (cada 10 segundos)
+  useEffect(() => {
+    if (!estudianteSeleccionado?.parada?.ruta?.id) return;
+
+    const interval = setInterval(() => {
+      console.log('🔄 Polling: Verificando estado del recorrido...');
+      cargarEstadoRecorrido();
+    }, 10000); // Cada 10 segundos
+
+    return () => {
+      console.log('⏹️ Deteniendo polling');
+      clearInterval(interval);
+    };
+  }, [estudianteSeleccionado?.parada?.ruta?.id]);
+
   const cargarEstadoAsistencia = async () => {
     if (!estudianteSeleccionado?.id) return;
 
