@@ -110,6 +110,8 @@ export async function getEstudiantesConAsistencia(
   idChofer: string
 ): Promise<EstudianteConAsistencia[]> {
   try {
+    console.log(`🔍 Buscando estudiantes para ruta: ${idRuta}, chofer: ${idChofer}`);
+
     // 1. Obtener estudiantes de la ruta via paradas
     const { data: estudiantes, error: errorEstudiantes } = await supabase
       .from('estudiantes')
@@ -117,6 +119,7 @@ export async function getEstudiantesConAsistencia(
         id,
         nombre,
         apellido,
+        id_parada,
         paradas!inner(
           id,
           id_ruta,
@@ -132,8 +135,15 @@ export async function getEstudiantesConAsistencia(
       throw errorEstudiantes;
     }
 
+    console.log(`📊 Query ejecutado. Estudiantes encontrados: ${estudiantes?.length || 0}`);
+    if (estudiantes && estudiantes.length > 0) {
+      console.log('📝 Primer estudiante:', JSON.stringify(estudiantes[0], null, 2));
+    }
+
     if (!estudiantes || estudiantes.length === 0) {
       console.log('⚠️ No hay estudiantes en esta ruta');
+      console.log(`   - Verifica que haya estudiantes con id_parada asignado`);
+      console.log(`   - Verifica que las paradas tengan id_ruta = ${idRuta}`);
       return [];
     }
 
