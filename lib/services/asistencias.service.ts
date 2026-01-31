@@ -113,6 +113,7 @@ export async function getEstudiantesConAsistencia(
     console.log(`🔍 Buscando estudiantes para ruta: ${idRuta}, chofer: ${idChofer}`);
 
     // 1. Obtener estudiantes de la ruta via paradas
+    // Usar el nombre de la FK explícitamente: estudiantes_id_parada_fkey → paradas
     const { data: estudiantes, error: errorEstudiantes } = await supabase
       .from('estudiantes')
       .select(`
@@ -120,7 +121,7 @@ export async function getEstudiantesConAsistencia(
         nombre,
         apellido,
         id_parada,
-        paradas!inner(
+        paradas!estudiantes_id_parada_fkey!inner(
           id,
           id_ruta,
           nombre,
