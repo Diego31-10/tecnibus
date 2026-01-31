@@ -22,7 +22,7 @@ import { AnimatedButton, AnimatedCard, StatusBadge } from '../../components';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   getEstudiantesConAsistencia,
-  marcarAsistencia,
+  marcarAusente,
   type EstudianteConAsistencia,
   type EstadoAsistencia
 } from '@/lib/services/asistencias.service';
@@ -93,38 +93,36 @@ export default function DriverHomeScreen() {
     }
   }, [recorridoActual, cargarEstudiantes]);
 
-  const handleMarcarEstado = async (idEstudiante: string, nuevoEstado: EstadoAsistencia) => {
+  const handleMarcarAusente = async (idEstudiante: string) => {
     if (!profile?.id || !recorridoActual) return;
 
     try {
       setProcessingStudent(idEstudiante);
       haptic.medium();
 
-      const result = await marcarAsistencia({
-        id_estudiante: idEstudiante,
-        id_chofer: profile.id,
-        id_ruta: recorridoActual.id_ruta,
-        estado: nuevoEstado,
-      });
+      const result = await marcarAusente(
+        idEstudiante,
+        recorridoActual.id_ruta,
+        profile.id
+      );
 
       if (result) {
-        // Recargar lista
         await cargarEstudiantes();
         haptic.success();
       } else {
         haptic.error();
-        Alert.alert('Error', 'No se pudo actualizar la asistencia');
+        Alert.alert('Error', 'No se pudo marcar como ausente');
       }
     } catch (error) {
-      console.error('Error actualizando asistencia:', error);
+      console.error('Error marcando ausente:', error);
       haptic.error();
-      Alert.alert('Error', 'Ocurrió un error al registrar');
+      Alert.alert('Error', 'Ocurrió un error');
     } finally {
       setProcessingStudent(null);
     }
   };
 
-  const abordoCount = estudiantes.filter(e => e.estado === 'abordo').length;
+  const presentesCount = estudiantes.filter(e => e.estado === 'presente').length;
   const ausentesCount = estudiantes.filter(e => e.estado === 'ausente').length;
   const totalStudents = estudiantes.length;
 
@@ -132,48 +130,15 @@ export default function DriverHomeScreen() {
     const isProcessing = processingStudent === item.id;
     const { estado } = item;
 
-    // Determinar color y texto del badge según estado
-    const getBadgeStatus = () => {
-      switch (estado) {
-        case 'abordo':
-          return 'attending';
-        case 'ausente':
-          return 'absent';
-        case 'dejado':
-          return 'success';
-        default:
-          return 'warning';
-      }
-    };
-
-    const getEstadoTexto = () => {
-      switch (estado) {
-        case 'pendiente':
-          return 'Pendiente';
-        case 'recogiendo':
-          return 'Recogiendo';
-        case 'abordo':
-          return 'Abordo';
-        case 'ausente':
-          return 'Ausente';
-        case 'dejando':
-          return 'Dejando';
-        case 'dejado':
-          return 'Dejado';
-        default:
-          return 'Pendiente';
-      }
-    };
-
     return (
       <View key={item.id} className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-gray-100">
-        <View className="flex-row items-center justify-between mb-3">
+        <View className="flex-row items-center justify-between">
           <View className="flex-1">
             <Text className="text-base font-bold text-gray-800 mb-1">
               {item.nombre} {item.apellido}
             </Text>
             {item.parada && (
-              <View className="flex-row items-center mb-1">
+              <View className="flex-row items-center">
                 <MapPin size={12} color="#ca8a04" strokeWidth={2} />
                 <Text className="text-xs text-chofer-700 ml-1 font-semibold">
                   Parada: {item.parada.nombre || 'Sin nombre'}
@@ -181,99 +146,35 @@ export default function DriverHomeScreen() {
                 </Text>
               </View>
             )}
-            {item.asistenciaHoy && (
-              <View className="flex-row items-center">
-                <Clock size={12} color="#9ca3af" strokeWidth={2} />
-                <Text className="text-xs text-gray-500 ml-1">
-                  Estado: {getEstadoTexto()}
-                  {item.asistenciaHoy.hora_recogida &&
-                    ` • ${new Date(item.asistenciaHoy.hora_recogida).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`
-                  }
-                </Text>
-              </View>
-            )}
           </View>
 
-          <StatusBadge
-            status={getBadgeStatus()}
-            size="md"
-          />
+          <View className="items-end gap-2">
+            <StatusBadge
+              status={estado === 'ausente' ? 'absent' : 'attending'}
+              size="md"
+            />
+
+            {/* Solo mostrar botón si está presente */}
+            {estado === 'presente' && (
+              <TouchableOpacity
+                className="bg-red-500 px-3 py-1.5 rounded-lg flex-row items-center"
+                onPress={() => handleMarcarAusente(item.id)}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <XCircle size={14} color="#ffffff" strokeWidth={2.5} />
+                    <Text className="text-white font-semibold text-xs ml-1">
+                      Ausente
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-
-        {/* Botones según estado */}
-        <View className="flex-row gap-2">
-          {/* Botón Abordo */}
-          <TouchableOpacity
-            className={`flex-1 flex-row items-center justify-center py-2.5 px-3 rounded-lg ${
-              estado === 'abordo' ? 'bg-green-600' : 'bg-green-500'
-            } ${(estado === 'ausente' || estado === 'dejado') ? 'opacity-50' : ''}`}
-            onPress={() => handleMarcarEstado(item.id, 'abordo')}
-            disabled={isProcessing || estado === 'ausente' || estado === 'dejado'}
-          >
-            {isProcessing && estado !== 'abordo' ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <>
-                <CheckCircle2
-                  size={16}
-                  color="#ffffff"
-                  strokeWidth={2.5}
-                />
-                <Text className="ml-1.5 font-semibold text-sm text-white">
-                  {estado === 'abordo' ? '✓ Abordo' : 'Abordo'}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          {/* Botón Ausente */}
-          <TouchableOpacity
-            className={`flex-1 flex-row items-center justify-center py-2.5 px-3 rounded-lg ${
-              estado === 'ausente' ? 'bg-red-600' : 'bg-red-500'
-            } ${estado === 'dejado' ? 'opacity-50' : ''}`}
-            onPress={() => handleMarcarEstado(item.id, 'ausente')}
-            disabled={isProcessing || estado === 'dejado'}
-          >
-            {isProcessing && estado !== 'ausente' ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <>
-                <XCircle
-                  size={16}
-                  color="#ffffff"
-                  strokeWidth={2.5}
-                />
-                <Text className="ml-1.5 font-semibold text-sm text-white">
-                  {estado === 'ausente' ? '✓ Ausente' : 'Ausente'}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Botón Dejado (solo si está abordo) */}
-        {estado === 'abordo' && (
-          <TouchableOpacity
-            className="mt-2 flex-row items-center justify-center py-2.5 px-3 rounded-lg bg-blue-500"
-            onPress={() => handleMarcarEstado(item.id, 'dejado')}
-            disabled={isProcessing}
-          >
-            {isProcessing ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <>
-                <ArrowDown
-                  size={16}
-                  color="#ffffff"
-                  strokeWidth={2.5}
-                />
-                <Text className="ml-1.5 font-semibold text-sm text-white">
-                  Dejado en parada
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-        )}
       </View>
     );
   };
@@ -336,23 +237,17 @@ export default function DriverHomeScreen() {
 
         {/* Contador de estudiantes */}
         <View className="bg-chofer-700 rounded-xl p-3 mt-4 flex-row items-center justify-between">
-          <View className="flex-row items-center gap-4">
-            <View className="flex-row items-center">
-              <CheckCircle2 size={18} color="#10b981" strokeWidth={2.5} />
-              <Text className="text-white font-bold ml-1.5">
-                {abordoCount}
+          <View className="flex-row items-center gap-3">
+            <View className="flex-row items-center bg-chofer-700 px-2 py-1 rounded-lg">
+              <CheckCircle2 size={16} color="#10b981" strokeWidth={2.5} />
+              <Text className="text-white font-bold ml-1 text-sm">
+                {presentesCount}
               </Text>
             </View>
-            <View className="flex-row items-center">
-              <XCircle size={18} color="#ef4444" strokeWidth={2.5} />
-              <Text className="text-white font-bold ml-1.5">
+            <View className="flex-row items-center bg-chofer-700 px-2 py-1 rounded-lg">
+              <XCircle size={16} color="#ef4444" strokeWidth={2.5} />
+              <Text className="text-white font-bold ml-1 text-sm">
                 {ausentesCount}
-              </Text>
-            </View>
-            <View className="flex-row items-center">
-              <Users size={18} color="#fef3c7" strokeWidth={2.5} />
-              <Text className="text-white font-bold ml-1.5">
-                {totalStudents}
               </Text>
             </View>
           </View>

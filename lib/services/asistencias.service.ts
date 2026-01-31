@@ -1,13 +1,7 @@
 import { supabase } from './supabase';
 
-// Estados de asistencia (sync con enum DB)
-export type EstadoAsistencia =
-  | 'pendiente'    // Aún no llega a la parada
-  | 'recogiendo'   // Dentro de geocerca (futuro automático)
-  | 'abordo'       // Subió al bus
-  | 'ausente'      // No se subió / No asistirá
-  | 'dejando'      // Dentro de geocerca destino (futuro)
-  | 'dejado';      // Entregado en su parada
+// Estados simples de asistencia
+export type EstadoAsistencia = 'presente' | 'ausente' | 'completado';
 
 export type Asistencia = {
   id: string;
@@ -15,32 +9,11 @@ export type Asistencia = {
   id_chofer: string;
   id_ruta: string | null;
   estado: EstadoAsistencia;
-  fecha: string; // YYYY-MM-DD
-  hora_recogida: string | null;
-  hora_entrega: string | null;
-  ubicacion_recogida: { x: number; y: number } | null;
-  ubicacion_entrega: { x: number; y: number } | null;
+  fecha: string;
   notas: string | null;
   modificado_por: string | null;
   created_at: string;
   updated_at: string | null;
-};
-
-export type CreateAsistenciaDto = {
-  id_estudiante: string;
-  id_chofer: string;
-  id_ruta: string;
-  estado: EstadoAsistencia;
-  latitud?: number;
-  longitud?: number;
-  notas?: string;
-};
-
-export type UpdateAsistenciaDto = {
-  estado: EstadoAsistencia;
-  latitud?: number;
-  longitud?: number;
-  notas?: string;
 };
 
 export type EstudianteConAsistencia = {
@@ -52,111 +25,16 @@ export type EstudianteConAsistencia = {
     nombre: string | null;
     orden: number | null;
   } | null;
-  asistenciaHoy: Asistencia | null;
   estado: EstadoAsistencia;
 };
 
 /**
- * Crea o actualiza asistencia del día para un estudiante
- * Si ya existe, la actualiza. Si no, la crea.
+ * Padre marca/desmarca ausencia de su hijo
  */
-export async function marcarAsistencia(
-  dto: CreateAsistenciaDto
-): Promise<Asistencia | null> {
-  try {
-    const hoy = new Date().toISOString().split('T')[0];
-    const userId = (await supabase.auth.getUser()).data.user?.id;
-
-    // Verificar si ya existe asistencia hoy
-    const { data: existente, error: errorCheck } = await supabase
-      .from('asistencias')
-      .select('id')
-      .eq('id_estudiante', dto.id_estudiante)
-      .eq('fecha', hoy)
-      .single();
-
-    if (errorCheck && errorCheck.code !== 'PGRST116') {
-      // PGRST116 = no encontrado (ok)
-      console.error('❌ Error verificando asistencia:', errorCheck);
-      throw errorCheck;
-    }
-
-    let result;
-
-    if (existente) {
-      // Actualizar existente
-      const updateData: any = {
-        estado: dto.estado,
-        modificado_por: userId,
-        notas: dto.notas || null,
-      };
-
-      // Actualizar timestamps según estado
-      if (dto.estado === 'abordo' || dto.estado === 'ausente') {
-        updateData.hora_recogida = new Date().toISOString();
-        if (dto.latitud && dto.longitud) {
-          updateData.ubicacion_recogida = `(${dto.latitud},${dto.longitud})`;
-        }
-      } else if (dto.estado === 'dejado') {
-        updateData.hora_entrega = new Date().toISOString();
-        if (dto.latitud && dto.longitud) {
-          updateData.ubicacion_entrega = `(${dto.latitud},${dto.longitud})`;
-        }
-      }
-
-      const { data, error } = await supabase
-        .from('asistencias')
-        .update(updateData)
-        .eq('id', existente.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      result = data;
-    } else {
-      // Crear nueva
-      const insertData: any = {
-        id_estudiante: dto.id_estudiante,
-        id_chofer: dto.id_chofer,
-        id_ruta: dto.id_ruta,
-        estado: dto.estado,
-        fecha: hoy,
-        modificado_por: userId,
-        notas: dto.notas || null,
-      };
-
-      if (dto.estado === 'abordo' || dto.estado === 'ausente') {
-        insertData.hora_recogida = new Date().toISOString();
-        if (dto.latitud && dto.longitud) {
-          insertData.ubicacion_recogida = `(${dto.latitud},${dto.longitud})`;
-        }
-      }
-
-      const { data, error } = await supabase
-        .from('asistencias')
-        .insert(insertData)
-        .select()
-        .single();
-
-      if (error) throw error;
-      result = data;
-    }
-
-    console.log(`✅ Asistencia marcada: ${dto.estado} - ${dto.id_estudiante}`);
-    return result as Asistencia;
-  } catch (error) {
-    console.error('❌ Error en marcarAsistencia:', error);
-    return null;
-  }
-}
-
-/**
- * Padre marca a su hijo como ausente
- */
-export async function marcarAusente(
+export async function toggleAsistencia(
   idEstudiante: string,
   idRuta: string,
-  notas?: string
+  marcarAusente: boolean
 ): Promise<boolean> {
   try {
     const userId = (await supabase.auth.getUser()).data.user?.id;
@@ -164,7 +42,65 @@ export async function marcarAusente(
 
     const hoy = new Date().toISOString().split('T')[0];
 
-    // Verificar si ya existe
+    // Verificar si ya existe registro hoy
+    const { data: existente } = await supabase
+      .from('asistencias')
+      .select('id')
+      .eq('id_estudiante', idEstudiante)
+      .eq('fecha', hoy)
+      .single();
+
+    const nuevoEstado: EstadoAsistencia = marcarAusente ? 'ausente' : 'presente';
+
+    if (existente) {
+      // Actualizar existente
+      const { error } = await supabase
+        .from('asistencias')
+        .update({
+          estado: nuevoEstado,
+          modificado_por: userId,
+          notas: marcarAusente ? 'Marcado ausente por padre' : 'Marcado presente por padre',
+        })
+        .eq('id', existente.id);
+
+      if (error) throw error;
+    } else {
+      // Crear nuevo registro
+      const { error } = await supabase
+        .from('asistencias')
+        .insert({
+          id_estudiante: idEstudiante,
+          id_chofer: userId, // Temporalmente
+          id_ruta: idRuta,
+          estado: nuevoEstado,
+          fecha: hoy,
+          modificado_por: userId,
+          notas: marcarAusente ? 'Marcado ausente por padre' : null,
+        });
+
+      if (error) throw error;
+    }
+
+    console.log(`✅ Asistencia actualizada: ${nuevoEstado} - ${idEstudiante}`);
+    return true;
+  } catch (error) {
+    console.error('❌ Error en toggleAsistencia:', error);
+    return false;
+  }
+}
+
+/**
+ * Chofer marca estudiante como ausente (no se subió)
+ */
+export async function marcarAusente(
+  idEstudiante: string,
+  idRuta: string,
+  idChofer: string
+): Promise<boolean> {
+  try {
+    const hoy = new Date().toISOString().split('T')[0];
+
+    // Verificar si existe
     const { data: existente } = await supabase
       .from('asistencias')
       .select('id')
@@ -178,30 +114,30 @@ export async function marcarAusente(
         .from('asistencias')
         .update({
           estado: 'ausente',
-          modificado_por: userId,
-          notas: notas || 'Marcado ausente por padre',
+          modificado_por: idChofer,
+          notas: 'Marcado ausente por chofer - no se subió',
         })
         .eq('id', existente.id);
 
       if (error) throw error;
     } else {
-      // Crear como ausente (necesita id_chofer dummy)
+      // Crear como ausente
       const { error } = await supabase
         .from('asistencias')
         .insert({
           id_estudiante: idEstudiante,
-          id_chofer: userId, // Temporalmente el padre
+          id_chofer: idChofer,
           id_ruta: idRuta,
           estado: 'ausente',
           fecha: hoy,
-          modificado_por: userId,
-          notas: notas || 'Marcado ausente por padre',
+          modificado_por: idChofer,
+          notas: 'Marcado ausente por chofer - no se subió',
         });
 
       if (error) throw error;
     }
 
-    console.log(`✅ Estudiante marcado como ausente: ${idEstudiante}`);
+    console.log(`✅ Estudiante marcado ausente: ${idEstudiante}`);
     return true;
   } catch (error) {
     console.error('❌ Error en marcarAusente:', error);
@@ -210,35 +146,28 @@ export async function marcarAusente(
 }
 
 /**
- * Obtiene estudiantes de la ruta con su estado de asistencia del día
+ * Obtiene estudiantes de la ruta con su estado de asistencia
+ * Por defecto todos están "presente" a menos que se marque lo contrario
  */
 export async function getEstudiantesConAsistencia(
   idRuta: string,
   idChofer: string
 ): Promise<EstudianteConAsistencia[]> {
   try {
-    console.log(`🔍 Buscando estudiantes para ruta: ${idRuta}, chofer: ${idChofer}`);
+    console.log(`🔍 Buscando estudiantes para ruta: ${idRuta}`);
 
-    // 1. Obtener IDs de paradas de esta ruta
+    // 1. Obtener paradas de la ruta
     const { data: paradasRuta, error: errorParadas } = await supabase
       .from('paradas')
       .select('id')
       .eq('id_ruta', idRuta);
 
-    if (errorParadas) {
-      console.error('❌ Error obteniendo paradas:', errorParadas);
-      throw errorParadas;
-    }
+    if (errorParadas) throw errorParadas;
 
     const paradasIds = (paradasRuta || []).map(p => p.id);
-    console.log(`📍 Paradas en ruta: ${paradasIds.length}`);
+    if (paradasIds.length === 0) return [];
 
-    if (paradasIds.length === 0) {
-      console.log('⚠️ No hay paradas en esta ruta');
-      return [];
-    }
-
-    // 2. Obtener estudiantes de esas paradas
+    // 2. Obtener estudiantes
     const { data: estudiantes, error: errorEstudiantes } = await supabase
       .from('estudiantes')
       .select(`
@@ -246,46 +175,27 @@ export async function getEstudiantesConAsistencia(
         nombre,
         apellido,
         id_parada,
-        paradas(
-          id,
-          nombre,
-          orden
-        )
+        paradas(id, nombre, orden)
       `)
       .in('id_parada', paradasIds)
       .order('apellido', { ascending: true });
 
-    if (errorEstudiantes) {
-      console.error('❌ Error obteniendo estudiantes:', errorEstudiantes);
-      throw errorEstudiantes;
-    }
-
-    console.log(`📊 Estudiantes encontrados: ${estudiantes?.length || 0}`);
-
-    if (!estudiantes || estudiantes.length === 0) {
-      return [];
-    }
+    if (errorEstudiantes) throw errorEstudiantes;
+    if (!estudiantes || estudiantes.length === 0) return [];
 
     // 3. Obtener asistencias del día
     const hoy = new Date().toISOString().split('T')[0];
     const estudiantesIds = estudiantes.map((e: any) => e.id);
 
-    const { data: asistencias, error: errorAsistencias } = await supabase
+    const { data: asistencias } = await supabase
       .from('asistencias')
-      .select('*')
+      .select('id_estudiante, estado')
       .in('id_estudiante', estudiantesIds)
       .eq('fecha', hoy);
 
-    if (errorAsistencias) {
-      console.error('❌ Error obteniendo asistencias:', errorAsistencias);
-      throw errorAsistencias;
-    }
-
-    // 4. Combinar datos
-    const estudiantesConAsistencia: EstudianteConAsistencia[] = estudiantes.map((est: any) => {
-      const asistenciaHoy = asistencias?.find(
-        (a: any) => a.id_estudiante === est.id
-      ) as Asistencia | undefined;
+    // 4. Combinar datos (default: presente)
+    const resultado: EstudianteConAsistencia[] = estudiantes.map((est: any) => {
+      const asistencia = asistencias?.find((a: any) => a.id_estudiante === est.id);
 
       return {
         id: est.id,
@@ -298,13 +208,12 @@ export async function getEstudiantesConAsistencia(
               orden: est.paradas.orden,
             }
           : null,
-        asistenciaHoy: asistenciaHoy || null,
-        estado: asistenciaHoy?.estado || 'pendiente',
+        estado: asistencia?.estado || 'presente', // Default: presente
       };
     });
 
-    console.log(`✅ ${estudiantesConAsistencia.length} estudiantes con asistencia cargados`);
-    return estudiantesConAsistencia;
+    console.log(`✅ ${resultado.length} estudiantes cargados`);
+    return resultado;
   } catch (error) {
     console.error('❌ Error en getEstudiantesConAsistencia:', error);
     return [];
@@ -312,29 +221,23 @@ export async function getEstudiantesConAsistencia(
 }
 
 /**
- * Obtiene historial de asistencias de un estudiante
+ * Obtiene el estado de asistencia actual de un estudiante
  */
-export async function getHistorialAsistencias(
-  idEstudiante: string,
-  limite: number = 30
-): Promise<Asistencia[]> {
+export async function getEstadoAsistencia(
+  idEstudiante: string
+): Promise<EstadoAsistencia> {
   try {
-    const { data, error } = await supabase
+    const hoy = new Date().toISOString().split('T')[0];
+
+    const { data } = await supabase
       .from('asistencias')
-      .select('*')
+      .select('estado')
       .eq('id_estudiante', idEstudiante)
-      .order('fecha', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(limite);
+      .eq('fecha', hoy)
+      .single();
 
-    if (error) {
-      console.error('❌ Error obteniendo historial:', error);
-      throw error;
-    }
-
-    return (data || []) as Asistencia[];
+    return data?.estado || 'presente';
   } catch (error) {
-    console.error('❌ Error en getHistorialAsistencias:', error);
-    return [];
+    return 'presente'; // Default
   }
 }

@@ -35,7 +35,8 @@ import {
   getMyEstudiantes
 } from '../../lib/services/padres.service';
 import {
-  marcarAusente
+  toggleAsistencia,
+  getEstadoAsistencia
 } from '@/lib/services/asistencias.service';
 
 export default function ParentHomeScreen() {
@@ -62,6 +63,24 @@ export default function ParentHomeScreen() {
   useEffect(() => {
     loadEstudiantes();
   }, []);
+
+  // Cargar estado de asistencia cuando cambia el estudiante seleccionado
+  useEffect(() => {
+    if (estudianteSeleccionado?.id) {
+      cargarEstadoAsistencia();
+    }
+  }, [estudianteSeleccionado?.id]);
+
+  const cargarEstadoAsistencia = async () => {
+    if (!estudianteSeleccionado?.id) return;
+
+    try {
+      const estado = await getEstadoAsistencia(estudianteSeleccionado.id);
+      setIsAttending(estado === 'presente');
+    } catch (error) {
+      console.error('Error cargando estado asistencia:', error);
+    }
+  };
 
   const loadEstudiantes = async () => {
     setLoading(true);
@@ -92,34 +111,31 @@ export default function ParentHomeScreen() {
       setProcessingAttendance(true);
       haptic.medium();
 
-      if (isAttending) {
-        // Marcar como ausente
-        const success = await marcarAusente(
-          estudianteSeleccionado.id,
-          estudianteSeleccionado.parada.ruta.id,
-          'Marcado ausente por padre desde la app'
-        );
+      const nuevoEstado = !isAttending; // Toggle
+      const success = await toggleAsistencia(
+        estudianteSeleccionado.id,
+        estudianteSeleccionado.parada.ruta.id,
+        nuevoEstado // true = ausente, false = presente
+      );
 
-        if (success) {
-          setIsAttending(false);
-          haptic.success();
+      if (success) {
+        setIsAttending(!nuevoEstado);
+        haptic.success();
+
+        if (nuevoEstado) {
           Alert.alert(
             'Ausencia registrada',
             'El chofer ha sido notificado que el estudiante no asistirá hoy.'
           );
         } else {
-          haptic.error();
-          Alert.alert('Error', 'No se pudo registrar la ausencia. Intenta nuevamente.');
+          Alert.alert(
+            'Asistencia actualizada',
+            'El estudiante volverá a ser recogido normalmente.'
+          );
         }
       } else {
-        // Volver a marcar como presente (eliminar ausencia)
-        // TODO: implementar función para cancelar ausencia
-        setIsAttending(true);
-        haptic.success();
-        Alert.alert(
-          'Asistencia actualizada',
-          'El estudiante volverá a ser recogido normalmente.'
-        );
+        haptic.error();
+        Alert.alert('Error', 'No se pudo actualizar la asistencia. Intenta nuevamente.');
       }
     } catch (error) {
       console.error('Error toggling attendance:', error);
