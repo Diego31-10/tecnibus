@@ -1,3 +1,6 @@
+import { Colors } from '@/lib/constants/colors';
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -22,8 +25,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard, Toast } from '../../components';
 import { useAuth } from '../../contexts/AuthContext';
 import { updateProfile } from '../../lib/services/profile.service';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
 
 export default function ParentProfileScreen() {
   const router = useRouter();
@@ -78,17 +79,17 @@ export default function ParentProfileScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-primary-50"
+      className="flex-1 bg-padre-50"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle="light-content" backgroundColor="#1e40af" />
 
       {/* Header */}
-      <View className="bg-primary-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View className="bg-padre-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="bg-primary-600 p-2 rounded-xl"
+            className="bg-padre-600 p-2 rounded-xl"
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
@@ -96,7 +97,7 @@ export default function ParentProfileScreen() {
           {!isEditing ? (
             <TouchableOpacity
               onPress={() => setIsEditing(true)}
-              className="bg-primary-600 px-4 py-2 rounded-xl"
+              className="bg-padre-600 px-4 py-2 rounded-xl"
             >
               <Text className="text-white font-bold">Editar</Text>
             </TouchableOpacity>
@@ -127,14 +128,14 @@ export default function ParentProfileScreen() {
         </View>
 
         <View className="flex-row items-center">
-          <View className="bg-primary-600 p-3 rounded-full mr-4">
-            <User size={28} color="#ffffff" strokeWidth={2.5} />
+          <View className="bg-padre-600 p-3 rounded-full mr-4">
+            <User size={28} color={Colors.padre[50]} strokeWidth={2.5} />
           </View>
           <View className="flex-1">
             <Text className="text-white text-2xl font-bold">
               Mi Perfil
             </Text>
-            <Text className="text-primary-200 text-sm mt-1">
+            <Text className="text-padre-200 text-sm mt-1">
               Padre de Familia
             </Text>
           </View>
@@ -151,7 +152,7 @@ export default function ParentProfileScreen() {
           {/* Nombre */}
           <View className="mb-4">
             <View className="flex-row items-center mb-2">
-              <User size={16} color="#2563eb" strokeWidth={2.5} />
+              <User size={16} color={Colors.padre[600]} strokeWidth={2.5} />
               <Text className="text-gray-700 font-semibold ml-2">
                 Nombre
               </Text>
@@ -170,7 +171,7 @@ export default function ParentProfileScreen() {
           {/* Apellido */}
           <View className="mb-4">
             <View className="flex-row items-center mb-2">
-              <User size={16} color="#2563eb" strokeWidth={2.5} />
+              <User size={16} color={Colors.padre[600]} strokeWidth={2.5} />
               <Text className="text-gray-700 font-semibold ml-2">
                 Apellido
               </Text>
@@ -189,7 +190,7 @@ export default function ParentProfileScreen() {
           {/* Teléfono */}
           <View className="mb-4">
             <View className="flex-row items-center mb-2">
-              <Phone size={16} color="#2563eb" strokeWidth={2.5} />
+              <Phone size={16} color={Colors.padre[600]} strokeWidth={2.5} />
               <Text className="text-gray-700 font-semibold ml-2">
                 Teléfono
               </Text>
@@ -239,8 +240,8 @@ export default function ParentProfileScreen() {
                 Rol
               </Text>
             </View>
-            <View className="bg-primary-100 rounded-xl p-4 border-2 border-primary-200">
-              <Text className="text-primary-800 font-bold">
+            <View className="bg-padre-100 rounded-xl p-4 border-2 border-padre-200">
+              <Text className="text-padre-800 font-bold">
                 Padre de Familia
               </Text>
             </View>

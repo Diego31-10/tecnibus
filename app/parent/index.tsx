@@ -1,5 +1,8 @@
-import { useRouter } from 'expo-router';
+import { Colors } from '@/lib/constants/colors';
+import { haptic } from '@/lib/utils/haptics';
+import { createShadow } from '@/lib/utils/shadows';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import {
   Bus,
   CheckCircle2,
@@ -7,7 +10,6 @@ import {
   Clock,
   GraduationCap,
   Info,
-  LogOut,
   MapPin,
   Settings,
   User,
@@ -31,8 +33,6 @@ import {
   EstudianteDelPadre,
   getMyEstudiantes
 } from '../../lib/services/padres.service';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
 
 export default function ParentHomeScreen() {
   const router = useRouter();
@@ -95,7 +95,7 @@ export default function ParentHomeScreen() {
   // Mostrar loading
   if (loading) {
     return (
-      <View className="flex-1 bg-primary-50 items-center justify-center">
+      <View className="flex-1 bg-padre-50 items-center justify-center">
         <ActivityIndicator size="large" color="#2563eb" />
         <Text className="text-gray-500 mt-4">Cargando información...</Text>
       </View>
@@ -105,7 +105,7 @@ export default function ParentHomeScreen() {
   // Si no tiene estudiantes asignados
   if (estudiantes.length === 0) {
     return (
-      <View className="flex-1 bg-primary-50 items-center justify-center px-6">
+      <View className="flex-1 bg-padre-50 items-center justify-center px-6">
         <View className="bg-gray-100 p-4 rounded-full mb-4">
           <GraduationCap size={48} color="#9ca3af" strokeWidth={2} />
         </View>
@@ -121,21 +121,21 @@ export default function ParentHomeScreen() {
   }
 
   return (
-    <View className="flex-1 bg-primary-50">
+    <View className="flex-1 bg-padre-50">
       <StatusBar barStyle="light-content" backgroundColor="#1e40af" />
       
       {/* Header */}
-      <View className="bg-primary-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View className="bg-padre-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="bg-primary-600 p-2 rounded-xl"
+            className="bg-padre-600 p-2 rounded-xl"
           >
             <User size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="bg-primary-600 p-2 rounded-xl"
+            className="bg-padre-600 p-2 rounded-xl"
             onPress={handleSettings}
           >
             <Settings size={24} color="#ffffff" strokeWidth={2.5} />
@@ -146,17 +146,17 @@ export default function ParentHomeScreen() {
         {estudiantes.length > 1 ? (
           <TouchableOpacity
             onPress={() => setShowSelector(true)}
-            className="flex-row items-center bg-primary-600 rounded-xl p-3 mb-3"
+            className="flex-row items-center bg-padre-600 rounded-xl p-3 mb-3"
             activeOpacity={0.7}
           >
-            <View className="bg-primary-500 p-2 rounded-full mr-3">
+            <View className="bg-padre-500 p-2 rounded-full mr-3">
               <GraduationCap size={24} color="#ffffff" strokeWidth={2.5} />
             </View>
             <View className="flex-1">
               <Text className="text-white text-lg font-bold">
                 {estudianteSeleccionado?.nombreCompleto}
               </Text>
-              <Text className="text-primary-200 text-xs">
+              <Text className="text-padre-200 text-xs">
                 {estudianteSeleccionado?.parada?.ruta?.nombre || 'Sin ruta asignada'}
               </Text>
             </View>
@@ -164,14 +164,14 @@ export default function ParentHomeScreen() {
           </TouchableOpacity>
         ) : (
           <View className="flex-row items-center">
-            <View className="bg-primary-600 p-3 rounded-full mr-4">
+            <View className="bg-padre-600 p-3 rounded-full mr-4">
               <GraduationCap size={28} color="#ffffff" strokeWidth={2.5} />
             </View>
             <View className="flex-1">
               <Text className="text-white text-2xl font-bold">
                 {estudianteSeleccionado?.nombreCompleto}
               </Text>
-              <Text className="text-primary-200 text-sm mt-1">
+              <Text className="text-padre-200 text-sm mt-1">
                 {estudianteSeleccionado?.parada?.ruta?.nombre || 'Sin ruta asignada'}
               </Text>
             </View>
@@ -209,12 +209,12 @@ export default function ParentHomeScreen() {
         <AnimatedCard
           title="Ubicación de la Buseta"
           icon={Bus}
-          iconColor="#2563eb"
-          iconBgColor="bg-primary-100"
+          iconColor={Colors.padre[600]}
+          iconBgColor="bg-padre-100"
           delay={100}
           className="mb-4"
         >
-          {estudianteSeleccionado?.ruta ? (
+          {estudianteSeleccionado?.parada?.ruta ? (
             <>
               <View className="bg-gray-100 rounded-xl h-48 mb-4 items-center justify-center border-2 border-dashed border-gray-300">
                 <MapPin size={48} color="#9ca3af" strokeWidth={2} />
@@ -226,15 +226,15 @@ export default function ParentHomeScreen() {
                 </Text>
               </View>
 
-              <View className="bg-primary-50 rounded-xl p-4 flex-row items-center">
-                <View className="bg-primary-600 p-2 rounded-full">
-                  <Bus size={24} color="#ffffff" strokeWidth={2.5} />
+              <View className="bg-padre-50 rounded-xl p-4 flex-row items-center">
+                <View className="bg-padre-600 p-2 rounded-full">
+                  <Bus size={24} color={Colors.padre[600]} strokeWidth={2.5} />
                 </View>
                 <View className="flex-1 ml-3">
-                  <Text className="text-primary-800 font-bold text-base">
+                  <Text className="text-padre-800 font-bold text-base">
                     {busStatus}
                   </Text>
-                  <Text className="text-primary-600 text-sm">
+                  <Text className="text-padre-600 text-sm">
                     Ruta: {estudianteSeleccionado.parada?.ruta?.nombre || 'Sin ruta'}
                   </Text>
                 </View>
@@ -328,7 +328,7 @@ export default function ParentHomeScreen() {
                   activeOpacity={0.7}
                 >
                   <View className="flex-row items-center">
-                    <View className="bg-primary-100 p-3 rounded-full mr-3">
+                    <View className="bg-padre-100 p-3 rounded-full mr-3">
                       <GraduationCap size={24} color="#2563eb" strokeWidth={2} />
                     </View>
                     <View className="flex-1">
@@ -340,7 +340,7 @@ export default function ParentHomeScreen() {
                       </Text>
                     </View>
                     {estudianteSeleccionado?.id === item.id && (
-                      <View className="bg-primary-600 p-1 rounded-full">
+                      <View className="bg-padre-600 p-1 rounded-full">
                         <CheckCircle2 size={20} color="#ffffff" strokeWidth={2.5} />
                       </View>
                     )}

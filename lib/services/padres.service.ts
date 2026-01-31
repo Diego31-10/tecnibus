@@ -31,10 +31,24 @@ export async function getMyEstudiantes(): Promise<EstudianteDelPadre[]> {
       return [];
     }
 
-    // Obtener estudiantes (sin JOIN con paradas por RLS)
     const { data, error } = await supabase
       .from('estudiantes')
-      .select('id, nombre, apellido, id_parada')
+      .select(
+        `
+        id,
+        nombre,
+        apellido,
+        id_parada,
+        paradas(
+          id,
+          nombre,
+          rutas(
+            id,
+            nombre
+          )
+        )
+      `
+      )
       .eq('id_padre', user.id)
       .order('nombre', { ascending: true });
 
@@ -43,19 +57,25 @@ export async function getMyEstudiantes(): Promise<EstudianteDelPadre[]> {
       return [];
     }
 
-    if (!data || data.length === 0) {
-      return [];
-    }
-
-    // Obtener paradas y rutas por separado (solo si es admin o usar otra estrategia)
-    // Por ahora, retornar solo info básica del estudiante
-    return data.map((est) => ({
+    // Mapear a formato esperado
+    return (data || []).map((est: any) => ({
       id: est.id,
       nombre: est.nombre,
       apellido: est.apellido,
       nombreCompleto: `${est.nombre} ${est.apellido}`,
       id_parada: est.id_parada,
-      parada: undefined, // Los padres no tienen acceso directo a paradas por RLS
+      parada: est.paradas
+        ? {
+            id: est.paradas.id,
+            nombre: est.paradas.nombre,
+            ruta: est.paradas.rutas
+              ? {
+                  id: est.paradas.rutas.id,
+                  nombre: est.paradas.rutas.nombre,
+                }
+              : undefined,
+          }
+        : undefined,
     }));
   } catch (error) {
     console.error('❌ Error en getMyEstudiantes:', error);
