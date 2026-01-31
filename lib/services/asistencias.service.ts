@@ -65,12 +65,26 @@ export async function toggleAsistencia(
 
       if (error) throw error;
     } else {
-      // Crear nuevo registro
+      // Obtener el chofer asignado a esta ruta (el primero si hay múltiples)
+      const { data: asignacion, error: errorAsignacion } = await supabase
+        .from('asignaciones_ruta')
+        .select('id_chofer')
+        .eq('id_ruta', idRuta)
+        .eq('activo', true)
+        .limit(1)
+        .maybeSingle();
+
+      if (errorAsignacion || !asignacion?.id_chofer) {
+        console.error('❌ No hay chofer asignado a la ruta:', idRuta);
+        throw new Error('No hay chofer asignado a esta ruta');
+      }
+
+      // Crear nuevo registro con el chofer correcto
       const { error } = await supabase
         .from('asistencias')
         .insert({
           id_estudiante: idEstudiante,
-          id_chofer: userId, // Temporalmente
+          id_chofer: asignacion.id_chofer,
           id_ruta: idRuta,
           estado: nuevoEstado,
           fecha: hoy,
