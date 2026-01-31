@@ -53,6 +53,13 @@ type Ruta = {
   estado: string | null;
 };
 
+type Buseta = {
+  id: string;
+  placa: string;
+  ocupada: boolean;
+  chofer_nombre?: string;
+};
+
 const DIAS_SEMANA = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
 export default function AsignacionesScreen() {
@@ -64,9 +71,10 @@ export default function AsignacionesScreen() {
   const [loading, setLoading] = useState(true);
   const [choferes, setChoferes] = useState<Chofer[]>([]);
   const [rutas, setRutas] = useState<Ruta[]>([]);
-  const [busetas, setBusetas] = useState<Array<{ id: string; placa: string }>>([]);
+  const [busetas, setBusetas] = useState<Buseta[]>([]);
   const [asignaciones, setAsignaciones] = useState<AsignacionRuta[]>([]);
   const [choferSeleccionado, setChoferSeleccionado] = useState<Chofer | null>(null);
+  const [busetaFilter, setBusetaFilter] = useState('');
 
   // Modal crear asignación
   const [modalVisible, setModalVisible] = useState(false);
@@ -125,14 +133,28 @@ export default function AsignacionesScreen() {
       if (errorRutas) throw errorRutas;
       setRutas(rutasData || []);
 
-      // Cargar busetas
+      // Cargar busetas con info de ocupación
       const { data: busetasData, error: errorBusetas } = await supabase
         .from('busetas')
         .select('id, placa')
         .order('placa');
 
       if (errorBusetas) throw errorBusetas;
-      setBusetas(busetasData || []);
+
+      // Marcar busetas ocupadas
+      const busetasConEstado: Buseta[] = (busetasData || []).map((buseta) => {
+        const choferConBuseta = choferesFormateados.find(c => c.id_buseta === buseta.id);
+        return {
+          id: buseta.id,
+          placa: buseta.placa,
+          ocupada: !!choferConBuseta,
+          chofer_nombre: choferConBuseta
+            ? `${choferConBuseta.nombre} ${choferConBuseta.apellido}`
+            : undefined,
+        };
+      });
+
+      setBusetas(busetasConEstado);
     } catch (error) {
       console.error('Error cargando datos:', error);
       Alert.alert('Error', 'No se pudieron cargar los datos');
@@ -167,7 +189,7 @@ export default function AsignacionesScreen() {
       hora_inicio: '06:00:00',
       hora_fin: '07:00:00',
       descripcion: '',
-      dias_semana: ['lunes', 'martes', 'miércoles', 'jueves', 'viernes'],
+      dias_semana: undefined, // NULL = todos los días
     });
     setModalVisible(true);
   };
@@ -248,12 +270,26 @@ export default function AsignacionesScreen() {
     }
   };
 
+  const toggleTodosDias = () => {
+    if (formData.dias_semana === undefined) {
+      // Cambiar a modo días específicos (iniciar con vacío)
+      setFormData({ ...formData, dias_semana: [] });
+    } else {
+      // Cambiar a modo "todos los días"
+      setFormData({ ...formData, dias_semana: undefined });
+    }
+  };
+
   const toggleDia = (dia: string) => {
-    const dias = formData.dias_semana || [];
+    // Si está en modo "todos los días", no hacer nada
+    if (formData.dias_semana === undefined) return;
+
+    const dias = formData.dias_semana;
     if (dias.includes(dia)) {
+      const newDias = dias.filter((d) => d !== dia);
       setFormData({
         ...formData,
-        dias_semana: dias.filter((d) => d !== dia),
+        dias_semana: newDias.length === 0 ? undefined : newDias,
       });
     } else {
       setFormData({
@@ -563,20 +599,52 @@ export default function AsignacionesScreen() {
 
               {/* Días de la semana */}
               <Text className="text-gray-700 font-semibold mb-2">Días activos</Text>
+
+              {/* Botón "Todos los días" */}
+              <TouchableOpacity
+                onPress={toggleTodosDias}
+                className={`mb-3 px-4 py-3 rounded-lg flex-row items-center justify-center ${
+                  formData.dias_semana === undefined ? 'bg-admin-600' : 'bg-gray-100 border border-gray-300'
+                }`}
+              >
+                <Calendar
+                  size={20}
+                  color={formData.dias_semana === undefined ? '#ffffff' : '#374151'}
+                />
+                <Text
+                  className={`font-bold ml-2 ${
+                    formData.dias_semana === undefined ? 'text-white' : 'text-gray-700'
+                  }`}
+                >
+                  Todos los días
+                </Text>
+              </TouchableOpacity>
+
+              {/* Días individuales */}
               <View className="flex-row flex-wrap gap-2 mb-6">
                 {DIAS_SEMANA.map((dia) => {
+                  const todosDiasActivo = formData.dias_semana === undefined;
                   const isSelected = formData.dias_semana?.includes(dia);
                   return (
                     <TouchableOpacity
                       key={dia}
                       onPress={() => toggleDia(dia)}
+                      disabled={todosDiasActivo}
                       className={`px-4 py-2 rounded-lg ${
-                        isSelected ? 'bg-admin-600' : 'bg-gray-100 border border-gray-300'
+                        todosDiasActivo
+                          ? 'bg-gray-200 opacity-50'
+                          : isSelected
+                          ? 'bg-admin-600'
+                          : 'bg-gray-100 border border-gray-300'
                       }`}
                     >
                       <Text
                         className={`font-semibold text-sm ${
-                          isSelected ? 'text-white' : 'text-gray-700'
+                          todosDiasActivo
+                            ? 'text-gray-400'
+                            : isSelected
+                            ? 'text-white'
+                            : 'text-gray-700'
                         }`}
                       >
                         {dia.substring(0, 3).toUpperCase()}
@@ -606,43 +674,99 @@ export default function AsignacionesScreen() {
         </View>
       </Modal>
 
-      {/* Modal Asignar Buseta */}
+      {/* Modal Asignar Buseta Mejorado */}
       <Modal
         visible={modalBusetaVisible}
         animationType="slide"
         transparent
-        onRequestClose={() => setModalBusetaVisible(false)}
+        onRequestClose={() => {
+          setModalBusetaVisible(false);
+          setBusetaFilter('');
+        }}
       >
         <View className="flex-1 justify-end bg-black/50">
-          <View className="bg-white rounded-t-3xl p-6">
+          <View className="bg-white rounded-t-3xl p-6 max-h-[80%]">
             <Text className="text-xl font-bold text-gray-800 mb-4">
-              Asignar Buseta
+              Seleccionar Buseta
             </Text>
 
-            <ScrollView showsVerticalScrollIndicator={false} className="max-h-96">
-              {busetas.map((buseta) => (
-                <TouchableOpacity
-                  key={buseta.id}
-                  onPress={() =>
-                    choferSeleccionado &&
-                    handleAsignarBuseta(choferSeleccionado.id, buseta.id)
-                  }
-                  className="bg-buseta-50 rounded-xl p-4 mb-3 border border-buseta-200"
-                >
-                  <View className="flex-row items-center">
-                    <View className="bg-buseta-600 p-2 rounded-lg">
-                      <Bus size={24} color="#ffffff" strokeWidth={2.5} />
+            {/* Campo de búsqueda */}
+            <TextInput
+              value={busetaFilter}
+              onChangeText={setBusetaFilter}
+              placeholder="Buscar por placa..."
+              className="bg-gray-100 rounded-lg px-4 py-3 mb-4"
+            />
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {busetas
+                .filter((b) =>
+                  b.placa.toLowerCase().includes(busetaFilter.toLowerCase())
+                )
+                .map((buseta) => (
+                  <TouchableOpacity
+                    key={buseta.id}
+                    onPress={() => {
+                      if (!buseta.ocupada && choferSeleccionado) {
+                        handleAsignarBuseta(choferSeleccionado.id, buseta.id);
+                      } else if (buseta.ocupada) {
+                        haptic.error();
+                        Alert.alert(
+                          'Buseta ocupada',
+                          `Esta buseta ya está asignada a ${buseta.chofer_nombre}. Primero desasigna al otro chofer.`
+                        );
+                      }
+                    }}
+                    disabled={buseta.ocupada}
+                    className={`rounded-xl p-4 mb-3 border-2 ${
+                      buseta.ocupada
+                        ? 'bg-gray-100 border-gray-300 opacity-60'
+                        : 'bg-buseta-50 border-buseta-200'
+                    }`}
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-row items-center flex-1">
+                        <View
+                          className={`p-2 rounded-lg ${
+                            buseta.ocupada ? 'bg-gray-400' : 'bg-buseta-600'
+                          }`}
+                        >
+                          <Bus
+                            size={24}
+                            color="#ffffff"
+                            strokeWidth={2.5}
+                          />
+                        </View>
+                        <View className="ml-3 flex-1">
+                          <Text
+                            className={`font-bold text-lg ${
+                              buseta.ocupada ? 'text-gray-600' : 'text-buseta-800'
+                            }`}
+                          >
+                            {buseta.placa}
+                          </Text>
+                          {buseta.ocupada && (
+                            <Text className="text-gray-500 text-xs mt-1">
+                              Asignada a {buseta.chofer_nombre}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                      {buseta.ocupada ? (
+                        <XCircle size={20} color="#ef4444" strokeWidth={2} />
+                      ) : (
+                        <CheckCircle2 size={20} color="#16a34a" strokeWidth={2} />
+                      )}
                     </View>
-                    <Text className="text-buseta-800 font-bold text-lg ml-3">
-                      {buseta.placa}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                  </TouchableOpacity>
+                ))}
             </ScrollView>
 
             <TouchableOpacity
-              onPress={() => setModalBusetaVisible(false)}
+              onPress={() => {
+                setModalBusetaVisible(false);
+                setBusetaFilter('');
+              }}
               className="bg-gray-200 py-3 rounded-lg mt-4"
             >
               <Text className="text-gray-700 font-bold text-center">Cancelar</Text>
