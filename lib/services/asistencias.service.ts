@@ -1,24 +1,43 @@
 import { supabase } from './supabase';
 
-export type TipoAsistencia = 'subida' | 'bajada';
+// Estados de asistencia (sync con enum DB)
+export type EstadoAsistencia =
+  | 'pendiente'    // Aún no llega a la parada
+  | 'recogiendo'   // Dentro de geocerca (futuro automático)
+  | 'abordo'       // Subió al bus
+  | 'ausente'      // No se subió / No asistirá
+  | 'dejando'      // Dentro de geocerca destino (futuro)
+  | 'dejado';      // Entregado en su parada
 
 export type Asistencia = {
   id: string;
   id_estudiante: string;
   id_chofer: string;
-  tipo: TipoAsistencia;
-  fecha_hora: string;
-  latitud: number | null;
-  longitud: number | null;
+  id_ruta: string | null;
+  estado: EstadoAsistencia;
+  fecha: string; // YYYY-MM-DD
+  hora_recogida: string | null;
+  hora_entrega: string | null;
+  ubicacion_recogida: { x: number; y: number } | null;
+  ubicacion_entrega: { x: number; y: number } | null;
   notas: string | null;
-  created_at: string | null;
+  modificado_por: string | null;
+  created_at: string;
+  updated_at: string | null;
 };
 
 export type CreateAsistenciaDto = {
   id_estudiante: string;
   id_chofer: string;
-  tipo: TipoAsistencia;
-  id_asignacion?: string; // Referencia al recorrido actual
+  id_ruta: string;
+  estado: EstadoAsistencia;
+  latitud?: number;
+  longitud?: number;
+  notas?: string;
+};
+
+export type UpdateAsistenciaDto = {
+  estado: EstadoAsistencia;
   latitud?: number;
   longitud?: number;
   notas?: string;
@@ -33,77 +52,165 @@ export type EstudianteConAsistencia = {
     nombre: string | null;
     orden: number | null;
   } | null;
-  ultimaAsistencia: {
-    tipo: TipoAsistencia;
-    fecha_hora: string;
-  } | null;
-  enBuseta: boolean;
+  asistenciaHoy: Asistencia | null;
+  estado: EstadoAsistencia;
 };
 
 /**
- * Registra una asistencia (subida o bajada)
+ * Crea o actualiza asistencia del día para un estudiante
+ * Si ya existe, la actualiza. Si no, la crea.
  */
-export async function registrarAsistencia(
+export async function marcarAsistencia(
   dto: CreateAsistenciaDto
 ): Promise<Asistencia | null> {
   try {
-    const { data, error } = await supabase
+    const hoy = new Date().toISOString().split('T')[0];
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+
+    // Verificar si ya existe asistencia hoy
+    const { data: existente, error: errorCheck } = await supabase
       .from('asistencias')
-      .insert({
-        id_estudiante: dto.id_estudiante,
-        id_chofer: dto.id_chofer,
-        tipo: dto.tipo,
-        id_asignacion: dto.id_asignacion || null,
-        latitud: dto.latitud || null,
-        longitud: dto.longitud || null,
-        notas: dto.notas || null,
-      })
-      .select()
+      .select('id')
+      .eq('id_estudiante', dto.id_estudiante)
+      .eq('fecha', hoy)
       .single();
 
-    if (error) {
-      console.error('❌ Error registrando asistencia:', error);
-      throw error;
+    if (errorCheck && errorCheck.code !== 'PGRST116') {
+      // PGRST116 = no encontrado (ok)
+      console.error('❌ Error verificando asistencia:', errorCheck);
+      throw errorCheck;
     }
 
-    console.log(`✅ Asistencia registrada: ${dto.tipo} - ${dto.id_estudiante}`);
-    return data as Asistencia;
+    let result;
+
+    if (existente) {
+      // Actualizar existente
+      const updateData: any = {
+        estado: dto.estado,
+        modificado_por: userId,
+        notas: dto.notas || null,
+      };
+
+      // Actualizar timestamps según estado
+      if (dto.estado === 'abordo' || dto.estado === 'ausente') {
+        updateData.hora_recogida = new Date().toISOString();
+        if (dto.latitud && dto.longitud) {
+          updateData.ubicacion_recogida = `(${dto.latitud},${dto.longitud})`;
+        }
+      } else if (dto.estado === 'dejado') {
+        updateData.hora_entrega = new Date().toISOString();
+        if (dto.latitud && dto.longitud) {
+          updateData.ubicacion_entrega = `(${dto.latitud},${dto.longitud})`;
+        }
+      }
+
+      const { data, error } = await supabase
+        .from('asistencias')
+        .update(updateData)
+        .eq('id', existente.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      result = data;
+    } else {
+      // Crear nueva
+      const insertData: any = {
+        id_estudiante: dto.id_estudiante,
+        id_chofer: dto.id_chofer,
+        id_ruta: dto.id_ruta,
+        estado: dto.estado,
+        fecha: hoy,
+        modificado_por: userId,
+        notas: dto.notas || null,
+      };
+
+      if (dto.estado === 'abordo' || dto.estado === 'ausente') {
+        insertData.hora_recogida = new Date().toISOString();
+        if (dto.latitud && dto.longitud) {
+          insertData.ubicacion_recogida = `(${dto.latitud},${dto.longitud})`;
+        }
+      }
+
+      const { data, error } = await supabase
+        .from('asistencias')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      result = data;
+    }
+
+    console.log(`✅ Asistencia marcada: ${dto.estado} - ${dto.id_estudiante}`);
+    return result as Asistencia;
   } catch (error) {
-    console.error('❌ Error en registrarAsistencia:', error);
+    console.error('❌ Error en marcarAsistencia:', error);
     return null;
   }
 }
 
 /**
- * Obtiene las asistencias del día actual
+ * Padre marca a su hijo como ausente
  */
-export async function getAsistenciasHoy(idChofer: string): Promise<Asistencia[]> {
+export async function marcarAusente(
+  idEstudiante: string,
+  idRuta: string,
+  notas?: string
+): Promise<boolean> {
   try {
-    const hoy = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+    if (!userId) throw new Error('No autenticado');
 
-    const { data, error } = await supabase
+    const hoy = new Date().toISOString().split('T')[0];
+
+    // Verificar si ya existe
+    const { data: existente } = await supabase
       .from('asistencias')
-      .select('*')
-      .eq('id_chofer', idChofer)
-      .gte('fecha_hora', `${hoy}T00:00:00`)
-      .lte('fecha_hora', `${hoy}T23:59:59`)
-      .order('fecha_hora', { ascending: false });
+      .select('id')
+      .eq('id_estudiante', idEstudiante)
+      .eq('fecha', hoy)
+      .single();
 
-    if (error) {
-      console.error('❌ Error obteniendo asistencias del día:', error);
-      throw error;
+    if (existente) {
+      // Actualizar a ausente
+      const { error } = await supabase
+        .from('asistencias')
+        .update({
+          estado: 'ausente',
+          modificado_por: userId,
+          notas: notas || 'Marcado ausente por padre',
+        })
+        .eq('id', existente.id);
+
+      if (error) throw error;
+    } else {
+      // Crear como ausente (necesita id_chofer dummy)
+      const { error } = await supabase
+        .from('asistencias')
+        .insert({
+          id_estudiante: idEstudiante,
+          id_chofer: userId, // Temporalmente el padre
+          id_ruta: idRuta,
+          estado: 'ausente',
+          fecha: hoy,
+          modificado_por: userId,
+          notas: notas || 'Marcado ausente por padre',
+        });
+
+      if (error) throw error;
     }
 
-    return data || [];
+    console.log(`✅ Estudiante marcado como ausente: ${idEstudiante}`);
+    return true;
   } catch (error) {
-    console.error('❌ Error en getAsistenciasHoy:', error);
-    return [];
+    console.error('❌ Error en marcarAusente:', error);
+    return false;
   }
 }
 
 /**
- * Obtiene estudiantes de la ruta con su estado de asistencia
- * Ahora obtiene estudiantes por parada (ubicación fija)
+ * Obtiene estudiantes de la ruta con su estado de asistencia del día
  */
 export async function getEstudiantesConAsistencia(
   idRuta: string,
@@ -112,7 +219,7 @@ export async function getEstudiantesConAsistencia(
   try {
     console.log(`🔍 Buscando estudiantes para ruta: ${idRuta}, chofer: ${idChofer}`);
 
-    // 1. Primero obtener IDs de paradas de esta ruta
+    // 1. Obtener IDs de paradas de esta ruta
     const { data: paradasRuta, error: errorParadas } = await supabase
       .from('paradas')
       .select('id')
@@ -131,7 +238,7 @@ export async function getEstudiantesConAsistencia(
       return [];
     }
 
-    // 2. Obtener estudiantes de esas paradas (RLS se encarga del filtrado)
+    // 2. Obtener estudiantes de esas paradas
     const { data: estudiantes, error: errorEstudiantes } = await supabase
       .from('estudiantes')
       .select(`
@@ -153,58 +260,46 @@ export async function getEstudiantesConAsistencia(
       throw errorEstudiantes;
     }
 
-    console.log(`📊 Query ejecutado. Estudiantes encontrados: ${estudiantes?.length || 0}`);
-    if (estudiantes && estudiantes.length > 0) {
-      console.log('📝 Primer estudiante:', JSON.stringify(estudiantes[0], null, 2));
-    }
+    console.log(`📊 Estudiantes encontrados: ${estudiantes?.length || 0}`);
 
     if (!estudiantes || estudiantes.length === 0) {
-      console.log('⚠️ No hay estudiantes en esta ruta');
-      console.log(`   - Verifica que haya estudiantes con id_parada asignado`);
-      console.log(`   - Verifica que las paradas tengan id_ruta = ${idRuta}`);
       return [];
     }
 
-    // 2. Obtener asistencias del día
+    // 3. Obtener asistencias del día
     const hoy = new Date().toISOString().split('T')[0];
+    const estudiantesIds = estudiantes.map((e: any) => e.id);
+
     const { data: asistencias, error: errorAsistencias } = await supabase
       .from('asistencias')
-      .select('id_estudiante, tipo, fecha_hora')
-      .eq('id_chofer', idChofer)
-      .gte('fecha_hora', `${hoy}T00:00:00`)
-      .lte('fecha_hora', `${hoy}T23:59:59`)
-      .order('fecha_hora', { ascending: false });
+      .select('*')
+      .in('id_estudiante', estudiantesIds)
+      .eq('fecha', hoy);
 
     if (errorAsistencias) {
       console.error('❌ Error obteniendo asistencias:', errorAsistencias);
       throw errorAsistencias;
     }
 
-    // 3. Combinar datos
+    // 4. Combinar datos
     const estudiantesConAsistencia: EstudianteConAsistencia[] = estudiantes.map((est: any) => {
-      // Buscar la última asistencia de este estudiante hoy
-      const ultimaAsistencia = asistencias?.find(
-        (asist) => asist.id_estudiante === est.id
-      );
-
-      const enBuseta = ultimaAsistencia?.tipo === 'subida';
+      const asistenciaHoy = asistencias?.find(
+        (a: any) => a.id_estudiante === est.id
+      ) as Asistencia | undefined;
 
       return {
         id: est.id,
         nombre: est.nombre,
         apellido: est.apellido,
-        parada: est.paradas ? {
-          id: est.paradas.id,
-          nombre: est.paradas.nombre,
-          orden: est.paradas.orden,
-        } : null,
-        ultimaAsistencia: ultimaAsistencia
+        parada: est.paradas
           ? {
-              tipo: ultimaAsistencia.tipo as TipoAsistencia,
-              fecha_hora: ultimaAsistencia.fecha_hora,
+              id: est.paradas.id,
+              nombre: est.paradas.nombre,
+              orden: est.paradas.orden,
             }
           : null,
-        enBuseta,
+        asistenciaHoy: asistenciaHoy || null,
+        estado: asistenciaHoy?.estado || 'pendiente',
       };
     });
 
@@ -217,40 +312,19 @@ export async function getEstudiantesConAsistencia(
 }
 
 /**
- * Verifica si un estudiante está actualmente en la buseta
- * Usa la función de Supabase para optimizar performance
- */
-export async function estaEnBuseta(idEstudiante: string): Promise<boolean> {
-  try {
-    const { data, error } = await supabase.rpc('esta_en_buseta', {
-      p_id_estudiante: idEstudiante,
-    });
-
-    if (error) {
-      console.error('❌ Error verificando si está en buseta:', error);
-      return false;
-    }
-
-    return data || false;
-  } catch (error) {
-    console.error('❌ Error en estaEnBuseta:', error);
-    return false;
-  }
-}
-
-/**
  * Obtiene historial de asistencias de un estudiante
  */
 export async function getHistorialAsistencias(
   idEstudiante: string,
-  limite: number = 50
+  limite: number = 30
 ): Promise<Asistencia[]> {
   try {
     const { data, error } = await supabase
       .from('asistencias')
       .select('*')
       .eq('id_estudiante', idEstudiante)
-      .order('fecha_hora', { ascending: false })
+      .order('fecha', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(limite);
 
     if (error) {
@@ -258,32 +332,9 @@ export async function getHistorialAsistencias(
       throw error;
     }
 
-    return data || [];
+    return (data || []) as Asistencia[];
   } catch (error) {
     console.error('❌ Error en getHistorialAsistencias:', error);
     return [];
-  }
-}
-
-/**
- * Elimina una asistencia (solo admins o correcciones)
- */
-export async function eliminarAsistencia(idAsistencia: string): Promise<boolean> {
-  try {
-    const { error } = await supabase
-      .from('asistencias')
-      .delete()
-      .eq('id', idAsistencia);
-
-    if (error) {
-      console.error('❌ Error eliminando asistencia:', error);
-      throw error;
-    }
-
-    console.log('✅ Asistencia eliminada:', idAsistencia);
-    return true;
-  } catch (error) {
-    console.error('❌ Error en eliminarAsistencia:', error);
-    return false;
   }
 }
