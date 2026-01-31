@@ -26,6 +26,7 @@ import {
   type EstudianteConAsistencia,
   type EstadoAsistencia
 } from '@/lib/services/asistencias.service';
+import { supabase } from '@/lib/services/supabase';
 import {
   getRecorridosHoy,
   type RecorridoChofer
@@ -91,6 +92,35 @@ export default function DriverHomeScreen() {
     if (recorridoActual) {
       cargarEstudiantes();
     }
+  }, [recorridoActual, cargarEstudiantes]);
+
+  // Suscripción en tiempo real a cambios en asistencias
+  useEffect(() => {
+    if (!recorridoActual) return;
+
+    console.log('🔔 Suscribiendo a cambios en asistencias...');
+
+    const channel = supabase
+      .channel('asistencias-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'asistencias',
+        },
+        (payload) => {
+          console.log('🔔 Cambio detectado en asistencias:', payload);
+          // Recargar lista automáticamente
+          cargarEstudiantes();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('🔕 Desuscribiendo de cambios en asistencias');
+      supabase.removeChannel(channel);
+    };
   }, [recorridoActual, cargarEstudiantes]);
 
   const handleMarcarAusente = async (idEstudiante: string) => {

@@ -38,6 +38,7 @@ import {
   toggleAsistencia,
   getEstadoAsistencia
 } from '@/lib/services/asistencias.service';
+import { supabase } from '@/lib/services/supabase';
 
 export default function ParentHomeScreen() {
   const router = useRouter();
@@ -52,6 +53,7 @@ export default function ParentHomeScreen() {
   const [showSelector, setShowSelector] = useState(false);
   const [isAttending, setIsAttending] = useState(true);
   const [processingAttendance, setProcessingAttendance] = useState(false);
+  const [marcadoPorChofer, setMarcadoPorChofer] = useState(false);
 
   const paddingTop = Math.max(insets.top + 8, 48);
   const shadow = createShadow('lg');
@@ -71,14 +73,57 @@ export default function ParentHomeScreen() {
     }
   }, [estudianteSeleccionado?.id]);
 
+  // Suscripción en tiempo real a cambios en asistencias
+  useEffect(() => {
+    if (!estudianteSeleccionado?.id) return;
+
+    console.log('🔔 Padre: Suscribiendo a cambios en asistencias...');
+
+    const channel = supabase
+      .channel('asistencias-padre-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'asistencias',
+          filter: `id_estudiante=eq.${estudianteSeleccionado.id}`,
+        },
+        (payload) => {
+          console.log('🔔 Padre: Cambio detectado en asistencia:', payload);
+          // Actualizar estado automáticamente
+          cargarEstadoAsistencia();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('🔕 Padre: Desuscribiendo de cambios');
+      supabase.removeChannel(channel);
+    };
+  }, [estudianteSeleccionado?.id]);
+
   const cargarEstadoAsistencia = async () => {
     if (!estudianteSeleccionado?.id) return;
 
     try {
-      const estado = await getEstadoAsistencia(estudianteSeleccionado.id);
-      setIsAttending(estado === 'presente');
+      const hoy = new Date().toISOString().split('T')[0];
+      const { data } = await supabase
+        .from('asistencias')
+        .select('estado, notas')
+        .eq('id_estudiante', estudianteSeleccionado.id)
+        .eq('fecha', hoy)
+        .single();
+
+      const estaPresente = data?.estado === 'presente' || !data;
+      const marcadoPorChof = data?.notas?.includes('chofer') || false;
+
+      setIsAttending(estaPresente);
+      setMarcadoPorChofer(!estaPresente && marcadoPorChof);
     } catch (error) {
-      console.error('Error cargando estado asistencia:', error);
+      // Si no hay registro, está presente por defecto
+      setIsAttending(true);
+      setMarcadoPorChofer(false);
     }
   };
 
@@ -254,9 +299,11 @@ export default function ParentHomeScreen() {
           </View>
 
           <Text className="text-gray-600 text-sm mb-4">
-            {isAttending 
+            {isAttending
               ? 'El estudiante asistirá hoy y será recogido en el punto habitual.'
-              : 'Has marcado que el estudiante no asistirá hoy. El chofer ha sido notificado.'
+              : marcadoPorChofer
+                ? '⚠️ El chofer reportó que el estudiante no se presentó. Si fue un error, puede marcarlo como presente nuevamente.'
+                : 'Has marcado que el estudiante no asistirá hoy. El chofer ha sido notificado.'
             }
           </Text>
 
