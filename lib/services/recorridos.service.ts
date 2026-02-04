@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { sendPushToParents } from './notifications.service';
 
 export type EstadoRecorrido = {
   activo: boolean;
@@ -28,6 +29,17 @@ export async function iniciarRecorrido(idAsignacion: string): Promise<boolean> {
       type: 'broadcast',
       event: 'recorrido_iniciado',
       payload: { id_asignacion: idAsignacion, activo: true },
+    });
+
+    // Enviar notificación push a los padres de la ruta
+    sendPushToParents(
+      idAsignacion,
+      'Buseta en camino',
+      'La buseta ha iniciado el recorrido. Puedes seguirla en tiempo real.',
+      { id_asignacion: idAsignacion, tipo: 'recorrido_iniciado' }
+    ).catch((err) => {
+      // No bloquear el flujo si falla la notificación
+      console.warn('Error enviando notificación push:', err);
     });
 
     return data || true;

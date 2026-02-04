@@ -14,10 +14,12 @@
       "bundleIdentifier": "com.tecnibus.app",
       "infoPlist": {
         "NSFaceIDUsageDescription": "TecniBus necesita acceder a Face ID para autenticación rápida y segura.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
+      "package": "com.tecnibus.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -47,7 +49,15 @@
         }
       ],
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#10B981",
+          "defaultChannel": "recorrido"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

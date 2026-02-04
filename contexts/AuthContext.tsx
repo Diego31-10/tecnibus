@@ -2,6 +2,10 @@ import { Session, User } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/services/supabase';
 import { Profile } from '../lib/services/useProfile';
+import {
+  registerForPushNotifications,
+  clearPushToken,
+} from '../lib/services/notifications.service';
 
 type AuthContextType = {
   session: Session | null;
@@ -77,15 +81,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('❌ Error cargando perfil:', error);
-        
+
         if (error.code === 'PGRST116') {
           console.log('⚠️ Perfil no existe, debería crearse automáticamente');
         }
-        
+
         setProfile(null);
       } else {
         console.log('✅ Perfil cargado correctamente:', data);
         setProfile(data);
+
+        // Registrar push token para padres (reciben notificaciones de la buseta)
+        if (data.rol === 'padre') {
+          registerForPushNotifications().catch((err) => {
+            console.warn('Error registrando push notifications:', err);
+          });
+        }
       }
     } catch (error) {
       console.error('❌ Error inesperado al cargar perfil:', error);
@@ -124,6 +135,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       console.log('🚪 Cerrando sesión...');
+
+      // Limpiar push token antes de cerrar sesión
+      await clearPushToken().catch((err) => {
+        console.warn('Error limpiando push token:', err);
+      });
+
       // Limpiar estado local primero
       setSession(null);
       setUser(null);
