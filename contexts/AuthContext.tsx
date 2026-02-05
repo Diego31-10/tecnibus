@@ -1,5 +1,6 @@
 import { Session, User } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { supabase } from '../lib/services/supabase';
 import { Profile } from '../lib/services/useProfile';
 import {
@@ -68,6 +69,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Re-registrar push token cuando la app vuelve a primer plano
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && profile?.rol === 'padre') {
+        registerForPushNotifications();
+      }
+    });
+    return () => subscription.remove();
+  }, [profile?.rol]);
 
   const fetchProfile = async (userId: string) => {
     try {

@@ -1,11 +1,43 @@
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
+import * as Notifications from 'expo-notifications';
 import { AuthGuard } from '../components/AuthGuard';
 import { AuthProvider } from '../contexts/AuthContext';
 import "../global.css";
 
+SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
+  const router = useRouter();
+
+  useEffect(() => {
+    SplashScreen.hideAsync();
+  }, []);
+
+  // Listener: usuario toca una notificación push
+  useEffect(() => {
+    const responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      if (data?.tipo === 'recorrido_iniciado' || data?.tipo === 'recorrido_finalizado') {
+        router.push('/parent');
+      }
+    });
+
+    // Si la app fue abierta desde una notificación (cold start)
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) {
+        const data = response.notification.request.content.data;
+        if (data?.tipo === 'recorrido_iniciado' || data?.tipo === 'recorrido_finalizado') {
+          router.push('/parent');
+        }
+      }
+    });
+
+    return () => responseListener.remove();
+  }, [router]);
   return (
     <SafeAreaProvider>
       <AuthProvider>
