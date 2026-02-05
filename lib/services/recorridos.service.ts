@@ -11,6 +11,11 @@ export type EstadoRecorridoConAsignacion = EstadoRecorrido & {
   id_asignacion: string | null;
 };
 
+async function sendBroadcast(event: string, payload: Record<string, unknown>): Promise<void> {
+  const channel = supabase.channel('recorrido-status');
+  await channel.httpSend(event, payload);
+}
+
 /**
  * Iniciar un recorrido (chofer presiona "Iniciar Recorrido")
  */
@@ -25,11 +30,7 @@ export async function iniciarRecorrido(idAsignacion: string): Promise<boolean> {
     console.log('✅ Recorrido iniciado:', idAsignacion);
 
     // Notificar via broadcast para actualización instantánea
-    await supabase.channel('recorrido-status').send({
-      type: 'broadcast',
-      event: 'recorrido_iniciado',
-      payload: { id_asignacion: idAsignacion, activo: true },
-    });
+    await sendBroadcast('recorrido_iniciado', { id_asignacion: idAsignacion, activo: true });
 
     // Enviar notificación push a los padres de la ruta
     sendPushToParents(
@@ -63,11 +64,7 @@ export async function finalizarRecorrido(idAsignacion: string): Promise<boolean>
     console.log('✅ Recorrido finalizado:', idAsignacion);
 
     // Notificar via broadcast para actualización instantánea
-    await supabase.channel('recorrido-status').send({
-      type: 'broadcast',
-      event: 'recorrido_finalizado',
-      payload: { id_asignacion: idAsignacion, activo: false },
-    });
+    await sendBroadcast('recorrido_finalizado', { id_asignacion: idAsignacion, activo: false });
 
     return data || true;
   } catch (error) {
