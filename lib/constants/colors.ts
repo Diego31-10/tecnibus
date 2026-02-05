@@ -57,4 +57,12 @@ export const Colors = {
     600: '#dc2626',
     700: '#b91c1c',
   },
+  asign: {
+    50: '#f0fdf4',
+    100: '#bdbbac', 
+    500: '#98a7a2',
+    600: '#777f7c',
+    700: '#4e5452',  
+  },
+  
 } as const;

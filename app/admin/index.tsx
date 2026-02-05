@@ -100,8 +100,8 @@ export default function AdminHomeScreen() {
             <Shield size={28} color="#ffffff" strokeWidth={2.5} />
           </View>
         
-          <View className="flex-1">
-            <Text className="text-white text-2xl font-bold">
+          <View className="flex-1 ">
+            <Text className="text-white text-2xl font-bold ">
               Panel de Administración
             </Text>
             <Text className="text-white text-xl mt-1">
@@ -414,23 +414,23 @@ export default function AdminHomeScreen() {
             </View>
 
             {/* Gestionar Asignaciones */}
-            <View className="bg-admin-50 rounded-xl p-4 border-2 border-admin-200">
+            <View className="bg-asign-50 rounded-xl p-4 border-2 border-asign-100">
               <View className="flex-row items-center mb-3">
-                <View className="bg-admin-600 p-2 rounded-lg">
+                <View className="bg-asign-600 p-2 rounded-lg">
                   <Navigation size={24} color="#ffffff" strokeWidth={2.5} />
                 </View>
                 <View className="ml-3 flex-1">
-                  <Text className="text-admin-800 font-bold text-base">
+                  <Text className="text-asign-800 font-bold text-base">
                     Gestionar Asignaciones
                   </Text>
-                  <Text className="text-admin-700 text-xs">
+                  <Text className="text-asign-700 text-xs">
                     Asignar busetas y recorridos a choferes
                   </Text>
                 </View>
               </View>
 
               <TouchableOpacity
-                className="bg-admin-600 py-2 px-3 rounded-lg flex-row items-center justify-center"
+                className="bg-asign-600 py-2 px-3 rounded-lg flex-row items-center justify-center"
                 onPress={() => router.push('/admin/asignaciones')}
                 activeOpacity={0.7}
               >

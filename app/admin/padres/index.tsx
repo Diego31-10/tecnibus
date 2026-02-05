@@ -106,14 +106,14 @@ export default function ListaPadresScreen() {
       <View className="bg-padre-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center">
           <TouchableOpacity
-            className="bg-padre-600 p-2 rounded-xl mr-4"
+            className="bg-padre-600 p-2 rounded-xl"
             onPress={() => router.back()}
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
           <View className="flex-1">
-            <Text className="text-white text-2xl font-bold">Padres</Text>
-            <Text className="text-white text-xl mt-1 ">
+            <Text className="text-white text-2xl font-bold text-center">Padres</Text>
+            <Text className="text-white text-xl mt-1 text-center">
               {padres.length} registrados
             </Text>
           </View>

@@ -132,22 +132,16 @@ export default function CrearRutaScreen() {
 
       {/* Header */}
       <View className="bg-ruta-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
-        <View className="flex-row items-center justify-between mb-4">
+        <View className="flex-row items-center">
           <TouchableOpacity
+            className="bg-ruta-600 p-2 rounded-xl mr-4"
             onPress={() => router.back()}
-            className="bg-ruta-600 p-2 rounded-lg"
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
-        </View>
-
-        <View className="flex-row items-center">
-          <View className="bg-ruta-600 p-3 rounded-full mr-4">
-            <MapPin size={28} color="#ffffff" strokeWidth={2.5} />
-          </View>
           <View className="flex-1">
             <Text className="text-white text-2xl font-bold">Nueva Ruta</Text>
-            <Text className="text-white text-base mt-1">
+            <Text className="text-white text-xl mt-1">
               Completa la información de la ruta
             </Text>
           </View>

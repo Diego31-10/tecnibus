@@ -148,34 +148,26 @@ export default function BusetasListScreen() {
 
       {/* Header */}
       <View className="bg-buseta-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
-        <View className="flex-row items-center justify-between mb-4">
+        <View className="flex-row items-center">
           <TouchableOpacity
+            className="bg-buseta-600 p-2 rounded-xl"
             onPress={() => router.back()}
-            className="bg-buseta-600 p-2 rounded-lg"
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={handleCrearBuseta}
-            className="bg-buseta-600 px-4 py-2 rounded-lg flex-row items-center"
-          >
-            <Plus size={20} color="#ffffff" strokeWidth={2.5} />
-            <Text className="text-white font-semibold ml-1">Nueva</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View className="flex-row items-center">
-          <View className="bg-buseta-600 p-3 rounded-full mr-4">
-            <Bus size={28} color="#ffffff" strokeWidth={2.5} />
-          </View>
           <View className="flex-1">
-            <Text className="text-white text-2xl font-bold">Busetas</Text>
-            <Text className="text-white text-base mt-1">
+            <Text className="text-white text-2xl font-bold text-center">Busetas</Text>
+            <Text className="text-white text-xl mt-1 text-center">
               {filteredBusetas.length}{' '}
               {filteredBusetas.length === 1 ? 'buseta' : 'busetas'}
             </Text>
           </View>
+          <TouchableOpacity
+            className="bg-buseta-600 p-2 rounded-xl"
+            onPress={handleCrearBuseta}
+          >
+            <Plus size={24} color="#ffffff" strokeWidth={2.5} />
+          </TouchableOpacity>
         </View>
       </View>
 

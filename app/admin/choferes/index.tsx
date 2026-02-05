@@ -106,14 +106,14 @@ export default function ListaChoferesScreen() {
       <View className="bg-chofer-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
         <View className="flex-row items-center">
           <TouchableOpacity
-            className="bg-chofer-600 p-2 rounded-xl mr-4"
+            className="bg-chofer-600 p-2 rounded-xl"
             onPress={() => router.back()}
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
-          <View className="flex-1">
-            <Text className="text-white text-2xl font-bold">Choferes</Text>
-            <Text className="text-white text-xl mt-1">
+          <View className="flex-1 ">
+            <Text className="text-white text-2xl font-bold text-center">Choferes</Text>
+            <Text className="text-white text-xl mt-1 text-center">
               {choferes.length} registrados
             </Text>
           </View>

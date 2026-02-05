@@ -178,22 +178,16 @@ export default function CrearEstudianteScreen() {
 
       {/* Header */}
       <View className="bg-estudiante-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
-        <View className="flex-row items-center justify-between mb-4">
+        <View className="flex-row items-center">
           <TouchableOpacity
+            className="bg-estudiante-600 p-2 rounded-xl mr-4"
             onPress={() => router.back()}
-            className="bg-estudiante-600 p-2 rounded-lg"
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
-        </View>
-
-        <View className="flex-row items-center">
-          <View className="bg-estudiante-600 p-3 rounded-full mr-4">
-            <GraduationCap size={28} color="#ffffff" strokeWidth={2.5} />
-          </View>
           <View className="flex-1">
             <Text className="text-white text-2xl font-bold">Nuevo Estudiante</Text>
-            <Text className="text-white text-base mt-1">Complete los datos</Text>
+            <Text className="text-white text-xl mt-1">Complete los datos</Text>
           </View>
         </View>
       </View>

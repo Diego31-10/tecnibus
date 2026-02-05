@@ -1,4 +1,12 @@
 import { Colors } from '@/lib/constants/colors';
+import {
+  createAsignacion,
+  deleteAsignacion,
+  getAsignacionesChofer,
+  type AsignacionRuta,
+  type CreateAsignacionDto
+} from '@/lib/services/asignaciones.service';
+import { supabase } from '@/lib/services/supabase';
 import { haptic } from '@/lib/utils/haptics';
 import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
@@ -11,7 +19,6 @@ import {
   Navigation,
   Plus,
   RefreshCw,
-  Settings,
   Trash2,
   UserCircle,
   XCircle
@@ -30,14 +37,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedCard } from '../../components';
-import {
-  createAsignacion,
-  deleteAsignacion,
-  getAsignacionesChofer,
-  type AsignacionRuta,
-  type CreateAsignacionDto
-} from '@/lib/services/asignaciones.service';
-import { supabase } from '@/lib/services/supabase';
 
 type Chofer = {
   id: string;
@@ -300,34 +299,30 @@ export default function AsignacionesScreen() {
   };
 
   return (
-    <View className="flex-1 bg-admin-50">
-      <StatusBar barStyle="light-content" backgroundColor={Colors.admin[700]} />
+    <View className="flex-1 bg-asign-50">
+      <StatusBar barStyle="light-content" backgroundColor={Colors.asign[700]} />
 
       {/* Header */}
-      <View className="bg-admin-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
-        <View className="flex-row items-center justify-between mb-4">
+      <View className="bg-asign-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+        <View className="flex-row items-center">
           <TouchableOpacity
+            className="bg-asign-600 p-2 rounded-xl"
             onPress={() => router.back()}
-            className="bg-admin-600 p-2 rounded-xl"
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
-
-          <TouchableOpacity onPress={cargarDatos} className="bg-admin-600 p-2 rounded-xl">
-            <RefreshCw size={24} color="#ffffff" strokeWidth={2.5} />
-          </TouchableOpacity>
-        </View>
-
-        <View className="flex-row items-center">
-          <View className="bg-admin-600 p-3 rounded-xl mr-4">
-            <Navigation size={28} color="#ffffff" strokeWidth={2.5} />
-          </View>
           <View className="flex-1">
-            <Text className="text-white text-2xl font-bold">Gestionar Asignaciones</Text>
-            <Text className="text-admin-100 text-sm mt-1">
-              Asigna busetas y recorridos a choferes
+            <Text className="text-white text-2xl font-bold text-center">Asignaciones</Text>
+            <Text className="text-white text-xl mt-1 text-center">
+              Busetas y recorridos
             </Text>
           </View>
+          <TouchableOpacity
+            className="bg-asign-600 p-2 rounded-xl"
+            onPress={cargarDatos}
+          >
+            <RefreshCw size={24} color="#ffffff" strokeWidth={2.5} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -436,7 +431,7 @@ export default function AsignacionesScreen() {
                 <Text className="text-lg font-bold text-gray-800">Recorridos</Text>
                 <TouchableOpacity
                   onPress={handleAbrirModalAsignacion}
-                  className="bg-admin-600 px-3 py-1.5 rounded-lg flex-row items-center"
+                  className="bg-asign-600 px-3 py-1.5 rounded-lg flex-row items-center"
                 >
                   <Plus size={16} color="#ffffff" strokeWidth={2.5} />
                   <Text className="text-white font-semibold ml-1 text-xs">Agregar</Text>
@@ -494,9 +489,9 @@ export default function AsignacionesScreen() {
                             {asig.dias_semana.map((dia) => (
                               <View
                                 key={dia}
-                                className="bg-admin-100 px-2 py-1 rounded"
+                                className="bg-asign-100 px-2 py-1 rounded"
                               >
-                                <Text className="text-admin-700 text-xs font-semibold">
+                                <Text className="text-asign-700 text-xs font-semibold">
                                   {dia.substring(0, 3).toUpperCase()}
                                 </Text>
                               </View>
@@ -551,7 +546,7 @@ export default function AsignacionesScreen() {
                     onPress={() => setFormData({ ...formData, id_ruta: ruta.id })}
                     className={`px-4 py-2 rounded-lg mr-2 ${
                       formData.id_ruta === ruta.id
-                        ? 'bg-admin-600'
+                        ? 'bg-asign-600'
                         : 'bg-gray-100 border border-gray-300'
                     }`}
                   >
@@ -604,7 +599,7 @@ export default function AsignacionesScreen() {
               <TouchableOpacity
                 onPress={toggleTodosDias}
                 className={`mb-3 px-4 py-3 rounded-lg flex-row items-center justify-center ${
-                  formData.dias_semana === undefined ? 'bg-admin-600' : 'bg-gray-100 border border-gray-300'
+                  formData.dias_semana === undefined ? 'bg-asign-600' : 'bg-gray-100 border border-gray-300'
                 }`}
               >
                 <Calendar
@@ -634,7 +629,7 @@ export default function AsignacionesScreen() {
                         todosDiasActivo
                           ? 'bg-gray-200 opacity-50'
                           : isSelected
-                          ? 'bg-admin-600'
+                          ? 'bg-asign-600'
                           : 'bg-gray-100 border border-gray-300'
                       }`}
                     >
@@ -664,7 +659,7 @@ export default function AsignacionesScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleCrearAsignacion}
-                  className="flex-1 bg-admin-600 py-3 rounded-lg"
+                  className="flex-1 bg-asign-600 py-3 rounded-lg"
                 >
                   <Text className="text-white font-bold text-center">Crear</Text>
                 </TouchableOpacity>
