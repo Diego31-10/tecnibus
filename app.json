@@ -57,7 +57,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/adaptive-icon.png",
-          "color": "#10B981",
+          "color": "#3DA7D7",
           "defaultChannel": "recorrido"
         }
       ]
