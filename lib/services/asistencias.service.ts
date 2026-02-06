@@ -117,6 +117,22 @@ export async function toggleAsistencia(
     }
 
     console.log(`✅ Asistencia actualizada: ${nuevoEstado} - ${idEstudiante}`);
+
+    // Notificar al chofer de la ruta (no bloquear si falla)
+    try {
+      await supabase.functions.invoke('notificar-asistencia', {
+        body: {
+          id_estudiante: idEstudiante,
+          id_ruta: idRuta,
+          tipo: marcarAusente ? 'padre_ausente' : 'padre_presente',
+          destinatario: 'chofer',
+        },
+      });
+      console.log(`✅ Chofer notificado sobre cambio de asistencia`);
+    } catch (error) {
+      console.error('⚠️ Error notificando al chofer:', error);
+    }
+
     return true;
   } catch (error) {
     console.error('❌ Error en toggleAsistencia:', error);
