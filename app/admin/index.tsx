@@ -8,6 +8,7 @@ import {
   GraduationCap,
   List,
   MapPin,
+  Megaphone,
   Navigation,
   Plus,
   RefreshCw,
@@ -412,6 +413,30 @@ export default function AdminHomeScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+
+            {/* Enviar Anuncios */}
+            <TouchableOpacity
+              className="bg-admin-50 rounded-xl p-4 border-2 border-admin-200"
+              onPress={() => {
+                haptic.light();
+                router.push('/admin/anuncios');
+              }}
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-center mb-3">
+                <View className="bg-admin-600 p-2 rounded-lg">
+                  <Megaphone size={24} color="#ffffff" strokeWidth={2.5} />
+                </View>
+                <View className="ml-3 flex-1">
+                  <Text className="text-admin-800 font-bold text-base">
+                    📢 Enviar Anuncios
+                  </Text>
+                  <Text className="text-admin-700 text-xs">
+                    Notificaciones push a padres y choferes
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
 
             {/* Gestionar Asignaciones */}
             <View className="bg-asign-50 rounded-xl p-4 border-2 border-asign-100">
