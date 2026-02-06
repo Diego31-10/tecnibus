@@ -1,5 +1,5 @@
-import { Colors } from '@/lib/constants/colors';
 import { CATEGORIAS_TEMPLATES, TEMPLATES_ANUNCIOS, TemplateAnuncio } from '@/lib/constants/anuncios-templates';
+import { Colors } from '@/lib/constants/colors';
 import { haptic } from '@/lib/utils/haptics';
 import { createShadow } from '@/lib/utils/shadows';
 import { router } from 'expo-router';
@@ -133,11 +133,11 @@ export default function AnunciosScreen() {
   };
 
   const getAudienciaColor = (tipo: Audiencia) => {
-    return audiencia === tipo ? Colors.admin[600] : Colors.neutral[300];
+    return audiencia === tipo ? Colors.sky[600] : Colors.sky[300];
   };
 
   const getAudienciaTextColor = (tipo: Audiencia) => {
-    return audiencia === tipo ? Colors.neutral[0] : Colors.neutral[600];
+    return audiencia === tipo ? Colors.sky[50] : Colors.sky[600];
   };
 
   const handleSeleccionarTemplate = (template: TemplateAnuncio) => {
@@ -154,10 +154,10 @@ export default function AnunciosScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: Colors.neutral[50] }}
+      style={{ flex: 1, backgroundColor: Colors.sky[50] }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.neutral[50]} />
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.sky[50]} />
 
       {/* Header */}
       <View
@@ -166,9 +166,9 @@ export default function AnunciosScreen() {
             paddingTop,
             paddingHorizontal: 16,
             paddingBottom: 16,
-            backgroundColor: Colors.neutral[0],
+            backgroundColor: Colors.sky[50],
             borderBottomWidth: 1,
-            borderBottomColor: Colors.neutral[200],
+            borderBottomColor: Colors.sky[200],
           },
           shadow,
         ]}
@@ -183,12 +183,12 @@ export default function AnunciosScreen() {
               width: 40,
               height: 40,
               borderRadius: 20,
-              backgroundColor: Colors.neutral[100],
+              backgroundColor: Colors.sky[100],
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <ArrowLeft size={20} color={Colors.neutral[700]} />
+            <ArrowLeft size={20} color={Colors.sky[700]} />
           </TouchableOpacity>
 
           <View style={{ flex: 1 }}>
@@ -196,12 +196,12 @@ export default function AnunciosScreen() {
               style={{
                 fontSize: 20,
                 fontWeight: '700',
-                color: Colors.neutral[900],
+                color: Colors.sky[900],
               }}
             >
               📢 Enviar Anuncios
             </Text>
-            <Text style={{ fontSize: 14, color: Colors.neutral[500], marginTop: 2 }}>
+            <Text style={{ fontSize: 14, color: Colors.sky[500], marginTop: 2 }}>
               Notificaciones push masivas
             </Text>
           </View>
@@ -220,7 +220,7 @@ export default function AnunciosScreen() {
             setShowTemplates(true);
           }}
           style={{
-            backgroundColor: Colors.blue[50],
+            backgroundColor: Colors.estudiante[50],
             paddingVertical: 14,
             paddingHorizontal: 16,
             borderRadius: 8,
@@ -229,15 +229,15 @@ export default function AnunciosScreen() {
             justifyContent: 'center',
             gap: 8,
             borderWidth: 1,
-            borderColor: Colors.blue[200],
+            borderColor: Colors.estudiante[100],
           }}
         >
-          <FileText size={20} color={Colors.blue[700]} />
+          <FileText size={20} color={Colors.estudiante[700]} />
           <Text
             style={{
               fontSize: 15,
               fontWeight: '600',
-              color: Colors.blue[700],
+              color: Colors.estudiante[700],
             }}
           >
             Usar Template
@@ -250,7 +250,7 @@ export default function AnunciosScreen() {
             style={{
               fontSize: 16,
               fontWeight: '600',
-              color: Colors.neutral[900],
+              color: Colors.sky[900],
               marginBottom: 12,
             }}
           >
@@ -341,7 +341,7 @@ export default function AnunciosScreen() {
             style={{
               fontSize: 16,
               fontWeight: '600',
-              color: Colors.neutral[900],
+              color: Colors.sky[900],
               marginBottom: 8,
             }}
           >
@@ -351,23 +351,23 @@ export default function AnunciosScreen() {
             value={titulo}
             onChangeText={setTitulo}
             placeholder="Título del anuncio (max. 100 caracteres)"
-            placeholderTextColor={Colors.neutral[400]}
+            placeholderTextColor={Colors.sky[400]}
             maxLength={100}
             style={{
-              backgroundColor: Colors.neutral[0],
+              backgroundColor: Colors.sky[50],
               borderWidth: 1,
-              borderColor: Colors.neutral[300],
+              borderColor: Colors.sky[300],
               borderRadius: 8,
               paddingVertical: 12,
               paddingHorizontal: 16,
               fontSize: 16,
-              color: Colors.neutral[900],
+              color: Colors.sky[900],
             }}
           />
           <Text
             style={{
               fontSize: 12,
-              color: Colors.neutral[500],
+              color: Colors.sky[500],
               marginTop: 4,
               textAlign: 'right',
             }}
@@ -382,7 +382,7 @@ export default function AnunciosScreen() {
             style={{
               fontSize: 16,
               fontWeight: '600',
-              color: Colors.neutral[900],
+              color: Colors.sky[900],
               marginBottom: 8,
             }}
           >
@@ -392,27 +392,27 @@ export default function AnunciosScreen() {
             value={mensaje}
             onChangeText={setMensaje}
             placeholder="Escribe el mensaje del anuncio (max. 500 caracteres)"
-            placeholderTextColor={Colors.neutral[400]}
+            placeholderTextColor={Colors.sky[400]}
             multiline
             numberOfLines={6}
             maxLength={500}
             textAlignVertical="top"
             style={{
-              backgroundColor: Colors.neutral[0],
+              backgroundColor: Colors.sky[50],
               borderWidth: 1,
-              borderColor: Colors.neutral[300],
+              borderColor: Colors.sky[300],
               borderRadius: 8,
               paddingVertical: 12,
               paddingHorizontal: 16,
               fontSize: 16,
-              color: Colors.neutral[900],
+              color: Colors.sky[900],
               minHeight: 120,
             }}
           />
           <Text
             style={{
               fontSize: 12,
-              color: Colors.neutral[500],
+              color: Colors.sky[500],
               marginTop: 4,
               textAlign: 'right',
             }}
@@ -425,21 +425,21 @@ export default function AnunciosScreen() {
         {(titulo || mensaje) && (
           <View
             style={{
-              backgroundColor: Colors.neutral[0],
+              backgroundColor: Colors.sky[50],
               borderWidth: 1,
-              borderColor: Colors.neutral[300],
+              borderColor: Colors.sky[300],
               borderRadius: 8,
               padding: 16,
               marginTop: 8,
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <Megaphone size={16} color={Colors.admin[600]} />
+              <Megaphone size={16} color={Colors.sky[600]} />
               <Text
                 style={{
                   fontSize: 12,
                   fontWeight: '600',
-                  color: Colors.admin[600],
+                  color: Colors.sky[600],
                   textTransform: 'uppercase',
                 }}
               >
@@ -452,7 +452,7 @@ export default function AnunciosScreen() {
                 style={{
                   fontSize: 16,
                   fontWeight: '600',
-                  color: Colors.neutral[900],
+                  color: Colors.sky[900],
                   marginBottom: 4,
                 }}
               >
@@ -461,7 +461,7 @@ export default function AnunciosScreen() {
             ) : null}
 
             {mensaje ? (
-              <Text style={{ fontSize: 14, color: Colors.neutral[700], lineHeight: 20 }}>
+              <Text style={{ fontSize: 14, color: Colors.sky[700], lineHeight: 20 }}>
                 {mensaje}
               </Text>
             ) : null}
@@ -475,8 +475,8 @@ export default function AnunciosScreen() {
           style={{
             backgroundColor:
               loading || !titulo.trim() || !mensaje.trim()
-                ? Colors.neutral[300]
-                : Colors.admin[600],
+                ? Colors.sky[300]
+                : Colors.sky[600],
             paddingVertical: 16,
             borderRadius: 8,
             flexDirection: 'row',
@@ -487,15 +487,15 @@ export default function AnunciosScreen() {
           }}
         >
           {loading ? (
-            <ActivityIndicator size="small" color={Colors.neutral[0]} />
+            <ActivityIndicator size="small" color={Colors.sky[50]} />
           ) : (
             <>
-              <Send size={20} color={Colors.neutral[0]} />
+              <Send size={20} color={Colors.sky[50]} />
               <Text
                 style={{
                   fontSize: 16,
                   fontWeight: '600',
-                  color: Colors.neutral[0],
+                  color: Colors.sky[50],
                 }}
               >
                 Enviar Anuncio
@@ -507,14 +507,14 @@ export default function AnunciosScreen() {
         {/* Info */}
         <View
           style={{
-            backgroundColor: Colors.blue[50],
+            backgroundColor: Colors.estudiante[50],
             padding: 12,
             borderRadius: 8,
             borderLeftWidth: 4,
-            borderLeftColor: Colors.blue[500],
+            borderLeftColor: Colors.estudiante[500],
           }}
         >
-          <Text style={{ fontSize: 14, color: Colors.blue[900], lineHeight: 20 }}>
+          <Text style={{ fontSize: 14, color: Colors.estudiante[800], lineHeight: 20 }}>
             💡 <Text style={{ fontWeight: '600' }}>Consejo:</Text> Las notificaciones se enviarán
             solo a usuarios con notificaciones habilitadas y dispositivos registrados.
           </Text>
@@ -528,7 +528,7 @@ export default function AnunciosScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowTemplates(false)}
       >
-        <View style={{ flex: 1, backgroundColor: Colors.neutral[50] }}>
+        <View style={{ flex: 1, backgroundColor: Colors.sky[50] }}>
           <StatusBar barStyle="dark-content" />
 
           {/* Header del Modal */}
@@ -538,9 +538,9 @@ export default function AnunciosScreen() {
                 paddingTop: paddingTop,
                 paddingHorizontal: 16,
                 paddingBottom: 16,
-                backgroundColor: Colors.neutral[0],
+                backgroundColor: Colors.sky[50],
                 borderBottomWidth: 1,
-                borderBottomColor: Colors.neutral[200],
+                borderBottomColor: Colors.sky[200],
               },
               shadow,
             ]}
@@ -556,19 +556,19 @@ export default function AnunciosScreen() {
                   width: 40,
                   height: 40,
                   borderRadius: 20,
-                  backgroundColor: Colors.neutral[100],
+                  backgroundColor: Colors.sky[100],
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <X size={20} color={Colors.neutral[700]} />
+                <X size={20} color={Colors.sky[700]} />
               </TouchableOpacity>
 
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: Colors.neutral[900] }}>
+                <Text style={{ fontSize: 20, fontWeight: '700', color: Colors.sky[900] }}>
                   Templates de Anuncios
                 </Text>
-                <Text style={{ fontSize: 14, color: Colors.neutral[500], marginTop: 2 }}>
+                <Text style={{ fontSize: 14, color: Colors.sky[500], marginTop: 2 }}>
                   {categoriaSeleccionada ? 'Selecciona un template' : 'Elige una categoría'}
                 </Text>
               </View>
@@ -587,11 +587,11 @@ export default function AnunciosScreen() {
                       setCategoriaSeleccionada(categoria.id);
                     }}
                     style={{
-                      backgroundColor: Colors.neutral[0],
+                      backgroundColor: Colors.sky[50],
                       borderRadius: 12,
                       padding: 16,
                       borderWidth: 1,
-                      borderColor: Colors.neutral[200],
+                      borderColor: Colors.sky[200],
                       flexDirection: 'row',
                       alignItems: 'center',
                       gap: 12,
@@ -615,12 +615,12 @@ export default function AnunciosScreen() {
                         style={{
                           fontSize: 17,
                           fontWeight: '600',
-                          color: Colors.neutral[900],
+                          color: Colors.sky[900],
                         }}
                       >
                         {categoria.nombre}
                       </Text>
-                      <Text style={{ fontSize: 13, color: Colors.neutral[500], marginTop: 2 }}>
+                      <Text style={{ fontSize: 13, color: Colors.sky[500], marginTop: 2 }}>
                         {TEMPLATES_ANUNCIOS.filter((t) => t.categoria === categoria.id).length}{' '}
                         templates disponibles
                       </Text>
@@ -643,8 +643,8 @@ export default function AnunciosScreen() {
                     paddingVertical: 8,
                   }}
                 >
-                  <ArrowLeft size={20} color={Colors.blue[600]} />
-                  <Text style={{ fontSize: 15, fontWeight: '600', color: Colors.blue[600] }}>
+                  <ArrowLeft size={20} color={Colors.estudiante[600]} />
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: Colors.estudiante[600] }}>
                     Ver todas las categorías
                   </Text>
                 </TouchableOpacity>
@@ -654,20 +654,20 @@ export default function AnunciosScreen() {
                     key={template.id}
                     onPress={() => handleSeleccionarTemplate(template)}
                     style={{
-                      backgroundColor: Colors.neutral[0],
+                      backgroundColor: Colors.sky[50],
                       borderRadius: 12,
                       padding: 16,
                       borderWidth: 1,
-                      borderColor: Colors.neutral[200],
+                      borderColor: Colors.sky[200],
                     }}
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                       <Text style={{ fontSize: 28 }}>{template.icono}</Text>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 16, fontWeight: '600', color: Colors.neutral[900] }}>
+                        <Text style={{ fontSize: 16, fontWeight: '600', color: Colors.sky[900] }}>
                           {template.nombre}
                         </Text>
-                        <Text style={{ fontSize: 12, color: Colors.neutral[500], marginTop: 2 }}>
+                        <Text style={{ fontSize: 12, color: Colors.sky[500], marginTop: 2 }}>
                           Audiencia sugerida:{' '}
                           {template.audienciaSugerida === 'todos'
                             ? '👥 Todos'
@@ -680,18 +680,18 @@ export default function AnunciosScreen() {
 
                     <View
                       style={{
-                        backgroundColor: Colors.neutral[50],
+                        backgroundColor: Colors.sky[50],
                         padding: 12,
                         borderRadius: 8,
                         borderLeftWidth: 3,
-                        borderLeftColor: Colors.admin[500],
+                        borderLeftColor: Colors.sky[500],
                       }}
                     >
                       <Text
                         style={{
                           fontSize: 14,
                           fontWeight: '600',
-                          color: Colors.neutral[900],
+                          color: Colors.sky[900],
                           marginBottom: 4,
                         }}
                       >
@@ -700,7 +700,7 @@ export default function AnunciosScreen() {
                       <Text
                         style={{
                           fontSize: 13,
-                          color: Colors.neutral[600],
+                          color: Colors.sky[600],
                           lineHeight: 18,
                         }}
                         numberOfLines={3}

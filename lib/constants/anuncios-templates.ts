@@ -158,4 +158,4 @@ export const CATEGORIAS_TEMPLATES = [
   { id: 'informativo', nombre: 'Informativo', icono: 'ℹ️', color: '#16a34a' },
   { id: 'emergencia', nombre: 'Emergencia', icono: '🚨', color: '#dc2626' },
   { id: 'general', nombre: 'General', icono: '📢', color: '#9333ea' },
-] as const;
+];
