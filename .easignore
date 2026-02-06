@@ -1,0 +1,4 @@
+# Ignorar todo lo del .gitignore...
+# PERO subir estos a EAS:
+!google-services.json
+!tecnibus-18b3c-firebase-adminsdk-fbsvc-42bb79631e.json

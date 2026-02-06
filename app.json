@@ -22,7 +22,8 @@
       }
     },
     "android": {
-      "package": "com.tecnibus.app",
+      "package": "com.diego3110.tecnibus",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
