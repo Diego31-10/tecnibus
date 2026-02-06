@@ -1,6 +1,6 @@
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 import Constants from 'expo-constants';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
@@ -83,7 +83,7 @@ async function setupAndroidNotificationChannel(): Promise<void> {
     name: 'Recorrido de Buseta',
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
-    lightColor: '#10B981', // Verde esmeralda
+    lightColor: '#3DA7D7', // Color personalizado para las notificaciones
     sound: 'default',
     enableVibrate: true,
     showBadge: true,

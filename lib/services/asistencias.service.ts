@@ -3,6 +3,32 @@ import { supabase } from './supabase';
 // Estados simples de asistencia
 export type EstadoAsistencia = 'presente' | 'ausente' | 'completado';
 
+/**
+ * Envía notificación push al padre sobre cambio de asistencia
+ * @param idEstudiante ID del estudiante
+ * @param tipo Tipo de notificación: 'subio', 'bajo', 'ausente'
+ * @param nombreEstudiante Nombre completo del estudiante (opcional)
+ */
+async function notificarPadre(
+  idEstudiante: string,
+  tipo: 'subio' | 'bajo' | 'ausente',
+  nombreEstudiante?: string
+): Promise<void> {
+  try {
+    await supabase.functions.invoke('notificar-asistencia', {
+      body: {
+        id_estudiante: idEstudiante,
+        tipo,
+        nombre_estudiante: nombreEstudiante,
+      },
+    });
+    console.log(`✅ Notificación enviada: ${tipo} - ${idEstudiante}`);
+  } catch (error) {
+    // No lanzamos error para no bloquear el flujo principal
+    console.error('⚠️ Error enviando notificación al padre:', error);
+  }
+}
+
 export type Asistencia = {
   id: string;
   id_estudiante: string;
@@ -147,9 +173,137 @@ export async function marcarAusente(
     }
 
     console.log(`✅ Estudiante marcado ausente: ${idEstudiante}`);
+
+    // Notificar al padre (no bloquear si falla)
+    await notificarPadre(idEstudiante, 'ausente');
+
     return true;
   } catch (error) {
     console.error('❌ Error en marcarAusente:', error);
+    return false;
+  }
+}
+
+/**
+ * Chofer marca estudiante como presente cuando sube a la buseta (check-in)
+ */
+export async function marcarSubida(
+  idEstudiante: string,
+  idRuta: string,
+  idChofer: string,
+  nombreEstudiante?: string
+): Promise<boolean> {
+  try {
+    const hoy = new Date().toISOString().split('T')[0];
+
+    // Verificar si existe
+    const { data: existente } = await supabase
+      .from('asistencias')
+      .select('id, estado')
+      .eq('id_estudiante', idEstudiante)
+      .eq('fecha', hoy)
+      .single();
+
+    if (existente) {
+      // Solo actualizar si estaba ausente o presente (no si ya estaba completado)
+      if (existente.estado !== 'completado') {
+        const { error } = await supabase
+          .from('asistencias')
+          .update({
+            estado: 'presente',
+            modificado_por: idChofer,
+            notas: 'Estudiante subió a la buseta',
+          })
+          .eq('id', existente.id);
+
+        if (error) throw error;
+      }
+    } else {
+      // Crear nuevo registro
+      const { error } = await supabase
+        .from('asistencias')
+        .insert({
+          id_estudiante: idEstudiante,
+          id_chofer: idChofer,
+          id_ruta: idRuta,
+          estado: 'presente',
+          fecha: hoy,
+          modificado_por: idChofer,
+          notas: 'Estudiante subió a la buseta',
+        });
+
+      if (error) throw error;
+    }
+
+    console.log(`✅ Estudiante marcó subida: ${idEstudiante}`);
+
+    // Notificar al padre
+    await notificarPadre(idEstudiante, 'subio', nombreEstudiante);
+
+    return true;
+  } catch (error) {
+    console.error('❌ Error en marcarSubida:', error);
+    return false;
+  }
+}
+
+/**
+ * Chofer marca estudiante como completado cuando baja de la buseta (check-out)
+ */
+export async function marcarBajada(
+  idEstudiante: string,
+  idRuta: string,
+  idChofer: string,
+  nombreEstudiante?: string
+): Promise<boolean> {
+  try {
+    const hoy = new Date().toISOString().split('T')[0];
+
+    // Verificar si existe
+    const { data: existente } = await supabase
+      .from('asistencias')
+      .select('id')
+      .eq('id_estudiante', idEstudiante)
+      .eq('fecha', hoy)
+      .single();
+
+    if (existente) {
+      // Actualizar a completado
+      const { error } = await supabase
+        .from('asistencias')
+        .update({
+          estado: 'completado',
+          modificado_por: idChofer,
+          notas: 'Estudiante bajó de la buseta - llegó a destino',
+        })
+        .eq('id', existente.id);
+
+      if (error) throw error;
+    } else {
+      // Si no existe, crear directamente como completado
+      const { error } = await supabase
+        .from('asistencias')
+        .insert({
+          id_estudiante: idEstudiante,
+          id_chofer: idChofer,
+          id_ruta: idRuta,
+          estado: 'completado',
+          fecha: hoy,
+          modificado_por: idChofer,
+          notas: 'Estudiante bajó de la buseta - llegó a destino',
+        });
+
+      if (error) throw error;
+    }
+
+    console.log(`✅ Estudiante marcó bajada: ${idEstudiante}`);
+
+    // Notificar al padre
+    await notificarPadre(idEstudiante, 'bajo', nombreEstudiante);
+
+    return true;
+  } catch (error) {
+    console.error('❌ Error en marcarBajada:', error);
     return false;
   }
 }
