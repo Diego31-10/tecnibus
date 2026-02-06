@@ -15,10 +15,7 @@
       "infoPlist": {
         "NSFaceIDUsageDescription": "TecniBus necesita acceder a Face ID para autenticación rápida y segura.",
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": [
-          "remote-notification",
-          "remote-notification"
-        ]
+        "UIBackgroundModes": ["remote-notification", "remote-notification"]
       }
     },
     "android": {
