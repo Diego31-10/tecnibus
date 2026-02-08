@@ -1,11 +1,12 @@
+import { useAuth } from '@/contexts/AuthContext';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * Hook que maneja la navegación desde notificaciones
  * Se ejecuta DESPUÉS de que el usuario esté autenticado
+ * NOTA: Funciona gracefully en Expo Go (sin bloquear)
  */
 export function useNotificationNavigation() {
   const router = useRouter();
@@ -21,29 +22,45 @@ export function useNotificationNavigation() {
 
     console.log('📱 useNotificationNavigation: Configurando listeners');
 
-    // Listener: cuando la app está abierta y el usuario toca una notificación
-    const responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
-      console.log('🔔 Notificación tocada (app abierta):', response);
-      handleNotificationNavigation(response.notification.request.content.data);
-    });
+    let responseListener: any = null;
 
-    // Listener: cuando la app fue abierta DESDE una notificación (cold start)
-    if (!hasProcessedInitialNotification.current) {
-      Notifications.getLastNotificationResponseAsync().then((response) => {
-        if (response) {
-          console.log('🔔 Notificación que abrió la app (cold start):', response);
-          hasProcessedInitialNotification.current = true;
-          // Pequeño delay para asegurar que el router esté listo
-          setTimeout(() => {
-            handleNotificationNavigation(response.notification.request.content.data);
-          }, 100);
-        }
+    try {
+      // Listener: cuando la app está abierta y el usuario toca una notificación
+      responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log('🔔 Notificación tocada (app abierta):', response);
+        handleNotificationNavigation(response.notification.request.content.data);
       });
+
+      // Listener: cuando la app fue abierta DESDE una notificación (cold start)
+      if (!hasProcessedInitialNotification.current) {
+        Notifications.getLastNotificationResponseAsync()
+          .then((response) => {
+            if (response) {
+              console.log('🔔 Notificación que abrió la app (cold start):', response);
+              hasProcessedInitialNotification.current = true;
+              // Pequeño delay para asegurar que el router esté listo
+              setTimeout(() => {
+                handleNotificationNavigation(response.notification.request.content.data);
+              }, 100);
+            }
+          })
+          .catch((error) => {
+            console.warn('⚠️ Error obteniendo última notificación (normal en Expo Go):', error.message);
+          });
+      }
+    } catch (error: any) {
+      console.warn('⚠️ Error configurando notificaciones (normal en Expo Go):', error.message);
     }
 
     return () => {
       console.log('📱 useNotificationNavigation: Limpiando listeners');
-      responseListener.remove();
+      if (responseListener) {
+        try {
+          responseListener.remove();
+        } catch (e) {
+          // Ignorar errores al limpiar en Expo Go
+        }
+      }
     };
   }, [user, profile, loading]);
 
