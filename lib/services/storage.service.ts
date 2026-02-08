@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { Alert } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const BUCKET_NAME = 'avatares';
 
@@ -87,23 +88,36 @@ export async function takePhotoWithCamera(): Promise<string | null> {
  */
 export async function uploadAvatar(uri: string, userId: string): Promise<string | null> {
   try {
-    // Convertir URI a Blob
-    const response = await fetch(uri);
-    const blob = await response.blob();
+    console.log('📤 Preparando subida desde:', uri);
+
+    // Leer archivo como base64 (usar string literal en lugar de enum)
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: 'base64',
+    });
+
+    // Convertir base64 a Uint8Array
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+
+    // Determinar el tipo MIME y extensión
+    const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
+    const mimeType = fileExt === 'png' ? 'image/png' : 'image/jpeg';
 
     // Generar nombre único del archivo
-    const fileExt = uri.split('.').pop() || 'jpg';
     const fileName = `${userId}-${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
 
-    console.log('📤 Subiendo avatar:', filePath);
+    console.log('📤 Subiendo avatar:', fileName, 'tipo:', mimeType, 'tamaño:', byteArray.length, 'bytes');
 
     // Subir a Supabase Storage
     const { data, error } = await supabase.storage
       .from(BUCKET_NAME)
-      .upload(filePath, blob, {
-        contentType: `image/${fileExt}`,
-        upsert: true, // Sobrescribir si ya existe
+      .upload(fileName, byteArray, {
+        contentType: mimeType,
+        upsert: true,
       });
 
     if (error) {
@@ -114,7 +128,7 @@ export async function uploadAvatar(uri: string, userId: string): Promise<string 
     // Obtener URL pública
     const { data: { publicUrl } } = supabase.storage
       .from(BUCKET_NAME)
-      .getPublicUrl(filePath);
+      .getPublicUrl(fileName);
 
     console.log('✅ Avatar subido:', publicUrl);
     return publicUrl;

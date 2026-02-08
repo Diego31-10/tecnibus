@@ -43,13 +43,19 @@ export async function registerForPushNotifications(): Promise<string | null> {
     }
 
     // Obtener el token de Expo Push
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ||
+      Constants.expoConfig?.extra?.eas?.projectId ||
+      '4132942f-bfce-4c85-82e2-fb5127ae8fea'; // Hardcoded como fallback
+
+    console.log('🔑 Project ID para notificaciones:', projectId);
+
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId,
     });
 
     const pushToken = tokenData.data;
-    console.log('Push Token obtenido:', pushToken);
+    console.log('✅ Push Token obtenido:', pushToken);
 
     // Guardar el token en Supabase
     const { error } = await supabase.rpc('update_push_token', {
