@@ -10,6 +10,7 @@ export type Profile = {
   apellido: string;
   correo: string;
   telefono: string | null;
+  avatar_url: string | null;
   rol: UserRole;
   created_at: string;
 };

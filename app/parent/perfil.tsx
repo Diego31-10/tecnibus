@@ -4,6 +4,8 @@ import { createShadow } from '@/lib/utils/shadows';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft,
+  Camera,
+  Image as ImageIcon,
   Mail,
   Phone,
   Save,
@@ -12,6 +14,7 @@ import {
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -22,9 +25,10 @@ import {
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AnimatedCard, Toast } from '../../components';
+import { AnimatedCard, Avatar, Toast } from '../../components';
 import { useAuth } from '../../contexts/AuthContext';
 import { updateProfile } from '../../lib/services/profile.service';
+import { changeAvatar } from '@/lib/services/storage.service';
 
 export default function ParentProfileScreen() {
   const router = useRouter();
@@ -35,6 +39,7 @@ export default function ParentProfileScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as 'success' | 'error' });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const [formData, setFormData] = useState({
     nombre: profile?.nombre || '',
@@ -75,6 +80,50 @@ export default function ParentProfileScreen() {
       telefono: profile?.telefono || '',
     });
     setIsEditing(false);
+  };
+
+  const handleChangeAvatar = () => {
+    if (!profile?.id) return;
+
+    Alert.alert(
+      'Cambiar foto de perfil',
+      'Selecciona una opción',
+      [
+        {
+          text: 'Tomar foto',
+          onPress: () => uploadAvatarFromSource('camera'),
+        },
+        {
+          text: 'Elegir de galería',
+          onPress: () => uploadAvatarFromSource('gallery'),
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const uploadAvatarFromSource = async (source: 'gallery' | 'camera') => {
+    if (!profile?.id) return;
+
+    setUploadingAvatar(true);
+    haptic.light();
+
+    const result = await changeAvatar(profile.id, source);
+
+    if (result.success) {
+      haptic.success();
+      showToast('Foto actualizada correctamente', 'success');
+      await refreshProfile();
+    } else {
+      haptic.error();
+      showToast(result.error || 'Error al subir foto', 'error');
+    }
+
+    setUploadingAvatar(false);
   };
 
   return (
@@ -128,8 +177,23 @@ export default function ParentProfileScreen() {
         </View>
 
         <View className="flex-row items-center">
-          <View className="bg-padre-600 p-3 rounded-full mr-4">
-            <User size={28} color={Colors.padre[50]} strokeWidth={2.5} />
+          <View className="mr-4 relative">
+            <Avatar
+              avatarUrl={profile?.avatar_url}
+              size={72}
+              onPress={isEditing ? handleChangeAvatar : undefined}
+              backgroundColor={Colors.padre[600]}
+              iconColor={Colors.padre[50]}
+            />
+            {isEditing && (
+              <View className="absolute bottom-0 right-0 bg-padre-600 p-1.5 rounded-full border-2 border-white">
+                {uploadingAvatar ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Camera size={16} color="#ffffff" strokeWidth={2.5} />
+                )}
+              </View>
+            )}
           </View>
           <View className="flex-1">
             <Text className="text-white text-2xl font-bold">
