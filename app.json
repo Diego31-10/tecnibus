@@ -11,10 +11,6 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tecnibus.app",
-      "config": {
-        "googleMapsApiKey": "GOOGLE_MAPS_API_KEY_IOS"
-      },
       "infoPlist": {
         "NSFaceIDUsageDescription": "TecniBus necesita acceder a Face ID para autenticación rápida y segura.",
         "NSLocationWhenInUseUsageDescription": "TecniBus necesita tu ubicación para mostrar la posición del bus en tiempo real a los padres.",
@@ -33,7 +29,7 @@
       ],
       "config": {
         "googleMaps": {
-          "apiKey": "GOOGLE_MAPS_API_KEY_ANDROID"
+          "apiKey": "AIzaSyAnsPqhRkz1KfYyHxnuPQvdxdfN7L0dFhE"
         }
       },
       "adaptiveIcon": {
@@ -54,13 +50,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon-light.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
+          "backgroundColor": "#ffffff"
         }
       ],
       "expo-font",
@@ -68,7 +58,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/adaptive-icon.png",
+          "icon": "./assets/images/notification-icon.png",
           "color": "#3DA7D7",
           "defaultChannel": "recorrido"
         }
