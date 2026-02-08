@@ -1,70 +1,106 @@
-import { Stack, useRouter } from 'expo-router';
-import { useEffect } from 'react';
-import { Platform } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import * as SplashScreen from 'expo-splash-screen';
-import * as Notifications from 'expo-notifications';
-import { AuthGuard } from '../components/AuthGuard';
-import { AuthProvider } from '../contexts/AuthContext';
+import SplashScreen from "@/components/SplashScreen";
+import { Stack } from "expo-router";
+import { useState } from "react";
+import { Platform } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AuthGuard } from "../components/AuthGuard";
+import { AuthProvider } from "../contexts/AuthContext";
+import { useNotificationNavigation } from "../lib/hooks/useNotificationNavigation";
 import "../global.css";
 
-SplashScreen.preventAutoHideAsync();
+/**
+ * Componente interno que contiene el Stack y maneja las notificaciones
+ * Se ejecuta DESPUÉS de que AuthProvider esté listo
+ */
+function AppContent() {
+  // Hook que maneja navegación desde notificaciones (solo cuando hay sesión)
+  useNotificationNavigation();
+
+  return (
+    <AuthGuard>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: Platform.OS === "ios" ? "default" : "slide_from_right",
+          animationDuration: 250,
+        }}
+      >
+        <Stack.Screen name="index" options={{ animation: "none" }} />
+        <Stack.Screen
+          name="login"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
+        <Stack.Screen
+          name="parent/index"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
+        <Stack.Screen
+          name="driver/index"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
+        <Stack.Screen
+          name="admin/index"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
+        <Stack.Screen
+          name="admin/choferes/index"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
+        <Stack.Screen
+          name="admin/choferes/crear"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
+        <Stack.Screen
+          name="admin/padres/index"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
+        <Stack.Screen
+          name="admin/padres/crear"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
+        <Stack.Screen
+          name="admin/estudiantes/index"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
+        <Stack.Screen
+          name="admin/estudiantes/crear"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
+        <Stack.Screen
+          name="parent/perfil"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
+        <Stack.Screen
+          name="driver/perfil"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
+        <Stack.Screen
+          name="admin/perfil"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
+      </Stack>
+    </AuthGuard>
+  );
+}
 
 export default function RootLayout() {
-  const router = useRouter();
+  // Estado para controlar el splash screen animado
+  const [isAppReady, setIsAppReady] = useState(false);
 
-  useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
+  // Mostrar splash screen PRIMERO
+  if (!isAppReady) {
+    return (
+      <SplashScreen
+        onFinish={(isCancelled) => !isCancelled && setIsAppReady(true)}
+      />
+    );
+  }
 
-  // Listener: usuario toca una notificación push
-  useEffect(() => {
-    const responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data;
-      if (data?.tipo === 'recorrido_iniciado' || data?.tipo === 'recorrido_finalizado') {
-        router.push('/parent');
-      }
-    });
-
-    // Si la app fue abierta desde una notificación (cold start)
-    Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (response) {
-        const data = response.notification.request.content.data;
-        if (data?.tipo === 'recorrido_iniciado' || data?.tipo === 'recorrido_finalizado') {
-          router.push('/parent');
-        }
-      }
-    });
-
-    return () => responseListener.remove();
-  }, [router]);
+  // Luego montar la app con AuthProvider
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <AuthGuard>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              animation: Platform.OS === 'ios' ? 'default' : 'slide_from_right',
-              animationDuration: 250,
-            }}
-          >
-            <Stack.Screen name="index" options={{ animation: 'none' }} />
-            <Stack.Screen name="login" options={{ animation: 'fade', animationDuration: 200 }} />
-            <Stack.Screen name="parent/index" options={{ animation: 'fade', animationDuration: 200 }} />
-            <Stack.Screen name="driver/index" options={{ animation: 'fade', animationDuration: 200 }} />
-            <Stack.Screen name="admin/index" options={{ animation: 'fade', animationDuration: 200 }} />
-            <Stack.Screen name="admin/choferes/index" options={{ animation: 'fade', animationDuration: 200 }}/>
-            <Stack.Screen name="admin/choferes/crear" options={{ animation: 'fade', animationDuration: 200 }}/>
-            <Stack.Screen name="admin/padres/index" options={{ animation: 'fade', animationDuration: 200 }}/>
-            <Stack.Screen name="admin/padres/crear" options={{ animation: 'fade', animationDuration: 200 }}/>
-            <Stack.Screen name="admin/estudiantes/index" options={{ animation: 'fade', animationDuration: 200 }}/>
-            <Stack.Screen name="admin/estudiantes/crear" options={{ animation: 'fade', animationDuration: 200 }}/>
-            <Stack.Screen name="parent/perfil" options={{ animation: 'fade', animationDuration: 200 }}/>
-            <Stack.Screen name="driver/perfil" options={{ animation: 'fade', animationDuration: 200 }}/>
-            <Stack.Screen name="admin/perfil" options={{ animation: 'fade', animationDuration: 200 }}/>  
-          </Stack>
-        </AuthGuard>
+        <AppContent />
       </AuthProvider>
     </SafeAreaProvider>
   );
