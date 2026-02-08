@@ -12,8 +12,13 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.tecnibus.app",
+      "config": {
+        "googleMapsApiKey": "GOOGLE_MAPS_API_KEY_IOS"
+      },
       "infoPlist": {
         "NSFaceIDUsageDescription": "TecniBus necesita acceder a Face ID para autenticación rápida y segura.",
+        "NSLocationWhenInUseUsageDescription": "TecniBus necesita tu ubicación para mostrar la posición del bus en tiempo real a los padres.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "TecniBus necesita tu ubicación en segundo plano para tracking continuo del recorrido.",
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": ["remote-notification", "remote-notification"]
       }
@@ -21,6 +26,16 @@
     "android": {
       "package": "com.diego3110.tecnibus",
       "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "FOREGROUND_SERVICE"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "GOOGLE_MAPS_API_KEY_ANDROID"
+        }
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "monochromeImage": "./assets/images/adaptive-icon.png",

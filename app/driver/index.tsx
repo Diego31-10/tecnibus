@@ -36,6 +36,7 @@ import {
   finalizarRecorrido,
   getEstadoRecorrido,
 } from '@/lib/services/recorridos.service';
+import { useGPSTracking } from '@/lib/hooks/useGPSTracking';
 
 export default function DriverHomeScreen() {
   const router = useRouter();
@@ -48,6 +49,14 @@ export default function DriverHomeScreen() {
   const [recorridoActual, setRecorridoActual] = useState<RecorridoChofer | null>(null);
   const [estudiantes, setEstudiantes] = useState<EstudianteConAsistencia[]>([]);
   const [processingStudent, setProcessingStudent] = useState<string | null>(null);
+
+  // Tracking GPS automático
+  const { permisoConcedido, error: errorGPS, tracking } = useGPSTracking({
+    idAsignacion: recorridoActual?.id || null,
+    idChofer: profile?.id || '',
+    recorridoActivo: routeActive,
+    intervaloSegundos: 10,
+  });
 
   const paddingTop = Math.max(insets.top + 8, 48);
   const shadow = createShadow('lg');
@@ -322,6 +331,12 @@ export default function DriverHomeScreen() {
                     </Text>
                   )}
                 </View>
+                {routeActive && tracking && (
+                  <View className="flex-row items-center mt-2">
+                    <View className="bg-green-500 w-2 h-2 rounded-full mr-2" />
+                    <Text className="text-chofer-100 text-xs">GPS activo</Text>
+                  </View>
+                )}
               </>
             )}
           </View>
@@ -525,6 +540,13 @@ export default function DriverHomeScreen() {
 
         <View className="h-4" />
       </ScrollView>
+
+      {/* Alerta de error GPS */}
+      {errorGPS && (
+        <View className="absolute bottom-20 left-6 right-6 bg-red-500 p-3 rounded-xl">
+          <Text className="text-white font-semibold text-sm text-center">⚠️ {errorGPS}</Text>
+        </View>
+      )}
     </View>
   );
 }

@@ -57,10 +57,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "asignaciones_ruta_id_chofer_fkey"
+            columns: ["id_chofer"]
+            isOneToOne: false
+            referencedRelation: "vista_conteo_choferes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "asignaciones_ruta_id_ruta_fkey"
             columns: ["id_ruta"]
             isOneToOne: false
             referencedRelation: "rutas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asignaciones_ruta_id_ruta_fkey"
+            columns: ["id_ruta"]
+            isOneToOne: false
+            referencedRelation: "vista_conteo_rutas"
             referencedColumns: ["id"]
           },
         ]
@@ -68,48 +82,59 @@ export type Database = {
       asistencias: {
         Row: {
           created_at: string | null
-          fecha_hora: string
+          estado: Database["public"]["Enums"]["estado_asistencia"]
+          fecha: string
+          hora_entrega: string | null
+          hora_recogida: string | null
           id: string
-          id_asignacion: string | null
           id_chofer: string
           id_estudiante: string
+          id_ruta: string | null
           latitud: number | null
           longitud: number | null
+          modificado_por: string | null
           notas: string | null
-          tipo: string
+          ubicacion_entrega: unknown
+          ubicacion_recogida: unknown
+          updated_at: string | null
         }
         Insert: {
           created_at?: string | null
-          fecha_hora?: string
+          estado?: Database["public"]["Enums"]["estado_asistencia"]
+          fecha?: string
+          hora_entrega?: string | null
+          hora_recogida?: string | null
           id?: string
-          id_asignacion?: string | null
           id_chofer: string
           id_estudiante: string
+          id_ruta?: string | null
           latitud?: number | null
           longitud?: number | null
+          modificado_por?: string | null
           notas?: string | null
-          tipo: string
+          ubicacion_entrega?: unknown
+          ubicacion_recogida?: unknown
+          updated_at?: string | null
         }
         Update: {
           created_at?: string | null
-          fecha_hora?: string
+          estado?: Database["public"]["Enums"]["estado_asistencia"]
+          fecha?: string
+          hora_entrega?: string | null
+          hora_recogida?: string | null
           id?: string
-          id_asignacion?: string | null
           id_chofer?: string
           id_estudiante?: string
+          id_ruta?: string | null
           latitud?: number | null
           longitud?: number | null
+          modificado_por?: string | null
           notas?: string | null
-          tipo?: string
+          ubicacion_entrega?: unknown
+          ubicacion_recogida?: unknown
+          updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "asistencias_id_asignacion_fkey"
-            columns: ["id_asignacion"]
-            isOneToOne: false
-            referencedRelation: "asignaciones_ruta"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "asistencias_id_chofer_fkey"
             columns: ["id_chofer"]
@@ -118,10 +143,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "asistencias_id_chofer_fkey"
+            columns: ["id_chofer"]
+            isOneToOne: false
+            referencedRelation: "vista_conteo_choferes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "asistencias_id_estudiante_fkey"
             columns: ["id_estudiante"]
             isOneToOne: false
             referencedRelation: "estudiantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asistencias_id_estudiante_fkey"
+            columns: ["id_estudiante"]
+            isOneToOne: false
+            referencedRelation: "vista_conteo_estudiantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asistencias_id_ruta_fkey"
+            columns: ["id_ruta"]
+            isOneToOne: false
+            referencedRelation: "rutas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asistencias_id_ruta_fkey"
+            columns: ["id_ruta"]
+            isOneToOne: false
+            referencedRelation: "vista_conteo_rutas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asistencias_modificado_por_fkey"
+            columns: ["modificado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -169,10 +229,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "choferes_id_buseta_fkey"
+            columns: ["id_buseta"]
+            isOneToOne: true
+            referencedRelation: "vista_conteo_busetas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "choferes_id_fkey"
             columns: ["id"]
             isOneToOne: true
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estados_recorrido: {
+        Row: {
+          activo: boolean
+          created_at: string | null
+          fecha: string
+          hora_fin: string | null
+          hora_inicio: string | null
+          id: string
+          id_asignacion: string
+          id_chofer: string
+          updated_at: string | null
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string | null
+          fecha?: string
+          hora_fin?: string | null
+          hora_inicio?: string | null
+          id?: string
+          id_asignacion: string
+          id_chofer: string
+          updated_at?: string | null
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string | null
+          fecha?: string
+          hora_fin?: string | null
+          hora_inicio?: string | null
+          id?: string
+          id_asignacion?: string
+          id_chofer?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estados_recorrido_id_asignacion_fkey"
+            columns: ["id_asignacion"]
+            isOneToOne: false
+            referencedRelation: "asignaciones_ruta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estados_recorrido_id_chofer_fkey"
+            columns: ["id_chofer"]
+            isOneToOne: false
+            referencedRelation: "choferes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estados_recorrido_id_chofer_fkey"
+            columns: ["id_chofer"]
+            isOneToOne: false
+            referencedRelation: "vista_conteo_choferes"
             referencedColumns: ["id"]
           },
         ]
@@ -284,6 +409,13 @@ export type Database = {
             referencedRelation: "rutas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "paradas_id_ruta_fkey"
+            columns: ["id_ruta"]
+            isOneToOne: false
+            referencedRelation: "vista_conteo_rutas"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -293,6 +425,7 @@ export type Database = {
           created_at: string | null
           id: string
           nombre: string
+          push_token: string | null
           rol: string
           telefono: string | null
         }
@@ -302,6 +435,7 @@ export type Database = {
           created_at?: string | null
           id: string
           nombre: string
+          push_token?: string | null
           rol: string
           telefono?: string | null
         }
@@ -311,6 +445,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           nombre?: string
+          push_token?: string | null
           rol?: string
           telefono?: string | null
         }
@@ -340,13 +475,172 @@ export type Database = {
         }
         Relationships: []
       }
+      ubicaciones_bus: {
+        Row: {
+          created_at: string | null
+          id: string
+          id_asignacion: string
+          id_chofer: string
+          latitud: number
+          longitud: number
+          precision_gps: number | null
+          ubicacion_timestamp: string
+          velocidad: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          id_asignacion: string
+          id_chofer: string
+          latitud: number
+          longitud: number
+          precision_gps?: number | null
+          ubicacion_timestamp?: string
+          velocidad?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          id_asignacion?: string
+          id_chofer?: string
+          latitud?: number
+          longitud?: number
+          precision_gps?: number | null
+          ubicacion_timestamp?: string
+          velocidad?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ubicaciones_bus_id_asignacion_fkey"
+            columns: ["id_asignacion"]
+            isOneToOne: false
+            referencedRelation: "asignaciones_ruta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ubicaciones_bus_id_chofer_fkey"
+            columns: ["id_chofer"]
+            isOneToOne: false
+            referencedRelation: "choferes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ubicaciones_bus_id_chofer_fkey"
+            columns: ["id_chofer"]
+            isOneToOne: false
+            referencedRelation: "vista_conteo_choferes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      vista_conteo_busetas: {
+        Row: {
+          id: string | null
+        }
+        Insert: {
+          id?: string | null
+        }
+        Update: {
+          id?: string | null
+        }
+        Relationships: []
+      }
+      vista_conteo_choferes: {
+        Row: {
+          id: string | null
+        }
+        Insert: {
+          id?: string | null
+        }
+        Update: {
+          id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "choferes_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vista_conteo_estudiantes: {
+        Row: {
+          id: string | null
+        }
+        Insert: {
+          id?: string | null
+        }
+        Update: {
+          id?: string | null
+        }
+        Relationships: []
+      }
+      vista_conteo_rutas: {
+        Row: {
+          estado: string | null
+          id: string | null
+        }
+        Insert: {
+          estado?: string | null
+          id?: string | null
+        }
+        Update: {
+          estado?: string | null
+          id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      clear_push_token: { Args: never; Returns: boolean }
       es_hora_recorrido: { Args: { p_id_asignacion: string }; Returns: boolean }
       esta_en_buseta: { Args: { p_id_estudiante: string }; Returns: boolean }
+      finalizar_recorrido: {
+        Args: { p_id_asignacion: string }
+        Returns: boolean
+      }
+      get_chofer_de_ruta: { Args: { p_id_ruta: string }; Returns: string }
+      get_estado_recorrido: {
+        Args: { p_id_asignacion: string }
+        Returns: {
+          activo: boolean
+          hora_fin: string
+          hora_inicio: string
+        }[]
+      }
+      get_estado_recorrido_por_ruta: {
+        Args: { p_id_ruta: string }
+        Returns: {
+          activo: boolean
+          hora_fin: string
+          hora_inicio: string
+          id_asignacion: string
+        }[]
+      }
+      get_mis_estudiantes_con_ruta: {
+        Args: never
+        Returns: {
+          apellido: string
+          id: string
+          id_parada: string
+          nombre: string
+          parada_nombre: string
+          ruta_id: string
+          ruta_nombre: string
+        }[]
+      }
+      get_push_tokens_padres_ruta: {
+        Args: { p_id_asignacion: string }
+        Returns: {
+          id_padre: string
+          nombre_padre: string
+          push_token: string
+        }[]
+      }
       get_recorridos_chofer_hoy: {
         Args: { p_id_chofer: string }
         Returns: {
@@ -367,9 +661,22 @@ export type Database = {
           tipo: string
         }[]
       }
+      get_ultima_ubicacion_bus: {
+        Args: { p_id_asignacion: string }
+        Returns: {
+          latitud: number
+          longitud: number
+          precision_gps: number
+          ubicacion_timestamp: string
+          velocidad: number
+        }[]
+      }
+      iniciar_recorrido: { Args: { p_id_asignacion: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      update_push_token: { Args: { p_push_token: string }; Returns: boolean }
     }
     Enums: {
+      estado_asistencia: "presente" | "ausente" | "completado"
       user_role: "admin" | "padre" | "chofer"
     }
     CompositeTypes: {
@@ -498,6 +805,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      estado_asistencia: ["presente", "ausente", "completado"],
       user_role: ["admin", "padre", "chofer"],
     },
   },

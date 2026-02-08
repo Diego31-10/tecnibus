@@ -29,6 +29,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedButton, AnimatedCard, StatusBadge } from '../../components';
+import RouteMap from '@/components/RouteMap';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   EstudianteDelPadre,
@@ -40,6 +41,12 @@ import {
 } from '@/lib/services/asistencias.service';
 import { supabase } from '@/lib/services/supabase';
 import { getEstadoRecorridoPorRuta } from '@/lib/services/recorridos.service';
+import { getParadasByRuta, type Parada } from '@/lib/services/rutas.service';
+import {
+  getUltimaUbicacion,
+  suscribirseAUbicaciones,
+  type UbicacionActual
+} from '@/lib/services/ubicaciones.service';
 
 export default function ParentHomeScreen() {
   const router = useRouter();
@@ -57,6 +64,8 @@ export default function ParentHomeScreen() {
   const [marcadoPorChofer, setMarcadoPorChofer] = useState(false);
   const [choferEnCamino, setChoferEnCamino] = useState(false);
   const [idAsignacion, setIdAsignacion] = useState<string | null>(null);
+  const [paradasRuta, setParadasRuta] = useState<Parada[]>([]);
+  const [ubicacionBus, setUbicacionBus] = useState<UbicacionActual | null>(null);
 
   const paddingTop = Math.max(insets.top + 8, 48);
   const shadow = createShadow('lg');
@@ -141,6 +150,64 @@ export default function ParentHomeScreen() {
       supabase.removeChannel(channel);
     };
   }, [estudianteSeleccionado?.parada?.ruta?.id, idAsignacion]);
+
+  // Cargar paradas cuando cambia la ruta del estudiante
+  useEffect(() => {
+    const cargarParadas = async () => {
+      if (!estudianteSeleccionado?.parada?.ruta?.id) {
+        setParadasRuta([]);
+        return;
+      }
+
+      try {
+        const paradas = await getParadasByRuta(estudianteSeleccionado.parada.ruta.id);
+        setParadasRuta(paradas);
+      } catch (error) {
+        console.error('Error cargando paradas:', error);
+        setParadasRuta([]);
+      }
+    };
+
+    cargarParadas();
+  }, [estudianteSeleccionado?.parada?.ruta?.id]);
+
+  // Cargar ubicación inicial del bus
+  useEffect(() => {
+    const cargarUbicacionInicial = async () => {
+      if (!idAsignacion || !choferEnCamino) {
+        setUbicacionBus(null);
+        return;
+      }
+
+      try {
+        const ubicacion = await getUltimaUbicacion(idAsignacion);
+        setUbicacionBus(ubicacion);
+      } catch (error) {
+        console.error('Error cargando ubicación inicial:', error);
+      }
+    };
+
+    cargarUbicacionInicial();
+  }, [idAsignacion, choferEnCamino]);
+
+  // Suscripción a ubicaciones en tiempo real
+  useEffect(() => {
+    if (!idAsignacion || !choferEnCamino) {
+      return;
+    }
+
+    console.log('📍 Padre: Suscribiendo a ubicaciones GPS del bus...');
+
+    const unsubscribe = suscribirseAUbicaciones(idAsignacion, (nuevaUbicacion) => {
+      console.log('📍 Padre: Nueva ubicación recibida:', nuevaUbicacion);
+      setUbicacionBus(nuevaUbicacion);
+    });
+
+    return () => {
+      console.log('🔕 Padre: Desuscribiendo de ubicaciones GPS');
+      unsubscribe();
+    };
+  }, [idAsignacion, choferEnCamino]);
 
   const cargarEstadoAsistencia = async () => {
     if (!estudianteSeleccionado?.id) return;
@@ -396,27 +463,29 @@ export default function ParentHomeScreen() {
         >
           {estudianteSeleccionado?.parada?.ruta ? (
             <>
-              <View className="bg-gray-100 rounded-xl h-48 mb-4 items-center justify-center border-2 border-dashed border-gray-300">
-                <MapPin size={48} color="#9ca3af" strokeWidth={2} />
-                <Text className="text-gray-500 font-semibold mt-2">
-                  Mapa en tiempo real
-                </Text>
-                <Text className="text-gray-400 text-xs mt-1">
-                  Se implementará en fase funcional
-                </Text>
-              </View>
+              <RouteMap
+                paradas={paradasRuta}
+                ubicacionBus={ubicacionBus}
+                recorridoActivo={choferEnCamino}
+              />
 
-              <View className="bg-padre-50 rounded-xl p-4 flex-row items-center">
+              <View className="bg-padre-50 rounded-xl p-4 flex-row items-center mt-4">
                 <View className="bg-padre-600 p-2 rounded-full">
-                  <Bus size={24} color={Colors.padre[600]} strokeWidth={2.5} />
+                  <Bus size={24} color="#ffffff" strokeWidth={2.5} />
                 </View>
                 <View className="flex-1 ml-3">
-                  <Text className="text-padre-800 font-bold text-base">
-                    {busStatus}
-                  </Text>
+                  <Text className="text-padre-800 font-bold text-base">{busStatus}</Text>
                   <Text className="text-padre-600 text-sm">
                     Ruta: {estudianteSeleccionado.parada?.ruta?.nombre || 'Sin ruta'}
                   </Text>
+                  {ubicacionBus && (
+                    <Text className="text-padre-500 text-xs mt-1">
+                      Última actualización: {new Date(ubicacionBus.ubicacion_timestamp).toLocaleTimeString('es-CO', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                  )}
                 </View>
               </View>
             </>
