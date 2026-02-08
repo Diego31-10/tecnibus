@@ -13,6 +13,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSFaceIDUsageDescription": "TecniBus necesita acceder a Face ID para autenticación rápida y segura.",
+        "NSCameraUsageDescription": "TecniBus necesita acceso a la cámara para tomar fotos de perfil.",
+        "NSPhotoLibraryUsageDescription": "TecniBus necesita acceso a tu galería para seleccionar fotos de perfil.",
         "NSLocationWhenInUseUsageDescription": "TecniBus necesita tu ubicación para mostrar la posición del bus en tiempo real a los padres.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "TecniBus necesita tu ubicación en segundo plano para tracking continuo del recorrido.",
         "ITSAppUsesNonExemptEncryption": false,
@@ -25,7 +27,11 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "FOREGROUND_SERVICE"
+        "FOREGROUND_SERVICE",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES"
       ],
       "config": {
         "googleMaps": {
