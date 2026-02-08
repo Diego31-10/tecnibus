@@ -22,7 +22,7 @@ export default function ParentSettingsScreen() {
   const handleLogout = async () => {
     haptic.warning();
     await signOut();
-    router.replace('/login');
+    // AuthGuard se encarga del redirect automáticamente
   };
 
   const handleViewProfile = () => {

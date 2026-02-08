@@ -1,8 +1,8 @@
-import * as LocalAuthentication from 'expo-local-authentication';
-import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
-import { Bus, Fingerprint, Lock, Mail } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import * as LocalAuthentication from "expo-local-authentication";
+import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { Bus, Fingerprint, Lock, Mail } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -11,33 +11,34 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
+} from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
-import { haptic } from '@/lib/utils/haptics';
-import { useShadow } from '@/lib/utils/shadows';
-import { Toast } from '../components';
-import { useAuth } from '../contexts/AuthContext';
+import { haptic } from "@/lib/utils/haptics";
+import { useShadow } from "@/lib/utils/shadows";
+import { Toast } from "../components";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function LoginScreen() {
   const router = useRouter();
   const { signIn, signOut, user, profile, loading: authLoading } = useAuth();
-  const shadow = useShadow('lg');
+  const shadow = useShadow("lg");
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showRedirecting, setShowRedirecting] = useState(false);
 
   const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] =
-    useState<'success' | 'error' | 'warning'>('warning');
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error" | "warning">(
+    "warning",
+  );
 
   // Estados para autenticación biométrica
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
@@ -89,10 +90,10 @@ export default function LoginScreen() {
       setIsBiometricSupported(compatible && enrolled);
 
       // Verificar si hay credenciales guardadas
-      const savedEmail = await SecureStore.getItemAsync('userEmail');
+      const savedEmail = await SecureStore.getItemAsync("userEmail");
       setHasSavedCredentials(!!savedEmail);
     } catch (error) {
-      console.error('Error verificando biometría:', error);
+      console.error("Error verificando biometría:", error);
       setIsBiometricSupported(false);
     }
   };
@@ -100,17 +101,17 @@ export default function LoginScreen() {
   const handleBiometricAuth = async () => {
     try {
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Autentícate para iniciar sesión',
-        fallbackLabel: 'Usar contraseña',
-        cancelLabel: 'Cancelar',
+        promptMessage: "Autentícate para iniciar sesión",
+        fallbackLabel: "Usar contraseña",
+        cancelLabel: "Cancelar",
       });
 
       if (result.success) {
         haptic.success();
 
         // Recuperar credenciales guardadas
-        const savedEmail = await SecureStore.getItemAsync('userEmail');
-        const savedPassword = await SecureStore.getItemAsync('userPassword');
+        const savedEmail = await SecureStore.getItemAsync("userEmail");
+        const savedPassword = await SecureStore.getItemAsync("userPassword");
 
         if (savedEmail && savedPassword) {
           setEmail(savedEmail);
@@ -122,21 +123,21 @@ export default function LoginScreen() {
 
           if (error) {
             setIsLoading(false);
-            showToast(getAuthErrorMessage(error), 'error');
+            showToast(getAuthErrorMessage(error), "error");
             haptic.error();
           } else {
-            showToast('Inicio de sesión exitoso', 'success');
+            showToast("Inicio de sesión exitoso", "success");
             haptic.success();
           }
         } else {
-          showToast('No hay credenciales guardadas', 'warning');
+          showToast("No hay credenciales guardadas", "warning");
         }
       } else {
         haptic.warning();
       }
     } catch (error) {
-      console.error('Error en autenticación biométrica:', error);
-      showToast('Error en autenticación biométrica', 'error');
+      console.error("Error en autenticación biométrica:", error);
+      showToast("Error en autenticación biométrica", "error");
       haptic.error();
     }
   };
@@ -144,30 +145,15 @@ export default function LoginScreen() {
   /* =====================
    REDIRECCIÓN AUTOMÁTICA
 ====================== */
-useEffect(() => {
-  if (user && profile && !authLoading) {
-    console.log('✅ Usuario autenticado, redirigiendo a:', profile.rol);
-    
-    // Esperar 2 segundos para que se vea el toast verde en la pantalla de login
-    setTimeout(() => {
-      setShowRedirecting(true); // Mostrar pantalla "Redirigiendo..."
-      
-      // Luego esperar 1.5 segundos más antes de navegar
-      setTimeout(() => {
-        const routes = {
-          admin: '/admin',
-          padre: '/parent',
-          chofer: '/driver',
-        };
-        
-        const route = routes[profile.rol as keyof typeof routes];
-        if (route) {
-          router.replace(route as any);
-        }
-      }, 800);
-    }, 1300); // 2 segundos para ver el toast verde
-  }
-}, [user, profile, authLoading]);
+  // AuthGuard se encarga del redirect automáticamente
+  // Solo mostramos feedback visual aquí
+  useEffect(() => {
+    if (user && profile && !authLoading) {
+      console.log("✅ Usuario autenticado, AuthGuard redirigirá automáticamente");
+      // AuthGuard manejará el redirect, nosotros solo mostramos el estado
+      setShowRedirecting(true);
+    }
+  }, [user, profile, authLoading]);
 
   const logoStyle = useAnimatedStyle(() => ({
     transform: [{ scale: logoScale.value }],
@@ -184,7 +170,7 @@ useEffect(() => {
   ====================== */
   const showToast = (
     message: string,
-    type: 'success' | 'error' | 'warning'
+    type: "success" | "error" | "warning",
   ) => {
     setToastMessage(message);
     setToastType(type);
@@ -199,24 +185,24 @@ useEffect(() => {
     text: string;
   }[] = [
     {
-      test: msg => msg.includes('invalid login credentials'),
-      text: 'Correo o contraseña incorrectos',
+      test: (msg) => msg.includes("invalid login credentials"),
+      text: "Correo o contraseña incorrectos",
     },
     {
-      test: msg => msg.includes('invalid email'),
-      text: 'El correo no tiene un formato válido',
+      test: (msg) => msg.includes("invalid email"),
+      text: "El correo no tiene un formato válido",
     },
     {
-      test: msg => msg.includes('email not confirmed'),
-      text: 'Debes confirmar tu correo electrónico',
+      test: (msg) => msg.includes("email not confirmed"),
+      text: "Debes confirmar tu correo electrónico",
     },
     {
-      test: msg => msg.includes('too many requests'),
-      text: 'Demasiados intentos. Intenta más tarde',
+      test: (msg) => msg.includes("too many requests"),
+      text: "Demasiados intentos. Intenta más tarde",
     },
     {
-      test: msg => msg.includes('network'),
-      text: 'Error de conexión. Revisa tu internet',
+      test: (msg) => msg.includes("network"),
+      text: "Error de conexión. Revisa tu internet",
     },
   ];
 
@@ -229,7 +215,7 @@ useEffect(() => {
       }
     }
 
-    return 'No se pudo iniciar sesión. Intenta nuevamente';
+    return "No se pudo iniciar sesión. Intenta nuevamente";
   };
 
   /* =====================
@@ -238,63 +224,66 @@ useEffect(() => {
   const handleLogin = async () => {
     // Validaciones básicas
     if (!email.trim()) {
-      showToast('Ingresa tu correo electrónico', 'warning');
+      showToast("Ingresa tu correo electrónico", "warning");
       haptic.warning();
       return;
     }
-  
+
     if (!password) {
-      showToast('Ingresa tu contraseña', 'warning');
+      showToast("Ingresa tu contraseña", "warning");
       haptic.warning();
       return;
     }
-  
+
     // Validación de formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      showToast('Formato de correo inválido', 'warning');
+      showToast("Formato de correo inválido", "warning");
       haptic.warning();
       return;
     }
-  
+
     setIsLoading(true);
-  
+
     try {
       const { error } = await signIn(email, password);
 
       if (error) {
-        console.error('❌ Error de login:', error);
+        console.error("❌ Error de login:", error);
         setIsLoading(false);
-        showToast(`${getAuthErrorMessage(error)}`, 'error');
+        showToast(`${getAuthErrorMessage(error)}`, "error");
         haptic.error();
       } else {
         // Login exitoso
-        console.log('✅ Login exitoso - esperando carga de perfil...');
-        showToast('Inicio de sesión exitoso', 'success');
+        console.log("✅ Login exitoso - esperando carga de perfil...");
+        showToast("Inicio de sesión exitoso", "success");
         haptic.success();
 
         // Guardar credenciales para autenticación biométrica
         if (isBiometricSupported) {
           try {
-            await SecureStore.setItemAsync('userEmail', email.trim().toLowerCase());
-            await SecureStore.setItemAsync('userPassword', password);
+            await SecureStore.setItemAsync(
+              "userEmail",
+              email.trim().toLowerCase(),
+            );
+            await SecureStore.setItemAsync("userPassword", password);
             setHasSavedCredentials(true);
-            console.log('✅ Credenciales guardadas para biometría');
+            console.log("✅ Credenciales guardadas para biometría");
           } catch (error) {
-            console.error('❌ Error guardando credenciales:', error);
+            console.error("❌ Error guardando credenciales:", error);
           }
         }
 
         // Delay de 800ms para que se vea el toast verde
         setTimeout(() => {
           // El useEffect de arriba manejará la redirección cuando profile esté listo
-          console.log('⏳ Verificando perfil del usuario...');
+          console.log("⏳ Verificando perfil del usuario...");
         }, 800);
       }
     } catch (error) {
-      console.error('❌ Error inesperado:', error);
+      console.error("❌ Error inesperado:", error);
       setIsLoading(false);
-      showToast('Error inesperado. Intenta nuevamente', 'error');
+      showToast("Error inesperado. Intenta nuevamente", "error");
       haptic.error();
     }
   };
@@ -305,17 +294,17 @@ useEffect(() => {
   const handleClearSession = async () => {
     try {
       await signOut();
-      await SecureStore.deleteItemAsync('userEmail');
-      await SecureStore.deleteItemAsync('userPassword');
+      await SecureStore.deleteItemAsync("userEmail");
+      await SecureStore.deleteItemAsync("userPassword");
       setHasSavedCredentials(false);
-      setEmail('');
-      setPassword('');
-      showToast('Sesión limpiada completamente', 'success');
+      setEmail("");
+      setPassword("");
+      showToast("Sesión limpiada completamente", "success");
       haptic.success();
-      console.log('🗑️ Sesión y credenciales eliminadas');
+      console.log("🗑️ Sesión y credenciales eliminadas");
     } catch (error) {
-      console.error('Error limpiando sesión:', error);
-      showToast('Error al limpiar sesión', 'error');
+      console.error("Error limpiando sesión:", error);
+      showToast("Error al limpiar sesión", "error");
     }
   };
 
@@ -335,22 +324,21 @@ useEffect(() => {
   /* =====================
    LOADING SCREEN
 ====================== */
-if (showRedirecting) { // ← CAMBIO AQUÍ
-  return (
-    <View className="flex-1 bg-estudiante-600 items-center justify-center">
-      <ActivityIndicator size="large" color="#ffffff" />
-      <Text className="text-white mt-4 text-base">
-        Redirigiendo...
-      </Text>
-    </View>
-  );
-}
+  if (showRedirecting) {
+    // ← CAMBIO AQUÍ
+    return (
+      <View className="flex-1 bg-tecnibus-600 items-center justify-center">
+        <ActivityIndicator size="large" color="#ffffff" />
+        <Text className="text-white mt-4 text-base">Redirigiendo...</Text>
+      </View>
+    );
+  }
 
   /* =====================
      UI
   ====================== */
   return (
-    <ScrollView className="flex-1 bg-estudiante-50">
+    <ScrollView className="flex-1 bg-tecnibus-50">
       <StatusBar barStyle="dark-content" backgroundColor="#eff6ff" />
 
       <Toast
@@ -364,10 +352,10 @@ if (showRedirecting) { // ← CAMBIO AQUÍ
         {/* Header */}
         <Animated.View style={logoStyle} className="items-center mb-12">
           <TouchableOpacity onPress={handleLogoPress} activeOpacity={0.8}>
-            <View className="bg-estudiante-600 rounded-full p-5 mb-4">
+            <View className="bg-tecnibus-500 rounded-full p-5 mb-4">
               <Bus size={48} color="#ffffff" strokeWidth={2.5} />
             </View>
-            <Text className="text-4xl font-bold text-estudiante-800 text-center">
+            <Text className="text-4xl font-bold text-tecnibus-500 text-center">
               TecniBus
             </Text>
             <Text className="text-base text-gray-600 mt-2 text-center">
@@ -423,7 +411,7 @@ if (showRedirecting) { // ← CAMBIO AQUÍ
           {/* Button */}
           <TouchableOpacity
             className={`py-4 rounded-xl ${
-              isLoading ? 'bg-gray-300' : 'bg-estudiante-600'
+              isLoading ? "bg-gray-300" : "bg-tecnibus-500"
             }`}
             onPress={handleLogin}
             disabled={isLoading}
@@ -446,12 +434,12 @@ if (showRedirecting) { // ← CAMBIO AQUÍ
           {/* Botón de Autenticación Biométrica */}
           {isBiometricSupported && hasSavedCredentials && !isLoading && (
             <TouchableOpacity
-              className="py-4 rounded-xl bg-gray-100 border-2 border-estudiante-200 mt-3 flex-row items-center justify-center"
+              className="py-4 rounded-xl bg-gray-100 border-2 border-tecnibus-200 mt-3 flex-row items-center justify-center"
               onPress={handleBiometricAuth}
               activeOpacity={0.8}
             >
-              <Fingerprint size={24} color="#2563eb" strokeWidth={2.5} />
-              <Text className="text-estudiante-600 text-lg font-bold ml-2">
+              <Fingerprint size={24} color="#3DA7D7" strokeWidth={2.5} />
+              <Text className="text-tecnibus-500 text-lg font-bold ml-2">
                 Iniciar con Biometría
               </Text>
             </TouchableOpacity>
@@ -464,8 +452,8 @@ if (showRedirecting) { // ← CAMBIO AQUÍ
             </Text>
 
             <Text className="text-center text-gray-600 text-sm mt-3">
-              ¿No tienes cuenta?{' '}
-              <Text className="text-estudiante-600 font-semibold">
+              ¿No tienes cuenta?{" "}
+              <Text className="text-tecnibus-600 font-semibold">
                 Contacta a tu institución
               </Text>
             </Text>
