@@ -6,3 +6,6 @@ export { default as Toast } from './Toast';
 export { default as AnimatedCard } from './AnimatedCard';
 export { default as AnimatedButton } from './AnimatedButton';
 export { AuthGuard } from './AuthGuard';
+export { default as Avatar } from './Avatar';
+export { default as RouteMap } from './RouteMap';
+export { default as SplashScreen } from './SplashScreen';
