@@ -1,78 +1,79 @@
-import * as ImagePicker from 'expo-image-picker';
 import { supabase } from './supabase';
+import { Alert } from 'react-native';
 
 const BUCKET_NAME = 'avatares';
 
-/**
- * Solicitar permisos de galería
- */
-export async function requestMediaLibraryPermissions(): Promise<boolean> {
-  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (status !== 'granted') {
-    console.error('❌ Permiso de galería denegado');
-    return false;
-  }
-  return true;
+// Importación condicional para evitar error en dev mode sin EAS build
+let ImagePicker: any = null;
+try {
+  ImagePicker = require('react-native-image-crop-picker').default;
+} catch (e) {
+  console.warn('⚠️ react-native-image-crop-picker no disponible. Necesitas un development build para usar esta feature.');
 }
 
 /**
- * Solicitar permisos de cámara
- */
-export async function requestCameraPermissions(): Promise<boolean> {
-  const { status } = await ImagePicker.requestCameraPermissionsAsync();
-  if (status !== 'granted') {
-    console.error('❌ Permiso de cámara denegado');
-    return false;
-  }
-  return true;
-}
-
-/**
- * Seleccionar imagen desde galería
+ * Seleccionar imagen desde galería con crop
  */
 export async function pickImageFromGallery(): Promise<string | null> {
-  const hasPermission = await requestMediaLibraryPermissions();
-  if (!hasPermission) return null;
+  if (!ImagePicker) {
+    Alert.alert(
+      'Feature no disponible',
+      'La selección de fotos requiere un development build. Usa "eas build --profile development" para habilitar esta funcionalidad.'
+    );
+    return null;
+  }
 
   try {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
+    const image = await ImagePicker.openPicker({
+      width: 400,
+      height: 400,
+      cropping: true,
+      cropperCircleOverlay: true,
+      compressImageQuality: 0.8,
+      mediaType: 'photo',
+      includeBase64: false,
     });
 
-    if (result.canceled) {
+    return image.path;
+  } catch (error: any) {
+    if (error.code === 'E_PICKER_CANCELLED') {
+      console.log('🚫 Usuario canceló selección');
       return null;
     }
-
-    return result.assets[0].uri;
-  } catch (error) {
     console.error('❌ Error seleccionando imagen:', error);
     return null;
   }
 }
 
 /**
- * Tomar foto con cámara
+ * Tomar foto con cámara y crop
  */
 export async function takePhotoWithCamera(): Promise<string | null> {
-  const hasPermission = await requestCameraPermissions();
-  if (!hasPermission) return null;
+  if (!ImagePicker) {
+    Alert.alert(
+      'Feature no disponible',
+      'La cámara requiere un development build. Usa "eas build --profile development" para habilitar esta funcionalidad.'
+    );
+    return null;
+  }
 
   try {
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
+    const image = await ImagePicker.openCamera({
+      width: 400,
+      height: 400,
+      cropping: true,
+      cropperCircleOverlay: true,
+      compressImageQuality: 0.8,
+      mediaType: 'photo',
+      includeBase64: false,
     });
 
-    if (result.canceled) {
+    return image.path;
+  } catch (error: any) {
+    if (error.code === 'E_PICKER_CANCELLED') {
+      console.log('🚫 Usuario canceló captura');
       return null;
     }
-
-    return result.assets[0].uri;
-  } catch (error) {
     console.error('❌ Error tomando foto:', error);
     return null;
   }
