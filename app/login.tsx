@@ -1,10 +1,12 @@
 import * as LocalAuthentication from "expo-local-authentication";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { Bus, Fingerprint, Lock, Mail } from "lucide-react-native";
+import { Fingerprint, Lock, Mail } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
+  Linking,
   ScrollView,
   StatusBar,
   Text,
@@ -149,7 +151,9 @@ export default function LoginScreen() {
   // Solo mostramos feedback visual aquí
   useEffect(() => {
     if (user && profile && !authLoading) {
-      console.log("✅ Usuario autenticado, AuthGuard redirigirá automáticamente");
+      console.log(
+        "✅ Usuario autenticado, AuthGuard redirigirá automáticamente",
+      );
       // AuthGuard manejará el redirect, nosotros solo mostramos el estado
       setShowRedirecting(true);
     }
@@ -348,17 +352,25 @@ export default function LoginScreen() {
         onHide={() => setToastVisible(false)}
       />
 
-      <View className="flex-1 px-6 pt-20 pb-8">
+      <View className="flex-1 px-6 pt-40 pb-8">
         {/* Header */}
-        <Animated.View style={logoStyle} className="items-center mb-12">
-          <TouchableOpacity onPress={handleLogoPress} activeOpacity={0.8}>
-            <View className="bg-tecnibus-500 rounded-full p-5 mb-4">
-              <Bus size={48} color="#ffffff" strokeWidth={2.5} />
+        <Animated.View style={logoStyle} className="items-center mb-8">
+          <TouchableOpacity
+            onPress={handleLogoPress}
+            activeOpacity={0.8}
+            className="items-center w-full"
+          >
+            <View className="bg-white-500">
+              <Image
+                source={require("../assets/images/adaptive-icon.png")}
+                className="w-80 h-80 -mb-14 -mt-24"
+                resizeMode="contain"
+              />
             </View>
-            <Text className="text-4xl font-bold text-tecnibus-500 text-center">
+            <Text className="text-4xl font-calsans text-tecnibus-400 text-center">
               TecniBus
             </Text>
-            <Text className="text-base text-gray-600 mt-2 text-center">
+            <Text className="font-calsans text-gray-600 mt-5 text-center">
               Sistema de Gestión de Transporte Escolar
             </Text>
           </TouchableOpacity>
@@ -366,10 +378,10 @@ export default function LoginScreen() {
 
         {/* Form */}
         <Animated.View style={formStyle}>
-          <View className="bg-white rounded-3xl p-6 mb-6" style={shadow}>
+          <View className="bg-white rounded-3xl p-6 mb-7" style={shadow}>
             {/* Email */}
             <View className="mb-4">
-              <Text className="text-sm font-semibold text-gray-700 mb-2">
+              <Text className="text-sm font-calsans text-gray-700 mb-2">
                 Correo electrónico
               </Text>
               <View className="flex-row items-center bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
@@ -389,7 +401,7 @@ export default function LoginScreen() {
 
             {/* Password */}
             <View className="mb-4">
-              <Text className="text-sm font-semibold text-gray-700 mb-2">
+              <Text className="text-sm font-calsans text-gray-700 mb-2">
                 Contraseña
               </Text>
               <View className="flex-row items-center bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
@@ -420,12 +432,12 @@ export default function LoginScreen() {
             {isLoading ? (
               <View className="flex-row items-center justify-center">
                 <ActivityIndicator size="small" color="#ffffff" />
-                <Text className="text-white text-lg font-bold ml-2">
+                <Text className="text-white text-lg font-calsans ml-2">
                   Iniciando sesión...
                 </Text>
               </View>
             ) : (
-              <Text className="text-white text-center text-lg font-bold">
+              <Text className="text-white text-center text-lg font-calsans">
                 Iniciar Sesión
               </Text>
             )}
@@ -439,7 +451,7 @@ export default function LoginScreen() {
               activeOpacity={0.8}
             >
               <Fingerprint size={24} color="#3DA7D7" strokeWidth={2.5} />
-              <Text className="text-tecnibus-500 text-lg font-bold ml-2">
+              <Text className="text-tecnibus-500 text-lg font-calsans ml-2">
                 Iniciar con Biometría
               </Text>
             </TouchableOpacity>
@@ -447,13 +459,12 @@ export default function LoginScreen() {
 
           {/* Mensajes informativos */}
           <View className="mt-6 space-y-2">
-            <Text className="text-center text-gray-500 text-sm">
-              Sistema de autenticación institucional
-            </Text>
-
-            <Text className="text-center text-gray-600 text-sm mt-3">
+            <Text className="text-center text-gray-600 text-sm mt-3 font-calsans">
               ¿No tienes cuenta?{" "}
-              <Text className="text-tecnibus-600 font-semibold">
+              <Text
+                onPress={() => Linking.openURL("https://youtube.com")}
+                className="text-tecnibus-500 underline"
+              >
                 Contacta a tu institución
               </Text>
             </Text>
