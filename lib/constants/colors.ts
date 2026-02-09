@@ -7,6 +7,19 @@
  */
 
 export const Colors = {
+  // Paleta principal de la marca TecniBus
+  tecnibus: {
+    50: '#F4FAFD',  // Fondo principal
+    100: '#E8F5FB', // Tarjetas sobre el fondo
+    200: '#D1EBF7', // Bordes suaves
+    300: '#B9E1F2', // Inputs o campos de texto
+    400: '#8CCCE9', // Color de énfasis suave
+    500: '#5FB8E0', // Versión pastel del logo
+    600: '#3DA7D7', // COLOR DEL LOGO (Para acciones principales)
+    700: '#3592BC', // Texto de títulos
+    800: '#2E7D9F', // Texto de párrafos
+    900: '#1D4D62', // Texto casi oscuro
+  },
   estudiante: {
     50: '#eff6ff',
     100: '#dbeafe',
@@ -64,18 +77,16 @@ export const Colors = {
     600: '#777f7c',
     700: '#4e5452',
   },
-  // Colores grises estándar de Tailwind (para componentes nativos)
   sky: {
     50: '#f0f9ff',
-  100: '#e0f2fe',
-  200: '#bae6fd',
-  300: '#7dd3fc',
-  400: '#38bdf8',
-  500: '#0ea5e9',
-  600: '#0284c7',
-  700: '#0369a1',
-  800: '#075985',
-  900: '#0c4a6e',
+    100: '#e0f2fe',
+    200: '#bae6fd',
+    300: '#7dd3fc',
+    400: '#38bdf8',
+    500: '#0ea5e9',
+    600: '#0284c7',
+    700: '#0369a1',
+    800: '#075985',
+    900: '#0c4a6e',
   },
-
 } as const;
