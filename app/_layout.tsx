@@ -1,12 +1,13 @@
 import SplashScreen from "@/components/SplashScreen";
+import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { useState } from "react";
 import { Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthGuard } from "../components/AuthGuard";
 import { AuthProvider } from "../contexts/AuthContext";
-import { useNotificationNavigation } from "../lib/hooks/useNotificationNavigation";
 import "../global.css";
+import { useNotificationNavigation } from "../lib/hooks/useNotificationNavigation";
 
 /**
  * Componente interno que contiene el Stack y maneja las notificaciones
@@ -86,9 +87,12 @@ function AppContent() {
 export default function RootLayout() {
   // Estado para controlar el splash screen animado
   const [isAppReady, setIsAppReady] = useState(false);
-
+  // Cargar fuentes personalizadas (si las hay)
+  const [fontsLoaded] = useFonts({
+    "Cal-Sans": require("../assets/fonts/CalSans-Regular.ttf"),
+  });
   // Mostrar splash screen PRIMERO
-  if (!isAppReady) {
+  if (!isAppReady || !fontsLoaded) {
     return (
       <SplashScreen
         onFinish={(isCancelled) => !isCancelled && setIsAppReady(true)}
