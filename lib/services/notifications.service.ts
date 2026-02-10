@@ -22,51 +22,53 @@ Notifications.setNotificationHandler({
 export async function registerForPushNotifications(): Promise<string | null> {
   // Solo funciona en dispositivos físicos
   if (!Device.isDevice) {
-    console.log('Las notificaciones push requieren un dispositivo físico');
+    console.log('📱 Push: No es dispositivo físico, saltando registro');
     return null;
   }
 
   try {
     // Verificar permisos existentes
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    console.log('📱 Push: Permisos actuales:', existingStatus);
     let finalStatus = existingStatus;
 
     // Si no hay permisos, solicitarlos
     if (existingStatus !== 'granted') {
+      console.log('📱 Push: Solicitando permisos...');
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
+      console.log('📱 Push: Resultado solicitud permisos:', status);
     }
 
     if (finalStatus !== 'granted') {
-      console.log('Permisos de notificaciones denegados');
+      console.log('📱 Push: Permisos denegados, no se puede registrar');
       return null;
     }
 
     // Obtener el token de Expo Push
     const projectId =
       Constants.expoConfig?.extra?.eas?.projectId ||
-      Constants.expoConfig?.extra?.eas?.projectId ||
-      '4132942f-bfce-4c85-82e2-fb5127ae8fea'; // Hardcoded como fallback
+      '4132942f-bfce-4c85-82e2-fb5127ae8fea';
 
-    console.log('🔑 Project ID para notificaciones:', projectId);
+    console.log('📱 Push: Obteniendo token con projectId:', projectId);
 
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId,
     });
 
     const pushToken = tokenData.data;
-    console.log('✅ Push Token obtenido:', pushToken);
+    console.log('📱 Push: Token obtenido:', pushToken);
 
     // Guardar el token en Supabase
-    const { error } = await supabase.rpc('update_push_token', {
+    console.log('📱 Push: Guardando token en Supabase...');
+    const { data: rpcResult, error } = await supabase.rpc('update_push_token', {
       p_push_token: pushToken,
     });
 
     if (error) {
-      console.error('Error guardando push token:', error);
-      // No retornamos null aquí porque el token sí se obtuvo
+      console.error('📱 Push: Error guardando token en DB:', error.message, error.code);
     } else {
-      console.log('Push token guardado en Supabase');
+      console.log('📱 Push: Token guardado en Supabase, resultado:', rpcResult);
     }
 
     // Configurar canal de notificaciones en Android
@@ -76,7 +78,12 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
     return pushToken;
   } catch (error) {
-    console.error('Error registrando notificaciones push:', error);
+    console.error('📱 Push: ERROR en registro:', error);
+    // Mostrar más detalle del error
+    if (error instanceof Error) {
+      console.error('📱 Push: Mensaje:', error.message);
+      console.error('📱 Push: Stack:', error.stack);
+    }
     return null;
   }
 }

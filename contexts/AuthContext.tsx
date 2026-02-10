@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Re-registrar push token cuando la app vuelve a primer plano
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && profile?.rol === 'padre') {
+      if (state === 'active' && (profile?.rol === 'padre' || profile?.rol === 'chofer')) {
         registerForPushNotifications();
       }
     });
@@ -102,8 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('✅ Perfil cargado correctamente:', data);
         setProfile(data);
 
-        // Registrar push token para padres (reciben notificaciones de la buseta)
-        if (data.rol === 'padre') {
+        // Registrar push token para padres y choferes
+        if (data.rol === 'padre' || data.rol === 'chofer') {
           registerForPushNotifications().catch((err) => {
             console.warn('Error registrando push notifications:', err);
           });
