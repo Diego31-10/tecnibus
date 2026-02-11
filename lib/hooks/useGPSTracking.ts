@@ -6,18 +6,37 @@ type UseGPSTrackingProps = {
   idAsignacion: string | null;
   idChofer: string;
   recorridoActivo: boolean;
-  intervaloSegundos?: number; // Default 10 segundos
+  intervaloSegundos?: number;
+  distanciaMinimaMetros?: number;
 };
+
+/** Distancia en metros entre dos coordenadas (fórmula Haversine simplificada) */
+function distanciaMetros(
+  lat1: number, lon1: number,
+  lat2: number, lon2: number,
+): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 export function useGPSTracking({
   idAsignacion,
   idChofer,
   recorridoActivo,
-  intervaloSegundos = 10,
+  intervaloSegundos = 15,
+  distanciaMinimaMetros = 10,
 }: UseGPSTrackingProps) {
   const [permisoConcedido, setPermisoConcedido] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const ultimaUbicacionRef = useRef<{ lat: number; lng: number } | null>(null);
 
   // Solicitar permisos al montar
   useEffect(() => {
@@ -49,25 +68,36 @@ export function useGPSTracking({
     }
 
     console.log('▶️ GPS tracking iniciado');
+    // Reset última ubicación al iniciar recorrido
+    ultimaUbicacionRef.current = null;
 
     const enviarUbicacion = async () => {
       try {
         const ubicacion = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
+          accuracy: Location.Accuracy.Balanced,
         });
 
         const { latitude, longitude, speed, accuracy } = ubicacion.coords;
+
+        // Filtro de distancia: no enviar si el bus no se movió lo suficiente
+        const ultima = ultimaUbicacionRef.current;
+        if (ultima) {
+          const dist = distanciaMetros(ultima.lat, ultima.lng, latitude, longitude);
+          if (dist < distanciaMinimaMetros) {
+            return; // Bus detenido o movimiento mínimo, no gastar datos
+          }
+        }
 
         await guardarUbicacion(
           idAsignacion,
           idChofer,
           latitude,
           longitude,
-          speed ? speed * 3.6 : undefined, // Convertir m/s a km/h
+          speed ? speed * 3.6 : undefined,
           accuracy || undefined
         );
 
-        console.log(`✅ Ubicación guardada: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+        ultimaUbicacionRef.current = { lat: latitude, lng: longitude };
       } catch (err) {
         console.error('❌ Error obteniendo ubicación GPS:', err);
       }
@@ -86,7 +116,7 @@ export function useGPSTracking({
         intervalRef.current = null;
       }
     };
-  }, [permisoConcedido, recorridoActivo, idAsignacion, idChofer, intervaloSegundos]);
+  }, [permisoConcedido, recorridoActivo, idAsignacion, idChofer, intervaloSegundos, distanciaMinimaMetros]);
 
   return { permisoConcedido, error, tracking: recorridoActivo && permisoConcedido };
 }
