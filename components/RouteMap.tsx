@@ -104,18 +104,12 @@ export default function RouteMap({ paradas, ubicacionBus, recorridoActivo }: Rou
           <Text style={styles.loadingText}>Cargando mapa...</Text>
         </View>
       )}
-
-      {!recorridoActivo && (
-        <View style={styles.inactiveOverlay}>
-          <Text style={styles.inactiveText}>Recorrido no iniciado</Text>
-        </View>
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { height: 400, borderRadius: 12, overflow: 'hidden' },
+  container: { flex: 1, overflow: 'hidden' },
   map: { flex: 1 },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -124,16 +118,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: { marginTop: 8, color: '#6b7280', fontSize: 14 },
-  inactiveOverlay: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    right: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 12,
-    borderRadius: 8,
-  },
-  inactiveText: { color: '#ffffff', fontSize: 14, fontWeight: '600', textAlign: 'center' },
   busMarker: {
     backgroundColor: '#ca8a04',
     borderRadius: 20,
