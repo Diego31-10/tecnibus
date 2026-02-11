@@ -1,15 +1,17 @@
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
-import { useRouter } from 'expo-router';
+import { Colors } from "@/lib/constants/colors";
+import { changeAvatar } from "@/lib/services/storage.service";
+import { haptic } from "@/lib/utils/haptics";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import {
   ArrowLeft,
   Camera,
   Mail,
   Phone,
   Save,
-  UserCircle
-} from 'lucide-react-native';
-import { useState } from 'react';
+  User,
+} from "lucide-react-native";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -20,32 +22,34 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AnimatedCard, Avatar, Toast } from '../../components';
-import { useAuth } from '../../contexts/AuthContext';
-import { updateProfile } from '../../lib/services/profile.service';
-import { changeAvatar } from '@/lib/services/storage.service';
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AnimatedCard, Avatar, Toast } from "../../components";
+import { useAuth } from "../../contexts/AuthContext";
+import { updateProfile } from "../../lib/services/profile.service";
 
 export default function DriverProfileScreen() {
   const router = useRouter();
   const { profile, refreshProfile } = useAuth();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow('lg');
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as 'success' | 'error' });
+  const [toast, setToast] = useState({
+    visible: false,
+    message: "",
+    type: "success" as "success" | "error",
+  });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const [formData, setFormData] = useState({
-    nombre: profile?.nombre || '',
-    apellido: profile?.apellido || '',
-    telefono: profile?.telefono || '',
+    nombre: profile?.nombre || "",
+    apellido: profile?.apellido || "",
+    telefono: profile?.telefono || "",
   });
 
-  const showToast = (message: string, type: 'success' | 'error') => {
+  const showToast = (message: string, type: "success" | "error") => {
     setToast({ visible: true, message, type });
   };
 
@@ -59,12 +63,12 @@ export default function DriverProfileScreen() {
 
     if (result.success) {
       haptic.success();
-      showToast('Perfil actualizado correctamente', 'success');
+      showToast("Perfil actualizado correctamente", "success");
       await refreshProfile();
       setIsEditing(false);
     } else {
       haptic.error();
-      showToast(result.error || 'Error al actualizar', 'error');
+      showToast(result.error || "Error al actualizar", "error");
     }
 
     setIsSaving(false);
@@ -73,9 +77,9 @@ export default function DriverProfileScreen() {
   const handleCancel = () => {
     haptic.light();
     setFormData({
-      nombre: profile?.nombre || '',
-      apellido: profile?.apellido || '',
-      telefono: profile?.telefono || '',
+      nombre: profile?.nombre || "",
+      apellido: profile?.apellido || "",
+      telefono: profile?.telefono || "",
     });
     setIsEditing(false);
   };
@@ -84,27 +88,27 @@ export default function DriverProfileScreen() {
     if (!profile?.id) return;
 
     Alert.alert(
-      'Cambiar foto de perfil',
-      'Selecciona una opción',
+      "Cambiar foto de perfil",
+      "Selecciona una opción",
       [
         {
-          text: 'Tomar foto',
-          onPress: () => uploadAvatarFromSource('camera'),
+          text: "Tomar foto",
+          onPress: () => uploadAvatarFromSource("camera"),
         },
         {
-          text: 'Elegir de galería',
-          onPress: () => uploadAvatarFromSource('gallery'),
+          text: "Elegir de galería",
+          onPress: () => uploadAvatarFromSource("gallery"),
         },
         {
-          text: 'Cancelar',
-          style: 'cancel',
+          text: "Cancelar",
+          style: "cancel",
         },
       ],
-      { cancelable: true }
+      { cancelable: true },
     );
   };
 
-  const uploadAvatarFromSource = async (source: 'gallery' | 'camera') => {
+  const uploadAvatarFromSource = async (source: "gallery" | "camera") => {
     if (!profile?.id) return;
 
     setUploadingAvatar(true);
@@ -114,11 +118,11 @@ export default function DriverProfileScreen() {
 
     if (result.success) {
       haptic.success();
-      showToast('Foto actualizada correctamente', 'success');
+      showToast("Foto actualizada correctamente", "success");
       await refreshProfile();
     } else {
       haptic.error();
-      showToast(result.error || 'Error al subir foto', 'error');
+      showToast(result.error || "Error al subir foto", "error");
     }
 
     setUploadingAvatar(false);
@@ -126,17 +130,30 @@ export default function DriverProfileScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-chofer-50"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1"
+      style={{ backgroundColor: "#F8FAFB" }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <StatusBar barStyle="light-content" backgroundColor="#854d0e" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.tecnibus[600]} />
 
-      {/* Header */}
-      <View className="bg-chofer-600 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      {/* Header con LinearGradient */}
+      <LinearGradient
+        colors={[Colors.tecnibus[600], Colors.tecnibus[500], Colors.tecnibus[400]]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.7, y: 1 }}
+        style={{
+          paddingTop,
+          paddingBottom: 24,
+          paddingHorizontal: 24,
+          borderBottomLeftRadius: 24,
+          borderBottomRightRadius: 24,
+        }}
+      >
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="bg-chofer-700 p-2 rounded-xl"
+            style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+            className="p-2 rounded-xl"
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
@@ -144,7 +161,8 @@ export default function DriverProfileScreen() {
           {!isEditing ? (
             <TouchableOpacity
               onPress={() => setIsEditing(true)}
-              className="bg-chofer-700 px-4 py-2 rounded-xl"
+              style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+              className="px-4 py-2 rounded-xl"
             >
               <Text className="text-white font-bold">Editar</Text>
             </TouchableOpacity>
@@ -158,7 +176,7 @@ export default function DriverProfileScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSave}
-                className={`bg-green-600 px-4 py-2 rounded-xl flex-row items-center ${isSaving && 'opacity-60'}`}
+                className={`bg-green-600 px-4 py-2 rounded-xl flex-row items-center ${isSaving && "opacity-60"}`}
                 disabled={isSaving}
               >
                 {isSaving ? (
@@ -167,7 +185,7 @@ export default function DriverProfileScreen() {
                   <Save size={16} color="#ffffff" strokeWidth={2.5} />
                 )}
                 <Text className="text-white font-bold ml-2">
-                  {isSaving ? 'Guardando...' : 'Guardar'}
+                  {isSaving ? "Guardando..." : "Guardar"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -180,11 +198,14 @@ export default function DriverProfileScreen() {
               avatarUrl={profile?.avatar_url}
               size={72}
               onPress={isEditing ? handleChangeAvatar : undefined}
-              backgroundColor="#854d0e"
+              backgroundColor={Colors.tecnibus[700]}
               iconColor="#ffffff"
             />
             {isEditing && (
-              <View className="absolute bottom-0 right-0 bg-chofer-700 p-1.5 rounded-full border-2 border-white">
+              <View
+                className="absolute bottom-0 right-0 p-1.5 rounded-full border-2 border-white"
+                style={{ backgroundColor: Colors.tecnibus[600] }}
+              >
                 {uploadingAvatar ? (
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
@@ -194,17 +215,18 @@ export default function DriverProfileScreen() {
             )}
           </View>
           <View className="flex-1">
-            <Text className="text-white text-2xl font-bold">
-              Mi Perfil
-            </Text>
-            <Text className="text-chofer-200 text-sm mt-1">
+            <Text className="text-white text-2xl font-bold">Mi Perfil</Text>
+            <Text style={{ color: "rgba(255,255,255,0.7)" }} className="text-sm mt-1">
               Chofer
             </Text>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
-      <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1 px-6 pt-6"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Información Personal */}
         <AnimatedCard delay={0} className="mb-4">
           <Text className="text-lg font-bold text-gray-800 mb-4">
@@ -214,17 +236,17 @@ export default function DriverProfileScreen() {
           {/* Nombre */}
           <View className="mb-4">
             <View className="flex-row items-center mb-2">
-              <UserCircle size={16} color="#ca8a04" strokeWidth={2.5} />
-              <Text className="text-gray-700 font-semibold ml-2">
-                Nombre
-              </Text>
+              <User size={16} color={Colors.tecnibus[600]} strokeWidth={2.5} />
+              <Text className="text-gray-700 font-semibold ml-2">Nombre</Text>
             </View>
             <TextInput
               className={`bg-gray-50 rounded-xl p-4 text-gray-800 ${
-                !isEditing && 'opacity-60'
+                !isEditing && "opacity-60"
               }`}
               value={formData.nombre}
-              onChangeText={(text) => setFormData({ ...formData, nombre: text })}
+              onChangeText={(text) =>
+                setFormData({ ...formData, nombre: text })
+              }
               editable={isEditing}
               placeholder="Ingresa tu nombre"
             />
@@ -233,17 +255,17 @@ export default function DriverProfileScreen() {
           {/* Apellido */}
           <View className="mb-4">
             <View className="flex-row items-center mb-2">
-              <UserCircle size={16} color="#ca8a04" strokeWidth={2.5} />
-              <Text className="text-gray-700 font-semibold ml-2">
-                Apellido
-              </Text>
+              <User size={16} color={Colors.tecnibus[600]} strokeWidth={2.5} />
+              <Text className="text-gray-700 font-semibold ml-2">Apellido</Text>
             </View>
             <TextInput
               className={`bg-gray-50 rounded-xl p-4 text-gray-800 ${
-                !isEditing && 'opacity-60'
+                !isEditing && "opacity-60"
               }`}
               value={formData.apellido}
-              onChangeText={(text) => setFormData({ ...formData, apellido: text })}
+              onChangeText={(text) =>
+                setFormData({ ...formData, apellido: text })
+              }
               editable={isEditing}
               placeholder="Ingresa tu apellido"
             />
@@ -252,17 +274,17 @@ export default function DriverProfileScreen() {
           {/* Teléfono */}
           <View className="mb-4">
             <View className="flex-row items-center mb-2">
-              <Phone size={16} color="#ca8a04" strokeWidth={2.5} />
-              <Text className="text-gray-700 font-semibold ml-2">
-                Teléfono
-              </Text>
+              <Phone size={16} color={Colors.tecnibus[600]} strokeWidth={2.5} />
+              <Text className="text-gray-700 font-semibold ml-2">Teléfono</Text>
             </View>
             <TextInput
               className={`bg-gray-50 rounded-xl p-4 text-gray-800 ${
-                !isEditing && 'opacity-60'
+                !isEditing && "opacity-60"
               }`}
               value={formData.telefono}
-              onChangeText={(text) => setFormData({ ...formData, telefono: text })}
+              onChangeText={(text) =>
+                setFormData({ ...formData, telefono: text })
+              }
               editable={isEditing}
               placeholder="Ingresa tu teléfono"
               keyboardType="phone-pad"
@@ -286,7 +308,7 @@ export default function DriverProfileScreen() {
             </View>
             <View className="bg-gray-100 rounded-xl p-4 border-2 border-gray-200">
               <Text className="text-gray-600">
-                {profile?.correo || 'No disponible'}
+                {profile?.correo || "No disponible"}
               </Text>
             </View>
             <Text className="text-gray-500 text-xs mt-2">
@@ -297,13 +319,17 @@ export default function DriverProfileScreen() {
           {/* Rol (no editable) */}
           <View className="mb-4">
             <View className="flex-row items-center mb-2">
-              <UserCircle size={16} color="#6b7280" strokeWidth={2.5} />
-              <Text className="text-gray-700 font-semibold ml-2">
-                Rol
-              </Text>
+              <User size={16} color="#6b7280" strokeWidth={2.5} />
+              <Text className="text-gray-700 font-semibold ml-2">Rol</Text>
             </View>
-            <View className="bg-chofer-100 rounded-xl p-4 border-2 border-chofer-200">
-              <Text className="text-chofer-800 font-bold">
+            <View
+              className="rounded-xl p-4 border-2"
+              style={{
+                backgroundColor: Colors.tecnibus[100],
+                borderColor: Colors.tecnibus[200],
+              }}
+            >
+              <Text style={{ color: Colors.tecnibus[800] }} className="font-bold">
                 Chofer
               </Text>
             </View>
@@ -314,7 +340,7 @@ export default function DriverProfileScreen() {
         {isEditing && (
           <View className="bg-yellow-100 rounded-xl p-4 mb-6 border-2 border-yellow-200">
             <Text className="text-yellow-800 text-sm text-center font-semibold">
-              💡 Presiona "Guardar" para aplicar los cambios
+              Presiona "Guardar" para aplicar los cambios
             </Text>
           </View>
         )}

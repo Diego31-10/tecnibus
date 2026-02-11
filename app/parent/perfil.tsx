@@ -1,28 +1,28 @@
 import { Colors } from "@/lib/constants/colors";
 import { changeAvatar } from "@/lib/services/storage.service";
 import { haptic } from "@/lib/utils/haptics";
-import { createShadow } from "@/lib/utils/shadows";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
-    ArrowLeft,
-    Camera,
-    Mail,
-    Phone,
-    Save,
-    User
+  ArrowLeft,
+  Camera,
+  Mail,
+  Phone,
+  Save,
+  User,
 } from "lucide-react-native";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AnimatedCard, Avatar, Toast } from "../../components";
@@ -34,7 +34,6 @@ export default function ParentProfileScreen() {
   const { profile, refreshProfile } = useAuth();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow("lg");
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState({
@@ -131,20 +130,30 @@ export default function ParentProfileScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-padre-50"
+      className="flex-1"
+      style={{ backgroundColor: "#F8FAFB" }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <StatusBar barStyle="light-content" backgroundColor="#1e40af" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.tecnibus[600]} />
 
-      {/* Header */}
-      <View
-        className="bg-padre-700 pb-6 px-6 rounded-b-3xl"
-        style={[{ paddingTop }, shadow]}
+      {/* Header con LinearGradient */}
+      <LinearGradient
+        colors={[Colors.tecnibus[600], Colors.tecnibus[500], Colors.tecnibus[400]]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.7, y: 1 }}
+        style={{
+          paddingTop,
+          paddingBottom: 24,
+          paddingHorizontal: 24,
+          borderBottomLeftRadius: 24,
+          borderBottomRightRadius: 24,
+        }}
       >
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="bg-padre-600 p-2 rounded-xl"
+            style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+            className="p-2 rounded-xl"
           >
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
@@ -152,7 +161,8 @@ export default function ParentProfileScreen() {
           {!isEditing ? (
             <TouchableOpacity
               onPress={() => setIsEditing(true)}
-              className="bg-padre-600 px-4 py-2 rounded-xl"
+              style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+              className="px-4 py-2 rounded-xl"
             >
               <Text className="text-white font-bold">Editar</Text>
             </TouchableOpacity>
@@ -188,11 +198,14 @@ export default function ParentProfileScreen() {
               avatarUrl={profile?.avatar_url}
               size={72}
               onPress={isEditing ? handleChangeAvatar : undefined}
-              backgroundColor={Colors.tecnibus[600]}
-              iconColor={Colors.tecnibus[50]}
+              backgroundColor={Colors.tecnibus[700]}
+              iconColor="#ffffff"
             />
             {isEditing && (
-              <View className="absolute bottom-0 right-0 bg-padre-600 p-1.5 rounded-full border-2 border-white">
+              <View
+                className="absolute bottom-0 right-0 p-1.5 rounded-full border-2 border-white"
+                style={{ backgroundColor: Colors.tecnibus[600] }}
+              >
                 {uploadingAvatar ? (
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
@@ -203,12 +216,12 @@ export default function ParentProfileScreen() {
           </View>
           <View className="flex-1">
             <Text className="text-white text-2xl font-bold">Mi Perfil</Text>
-            <Text className="text-padre-200 text-sm mt-1">
+            <Text style={{ color: "rgba(255,255,255,0.7)" }} className="text-sm mt-1">
               Padre de Familia
             </Text>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         className="flex-1 px-6 pt-6"
@@ -309,8 +322,16 @@ export default function ParentProfileScreen() {
               <User size={16} color="#6b7280" strokeWidth={2.5} />
               <Text className="text-gray-700 font-semibold ml-2">Rol</Text>
             </View>
-            <View className="bg-padre-100 rounded-xl p-4 border-2 border-padre-200">
-              <Text className="text-padre-800 font-bold">Padre de Familia</Text>
+            <View
+              className="rounded-xl p-4 border-2"
+              style={{
+                backgroundColor: Colors.tecnibus[100],
+                borderColor: Colors.tecnibus[200],
+              }}
+            >
+              <Text style={{ color: Colors.tecnibus[800] }} className="font-bold">
+                Padre de Familia
+              </Text>
             </View>
           </View>
         </AnimatedCard>
@@ -319,7 +340,7 @@ export default function ParentProfileScreen() {
         {isEditing && (
           <View className="bg-yellow-100 rounded-xl p-4 mb-6 border-2 border-yellow-200">
             <Text className="text-yellow-800 text-sm text-center font-semibold">
-              💡 Presiona "Guardar" para aplicar los cambios
+              Presiona "Guardar" para aplicar los cambios
             </Text>
           </View>
         )}
