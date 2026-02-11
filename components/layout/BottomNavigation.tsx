@@ -10,9 +10,9 @@ interface BottomNavigationProps {
   onHomePress: () => void;
   onTrackingPress: () => void;
   onSettingsPress: () => void;
+  activeColor?: string;
 }
 
-const ACTIVE_COLOR = Colors.tecnibus[600];
 const INACTIVE_COLOR = "#9CA3AF";
 
 export function BottomNavigation({
@@ -20,6 +20,7 @@ export function BottomNavigation({
   onHomePress,
   onTrackingPress,
   onSettingsPress,
+  activeColor = Colors.tecnibus[600],
 }: BottomNavigationProps) {
   const insets = useSafeAreaInsets();
   const paddingBottom = Math.max(insets.bottom, 8);
@@ -83,6 +84,7 @@ export function BottomNavigation({
               icon={<Home size={21} color={activeTab === "home" ? "#ffffff" : INACTIVE_COLOR} strokeWidth={2} />}
               active={activeTab === "home"}
               onPress={onHomePress}
+              activeColor={activeColor}
             />
 
             <TabItem
@@ -90,6 +92,7 @@ export function BottomNavigation({
               icon={<MapPin size={21} color={activeTab === "tracking" ? "#ffffff" : INACTIVE_COLOR} strokeWidth={2} />}
               active={activeTab === "tracking"}
               onPress={onTrackingPress}
+              activeColor={activeColor}
             />
 
             <TabItem
@@ -97,6 +100,7 @@ export function BottomNavigation({
               icon={<Settings size={21} color={activeTab === "settings" ? "#ffffff" : INACTIVE_COLOR} strokeWidth={2} />}
               active={activeTab === "settings"}
               onPress={onSettingsPress}
+              activeColor={activeColor}
             />
           </View>
         </LinearGradient>
@@ -110,11 +114,13 @@ function TabItem({
   icon,
   active,
   onPress,
+  activeColor,
 }: {
   label: string;
   icon: ReactNode;
   active: boolean;
   onPress: () => void;
+  activeColor: string;
 }) {
   return (
     <TouchableOpacity
@@ -128,8 +134,8 @@ function TabItem({
           width: 44,
           height: 44,
           borderRadius: 22,
-          backgroundColor: active ? ACTIVE_COLOR : "transparent",
-          shadowColor: active ? ACTIVE_COLOR : "transparent",
+          backgroundColor: active ? activeColor : "transparent",
+          shadowColor: active ? activeColor : "transparent",
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: active ? 0.35 : 0,
           shadowRadius: 6,
@@ -143,7 +149,7 @@ function TabItem({
         style={{
           fontSize: 10,
           marginTop: 2,
-          color: active ? ACTIVE_COLOR : INACTIVE_COLOR,
+          color: active ? activeColor : INACTIVE_COLOR,
         }}
       >
         {label}
