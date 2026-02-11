@@ -137,7 +137,7 @@ export default function AdminProfileScreen() {
     >
       <StatusBar
         barStyle="light-content"
-        backgroundColor={Colors.admin[700]}
+        backgroundColor={Colors.tecnibus[700]}
         translucent={false}
       />
 
@@ -193,7 +193,7 @@ export default function AdminProfileScreen() {
               avatarUrl={profile?.avatar_url}
               size={72}
               onPress={isEditing ? handleChangeAvatar : undefined}
-              backgroundColor={Colors.admin[600]}
+              backgroundColor={Colors.tecnibus[600]}
               iconColor="#ffffff"
             />
             {isEditing && (

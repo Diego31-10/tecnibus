@@ -1,42 +1,41 @@
-import { Colors } from '@/lib/constants/colors';
+import { Colors } from "@/lib/constants/colors";
 import {
-  createAsignacion,
-  deleteAsignacion,
-  getAsignacionesChofer,
-  type AsignacionRuta,
-  type CreateAsignacionDto
-} from '@/lib/services/asignaciones.service';
-import { supabase } from '@/lib/services/supabase';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
-import { useRouter } from 'expo-router';
+    createAsignacion,
+    deleteAsignacion,
+    getAsignacionesChofer,
+    type AsignacionRuta,
+    type CreateAsignacionDto,
+} from "@/lib/services/asignaciones.service";
+import { supabase } from "@/lib/services/supabase";
+import { haptic } from "@/lib/utils/haptics";
+import { createShadow } from "@/lib/utils/shadows";
+import { useRouter } from "expo-router";
 import {
-  ArrowLeft,
-  Bus,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  Navigation,
-  Plus,
-  RefreshCw,
-  Trash2,
-  UserCircle,
-  XCircle
-} from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+    ArrowLeft,
+    Bus,
+    Calendar,
+    CheckCircle2,
+    Clock,
+    Plus,
+    RefreshCw,
+    Trash2,
+    UserCircle,
+    XCircle
+} from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AnimatedCard } from '../../components';
+    ActivityIndicator,
+    Alert,
+    Modal,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AnimatedCard } from "../../components";
 
 type Chofer = {
   id: string;
@@ -59,32 +58,42 @@ type Buseta = {
   chofer_nombre?: string;
 };
 
-const DIAS_SEMANA = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+const DIAS_SEMANA = [
+  "lunes",
+  "martes",
+  "miércoles",
+  "jueves",
+  "viernes",
+  "sábado",
+  "domingo",
+];
 
 export default function AsignacionesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow('lg');
+  const shadow = createShadow("lg");
 
   const [loading, setLoading] = useState(true);
   const [choferes, setChoferes] = useState<Chofer[]>([]);
   const [rutas, setRutas] = useState<Ruta[]>([]);
   const [busetas, setBusetas] = useState<Buseta[]>([]);
   const [asignaciones, setAsignaciones] = useState<AsignacionRuta[]>([]);
-  const [choferSeleccionado, setChoferSeleccionado] = useState<Chofer | null>(null);
-  const [busetaFilter, setBusetaFilter] = useState('');
+  const [choferSeleccionado, setChoferSeleccionado] = useState<Chofer | null>(
+    null,
+  );
+  const [busetaFilter, setBusetaFilter] = useState("");
 
   // Modal crear asignación
   const [modalVisible, setModalVisible] = useState(false);
   const [modalBusetaVisible, setModalBusetaVisible] = useState(false);
   const [formData, setFormData] = useState<CreateAsignacionDto>({
-    id_chofer: '',
-    id_ruta: '',
-    hora_inicio: '06:00:00',
-    hora_fin: '07:00:00',
-    descripcion: '',
-    dias_semana: ['lunes', 'martes', 'miércoles', 'jueves', 'viernes'],
+    id_chofer: "",
+    id_ruta: "",
+    hora_inicio: "06:00:00",
+    hora_fin: "07:00:00",
+    descripcion: "",
+    dias_semana: ["lunes", "martes", "miércoles", "jueves", "viernes"],
   });
 
   useEffect(() => {
@@ -96,9 +105,9 @@ export default function AsignacionesScreen() {
       setLoading(true);
 
       // Cargar choferes con busetas
-      const { data: choferesData, error: errorChoferes } = await supabase
-        .from('choferes')
-        .select(`
+      const { data: choferesData, error: errorChoferes } = await supabase.from(
+        "choferes",
+      ).select(`
           id,
           id_buseta,
           profiles!inner(
@@ -112,37 +121,41 @@ export default function AsignacionesScreen() {
 
       if (errorChoferes) throw errorChoferes;
 
-      const choferesFormateados: Chofer[] = (choferesData || []).map((c: any) => ({
-        id: c.id,
-        nombre: c.profiles.nombre,
-        apellido: c.profiles.apellido,
-        id_buseta: c.id_buseta,
-        buseta_placa: c.busetas?.placa || null,
-      }));
+      const choferesFormateados: Chofer[] = (choferesData || []).map(
+        (c: any) => ({
+          id: c.id,
+          nombre: c.profiles.nombre,
+          apellido: c.profiles.apellido,
+          id_buseta: c.id_buseta,
+          buseta_placa: c.busetas?.placa || null,
+        }),
+      );
 
       setChoferes(choferesFormateados);
 
       // Cargar rutas
       const { data: rutasData, error: errorRutas } = await supabase
-        .from('rutas')
-        .select('id, nombre, estado')
-        .eq('estado', 'activa')
-        .order('nombre');
+        .from("rutas")
+        .select("id, nombre, estado")
+        .eq("estado", "activa")
+        .order("nombre");
 
       if (errorRutas) throw errorRutas;
       setRutas(rutasData || []);
 
       // Cargar busetas con info de ocupación
       const { data: busetasData, error: errorBusetas } = await supabase
-        .from('busetas')
-        .select('id, placa')
-        .order('placa');
+        .from("busetas")
+        .select("id, placa")
+        .order("placa");
 
       if (errorBusetas) throw errorBusetas;
 
       // Marcar busetas ocupadas
       const busetasConEstado: Buseta[] = (busetasData || []).map((buseta) => {
-        const choferConBuseta = choferesFormateados.find(c => c.id_buseta === buseta.id);
+        const choferConBuseta = choferesFormateados.find(
+          (c) => c.id_buseta === buseta.id,
+        );
         return {
           id: buseta.id,
           placa: buseta.placa,
@@ -155,8 +168,8 @@ export default function AsignacionesScreen() {
 
       setBusetas(busetasConEstado);
     } catch (error) {
-      console.error('Error cargando datos:', error);
-      Alert.alert('Error', 'No se pudieron cargar los datos');
+      console.error("Error cargando datos:", error);
+      Alert.alert("Error", "No se pudieron cargar los datos");
     } finally {
       setLoading(false);
     }
@@ -167,7 +180,7 @@ export default function AsignacionesScreen() {
       const data = await getAsignacionesChofer(idChofer);
       setAsignaciones(data);
     } catch (error) {
-      console.error('Error cargando asignaciones:', error);
+      console.error("Error cargando asignaciones:", error);
     }
   };
 
@@ -179,15 +192,15 @@ export default function AsignacionesScreen() {
 
   const handleAbrirModalAsignacion = () => {
     if (!choferSeleccionado) {
-      Alert.alert('Atención', 'Selecciona un chofer primero');
+      Alert.alert("Atención", "Selecciona un chofer primero");
       return;
     }
     setFormData({
       id_chofer: choferSeleccionado.id,
-      id_ruta: rutas[0]?.id || '',
-      hora_inicio: '06:00:00',
-      hora_fin: '07:00:00',
-      descripcion: '',
+      id_ruta: rutas[0]?.id || "",
+      hora_inicio: "06:00:00",
+      hora_fin: "07:00:00",
+      descripcion: "",
       dias_semana: undefined, // NULL = todos los días
     });
     setModalVisible(true);
@@ -196,7 +209,7 @@ export default function AsignacionesScreen() {
   const handleCrearAsignacion = async () => {
     try {
       if (!formData.id_ruta) {
-        Alert.alert('Error', 'Selecciona una ruta');
+        Alert.alert("Error", "Selecciona una ruta");
         return;
       }
 
@@ -205,31 +218,31 @@ export default function AsignacionesScreen() {
 
       if (result) {
         haptic.success();
-        Alert.alert('Éxito', 'Recorrido asignado correctamente');
+        Alert.alert("Éxito", "Recorrido asignado correctamente");
         setModalVisible(false);
         if (choferSeleccionado) {
           cargarAsignacionesChofer(choferSeleccionado.id);
         }
       } else {
         haptic.error();
-        Alert.alert('Error', 'No se pudo crear la asignación');
+        Alert.alert("Error", "No se pudo crear la asignación");
       }
     } catch (error) {
-      console.error('Error creando asignación:', error);
+      console.error("Error creando asignación:", error);
       haptic.error();
-      Alert.alert('Error', 'Ocurrió un error al crear la asignación');
+      Alert.alert("Error", "Ocurrió un error al crear la asignación");
     }
   };
 
   const handleEliminarAsignacion = (id: string) => {
     Alert.alert(
-      'Confirmar eliminación',
-      '¿Estás seguro de eliminar este recorrido?',
+      "Confirmar eliminación",
+      "¿Estás seguro de eliminar este recorrido?",
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: "Cancelar", style: "cancel" },
         {
-          text: 'Eliminar',
-          style: 'destructive',
+          text: "Eliminar",
+          style: "destructive",
           onPress: async () => {
             haptic.medium();
             const success = await deleteAsignacion(id);
@@ -240,11 +253,11 @@ export default function AsignacionesScreen() {
               }
             } else {
               haptic.error();
-              Alert.alert('Error', 'No se pudo eliminar el recorrido');
+              Alert.alert("Error", "No se pudo eliminar el recorrido");
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -252,20 +265,20 @@ export default function AsignacionesScreen() {
     try {
       haptic.medium();
       const { error } = await supabase
-        .from('choferes')
+        .from("choferes")
         .update({ id_buseta: idBuseta })
-        .eq('id', idChofer);
+        .eq("id", idChofer);
 
       if (error) throw error;
 
       haptic.success();
-      Alert.alert('Éxito', 'Buseta asignada correctamente');
+      Alert.alert("Éxito", "Buseta asignada correctamente");
       setModalBusetaVisible(false);
       cargarDatos();
     } catch (error) {
-      console.error('Error asignando buseta:', error);
+      console.error("Error asignando buseta:", error);
       haptic.error();
-      Alert.alert('Error', 'No se pudo asignar la buseta');
+      Alert.alert("Error", "No se pudo asignar la buseta");
     }
   };
 
@@ -300,10 +313,16 @@ export default function AsignacionesScreen() {
 
   return (
     <View className="flex-1 bg-asign-50">
-      <StatusBar barStyle="light-content" backgroundColor={Colors.asign[700]} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={Colors.tecnibus[700]}
+      />
 
       {/* Header */}
-      <View className="bg-asign-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View
+        className="bg-asign-700 pb-6 px-6 rounded-b-3xl"
+        style={[{ paddingTop }, shadow]}
+      >
         <View className="flex-row items-center">
           <TouchableOpacity
             className="bg-asign-600 p-2 rounded-xl"
@@ -312,7 +331,9 @@ export default function AsignacionesScreen() {
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
           <View className="flex-1">
-            <Text className="text-white text-2xl font-bold text-center">Asignaciones</Text>
+            <Text className="text-white text-2xl font-bold text-center">
+              Asignaciones
+            </Text>
             <Text className="text-white text-xl mt-1 text-center">
               Busetas y recorridos
             </Text>
@@ -326,7 +347,10 @@ export default function AsignacionesScreen() {
         </View>
       </View>
 
-      <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1 px-6 pt-6"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Lista de Choferes */}
         <AnimatedCard delay={0} className="mb-4">
           <View className="flex-row items-center justify-between mb-4">
@@ -346,7 +370,9 @@ export default function AsignacionesScreen() {
           ) : choferes.length === 0 ? (
             <View className="py-8 items-center">
               <UserCircle size={48} color="#9ca3af" strokeWidth={1.5} />
-              <Text className="text-gray-500 mt-3 font-semibold">No hay choferes</Text>
+              <Text className="text-gray-500 mt-3 font-semibold">
+                No hay choferes
+              </Text>
             </View>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -357,27 +383,30 @@ export default function AsignacionesScreen() {
                     onPress={() => handleSeleccionarChofer(chofer)}
                     className={`px-4 py-3 rounded-xl border-2 min-w-[160px] ${
                       choferSeleccionado?.id === chofer.id
-                        ? 'bg-chofer-100 border-chofer-600'
-                        : 'bg-white border-gray-200'
+                        ? "bg-chofer-100 border-chofer-600"
+                        : "bg-white border-gray-200"
                     }`}
                   >
                     <Text
                       className={`font-bold text-sm ${
                         choferSeleccionado?.id === chofer.id
-                          ? 'text-chofer-800'
-                          : 'text-gray-700'
+                          ? "text-chofer-800"
+                          : "text-gray-700"
                       }`}
                     >
                       {chofer.nombre} {chofer.apellido}
                     </Text>
                     <View className="flex-row items-center mt-2">
-                      <Bus size={14} color={chofer.id_buseta ? '#16a34a' : '#9ca3af'} />
+                      <Bus
+                        size={14}
+                        color={chofer.id_buseta ? "#16a34a" : "#9ca3af"}
+                      />
                       <Text
                         className={`text-xs ml-1 ${
-                          chofer.id_buseta ? 'text-green-600' : 'text-gray-400'
+                          chofer.id_buseta ? "text-green-600" : "text-gray-400"
                         }`}
                       >
-                        {chofer.buseta_placa || 'Sin buseta'}
+                        {chofer.buseta_placa || "Sin buseta"}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -393,12 +422,16 @@ export default function AsignacionesScreen() {
             {/* Buseta Asignada */}
             <AnimatedCard delay={100} className="mb-4">
               <View className="flex-row items-center justify-between mb-3">
-                <Text className="text-lg font-bold text-gray-800">Buseta Asignada</Text>
+                <Text className="text-lg font-bold text-gray-800">
+                  Buseta Asignada
+                </Text>
                 <TouchableOpacity
                   onPress={() => setModalBusetaVisible(true)}
                   className="bg-buseta-100 px-3 py-1.5 rounded-lg"
                 >
-                  <Text className="text-buseta-700 font-semibold text-xs">Cambiar</Text>
+                  <Text className="text-buseta-700 font-semibold text-xs">
+                    Cambiar
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -412,7 +445,9 @@ export default function AsignacionesScreen() {
                       <Text className="text-buseta-800 font-bold">
                         {choferSeleccionado.buseta_placa}
                       </Text>
-                      <Text className="text-buseta-600 text-xs">Placa asignada</Text>
+                      <Text className="text-buseta-600 text-xs">
+                        Placa asignada
+                      </Text>
                     </View>
                   </View>
                 </View>
@@ -428,13 +463,17 @@ export default function AsignacionesScreen() {
             {/* Recorridos */}
             <AnimatedCard delay={200} className="mb-6">
               <View className="flex-row items-center justify-between mb-4">
-                <Text className="text-lg font-bold text-gray-800">Recorridos</Text>
+                <Text className="text-lg font-bold text-gray-800">
+                  Recorridos
+                </Text>
                 <TouchableOpacity
                   onPress={handleAbrirModalAsignacion}
                   className="bg-asign-600 px-3 py-1.5 rounded-lg flex-row items-center"
                 >
                   <Plus size={16} color="#ffffff" strokeWidth={2.5} />
-                  <Text className="text-white font-semibold ml-1 text-xs">Agregar</Text>
+                  <Text className="text-white font-semibold ml-1 text-xs">
+                    Agregar
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -460,7 +499,7 @@ export default function AsignacionesScreen() {
                         <View className="flex-row items-start justify-between mb-2">
                           <View className="flex-1">
                             <Text className="text-gray-800 font-bold text-base">
-                              {ruta?.nombre || 'Ruta desconocida'}
+                              {ruta?.nombre || "Ruta desconocida"}
                             </Text>
                             {asig.descripcion && (
                               <Text className="text-gray-600 text-sm mt-1">
@@ -479,7 +518,7 @@ export default function AsignacionesScreen() {
                         <View className="flex-row items-center mt-2">
                           <Clock size={14} color="#ca8a04" strokeWidth={2} />
                           <Text className="text-chofer-700 text-sm ml-1 font-semibold">
-                            {asig.hora_inicio.substring(0, 5)} -{' '}
+                            {asig.hora_inicio.substring(0, 5)} -{" "}
                             {asig.hora_fin.substring(0, 5)}
                           </Text>
                         </View>
@@ -501,16 +540,24 @@ export default function AsignacionesScreen() {
 
                         <View className="flex-row items-center mt-2">
                           {asig.activo ? (
-                            <CheckCircle2 size={14} color="#16a34a" strokeWidth={2} />
+                            <CheckCircle2
+                              size={14}
+                              color="#16a34a"
+                              strokeWidth={2}
+                            />
                           ) : (
-                            <XCircle size={14} color="#ef4444" strokeWidth={2} />
+                            <XCircle
+                              size={14}
+                              color="#ef4444"
+                              strokeWidth={2}
+                            />
                           )}
                           <Text
                             className={`text-xs ml-1 font-semibold ${
-                              asig.activo ? 'text-green-600' : 'text-red-600'
+                              asig.activo ? "text-green-600" : "text-red-600"
                             }`}
                           >
-                            {asig.activo ? 'Activo' : 'Inactivo'}
+                            {asig.activo ? "Activo" : "Inactivo"}
                           </Text>
                         </View>
                       </View>
@@ -539,20 +586,28 @@ export default function AsignacionesScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
               {/* Seleccionar Ruta */}
               <Text className="text-gray-700 font-semibold mb-2">Ruta</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="mb-4"
+              >
                 {rutas.map((ruta) => (
                   <TouchableOpacity
                     key={ruta.id}
-                    onPress={() => setFormData({ ...formData, id_ruta: ruta.id })}
+                    onPress={() =>
+                      setFormData({ ...formData, id_ruta: ruta.id })
+                    }
                     className={`px-4 py-2 rounded-lg mr-2 ${
                       formData.id_ruta === ruta.id
-                        ? 'bg-asign-600'
-                        : 'bg-gray-100 border border-gray-300'
+                        ? "bg-asign-600"
+                        : "bg-gray-100 border border-gray-300"
                     }`}
                   >
                     <Text
                       className={`font-semibold ${
-                        formData.id_ruta === ruta.id ? 'text-white' : 'text-gray-700'
+                        formData.id_ruta === ruta.id
+                          ? "text-white"
+                          : "text-gray-700"
                       }`}
                     >
                       {ruta.nombre}
@@ -564,19 +619,27 @@ export default function AsignacionesScreen() {
               {/* Horarios */}
               <View className="flex-row gap-3 mb-4">
                 <View className="flex-1">
-                  <Text className="text-gray-700 font-semibold mb-2">Hora Inicio</Text>
+                  <Text className="text-gray-700 font-semibold mb-2">
+                    Hora Inicio
+                  </Text>
                   <TextInput
                     value={formData.hora_inicio}
-                    onChangeText={(text) => setFormData({ ...formData, hora_inicio: text })}
+                    onChangeText={(text) =>
+                      setFormData({ ...formData, hora_inicio: text })
+                    }
                     placeholder="06:00:00"
                     className="bg-gray-100 rounded-lg px-4 py-3 text-gray-800"
                   />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-gray-700 font-semibold mb-2">Hora Fin</Text>
+                  <Text className="text-gray-700 font-semibold mb-2">
+                    Hora Fin
+                  </Text>
                   <TextInput
                     value={formData.hora_fin}
-                    onChangeText={(text) => setFormData({ ...formData, hora_fin: text })}
+                    onChangeText={(text) =>
+                      setFormData({ ...formData, hora_fin: text })
+                    }
                     placeholder="07:00:00"
                     className="bg-gray-100 rounded-lg px-4 py-3 text-gray-800"
                   />
@@ -584,31 +647,43 @@ export default function AsignacionesScreen() {
               </View>
 
               {/* Descripción */}
-              <Text className="text-gray-700 font-semibold mb-2">Descripción</Text>
+              <Text className="text-gray-700 font-semibold mb-2">
+                Descripción
+              </Text>
               <TextInput
                 value={formData.descripcion}
-                onChangeText={(text) => setFormData({ ...formData, descripcion: text })}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, descripcion: text })
+                }
                 placeholder="Ej: Llevar estudiantes al colegio"
                 className="bg-gray-100 rounded-lg px-4 py-3 text-gray-800 mb-4"
               />
 
               {/* Días de la semana */}
-              <Text className="text-gray-700 font-semibold mb-2">Días activos</Text>
+              <Text className="text-gray-700 font-semibold mb-2">
+                Días activos
+              </Text>
 
               {/* Botón "Todos los días" */}
               <TouchableOpacity
                 onPress={toggleTodosDias}
                 className={`mb-3 px-4 py-3 rounded-lg flex-row items-center justify-center ${
-                  formData.dias_semana === undefined ? 'bg-asign-600' : 'bg-gray-100 border border-gray-300'
+                  formData.dias_semana === undefined
+                    ? "bg-asign-600"
+                    : "bg-gray-100 border border-gray-300"
                 }`}
               >
                 <Calendar
                   size={20}
-                  color={formData.dias_semana === undefined ? '#ffffff' : '#374151'}
+                  color={
+                    formData.dias_semana === undefined ? "#ffffff" : "#374151"
+                  }
                 />
                 <Text
                   className={`font-bold ml-2 ${
-                    formData.dias_semana === undefined ? 'text-white' : 'text-gray-700'
+                    formData.dias_semana === undefined
+                      ? "text-white"
+                      : "text-gray-700"
                   }`}
                 >
                   Todos los días
@@ -627,19 +702,19 @@ export default function AsignacionesScreen() {
                       disabled={todosDiasActivo}
                       className={`px-4 py-2 rounded-lg ${
                         todosDiasActivo
-                          ? 'bg-gray-200 opacity-50'
+                          ? "bg-gray-200 opacity-50"
                           : isSelected
-                          ? 'bg-asign-600'
-                          : 'bg-gray-100 border border-gray-300'
+                            ? "bg-asign-600"
+                            : "bg-gray-100 border border-gray-300"
                       }`}
                     >
                       <Text
                         className={`font-semibold text-sm ${
                           todosDiasActivo
-                            ? 'text-gray-400'
+                            ? "text-gray-400"
                             : isSelected
-                            ? 'text-white'
-                            : 'text-gray-700'
+                              ? "text-white"
+                              : "text-gray-700"
                         }`}
                       >
                         {dia.substring(0, 3).toUpperCase()}
@@ -655,13 +730,17 @@ export default function AsignacionesScreen() {
                   onPress={() => setModalVisible(false)}
                   className="flex-1 bg-gray-200 py-3 rounded-lg"
                 >
-                  <Text className="text-gray-700 font-bold text-center">Cancelar</Text>
+                  <Text className="text-gray-700 font-bold text-center">
+                    Cancelar
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleCrearAsignacion}
                   className="flex-1 bg-asign-600 py-3 rounded-lg"
                 >
-                  <Text className="text-white font-bold text-center">Crear</Text>
+                  <Text className="text-white font-bold text-center">
+                    Crear
+                  </Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -676,7 +755,7 @@ export default function AsignacionesScreen() {
         transparent
         onRequestClose={() => {
           setModalBusetaVisible(false);
-          setBusetaFilter('');
+          setBusetaFilter("");
         }}
       >
         <View className="flex-1 justify-end bg-black/50">
@@ -696,7 +775,7 @@ export default function AsignacionesScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
               {busetas
                 .filter((b) =>
-                  b.placa.toLowerCase().includes(busetaFilter.toLowerCase())
+                  b.placa.toLowerCase().includes(busetaFilter.toLowerCase()),
                 )
                 .map((buseta) => (
                   <TouchableOpacity
@@ -707,35 +786,33 @@ export default function AsignacionesScreen() {
                       } else if (buseta.ocupada) {
                         haptic.error();
                         Alert.alert(
-                          'Buseta ocupada',
-                          `Esta buseta ya está asignada a ${buseta.chofer_nombre}. Primero desasigna al otro chofer.`
+                          "Buseta ocupada",
+                          `Esta buseta ya está asignada a ${buseta.chofer_nombre}. Primero desasigna al otro chofer.`,
                         );
                       }
                     }}
                     disabled={buseta.ocupada}
                     className={`rounded-xl p-4 mb-3 border-2 ${
                       buseta.ocupada
-                        ? 'bg-gray-100 border-gray-300 opacity-60'
-                        : 'bg-buseta-50 border-buseta-200'
+                        ? "bg-gray-100 border-gray-300 opacity-60"
+                        : "bg-buseta-50 border-buseta-200"
                     }`}
                   >
                     <View className="flex-row items-center justify-between">
                       <View className="flex-row items-center flex-1">
                         <View
                           className={`p-2 rounded-lg ${
-                            buseta.ocupada ? 'bg-gray-400' : 'bg-buseta-600'
+                            buseta.ocupada ? "bg-gray-400" : "bg-buseta-600"
                           }`}
                         >
-                          <Bus
-                            size={24}
-                            color="#ffffff"
-                            strokeWidth={2.5}
-                          />
+                          <Bus size={24} color="#ffffff" strokeWidth={2.5} />
                         </View>
                         <View className="ml-3 flex-1">
                           <Text
                             className={`font-bold text-lg ${
-                              buseta.ocupada ? 'text-gray-600' : 'text-buseta-800'
+                              buseta.ocupada
+                                ? "text-gray-600"
+                                : "text-buseta-800"
                             }`}
                           >
                             {buseta.placa}
@@ -750,7 +827,11 @@ export default function AsignacionesScreen() {
                       {buseta.ocupada ? (
                         <XCircle size={20} color="#ef4444" strokeWidth={2} />
                       ) : (
-                        <CheckCircle2 size={20} color="#16a34a" strokeWidth={2} />
+                        <CheckCircle2
+                          size={20}
+                          color="#16a34a"
+                          strokeWidth={2}
+                        />
                       )}
                     </View>
                   </TouchableOpacity>
@@ -760,11 +841,13 @@ export default function AsignacionesScreen() {
             <TouchableOpacity
               onPress={() => {
                 setModalBusetaVisible(false);
-                setBusetaFilter('');
+                setBusetaFilter("");
               }}
               className="bg-gray-200 py-3 rounded-lg mt-4"
             >
-              <Text className="text-gray-700 font-bold text-center">Cancelar</Text>
+              <Text className="text-gray-700 font-bold text-center">
+                Cancelar
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

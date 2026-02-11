@@ -37,7 +37,7 @@ export default function AdminSettingsScreen() {
     <View className="flex-1 bg-tecnibus-50">
       <StatusBar
         barStyle="light-content"
-        backgroundColor={Colors.admin[700]}
+        backgroundColor={Colors.tecnibus[700]}
         translucent={false}
       />
 
