@@ -85,7 +85,7 @@ export function DashboardHeader({
           </View>
         )}
       </View>
-      )
+
       <Text
         className="text-white font-bold font-calsans"
         style={{ fontSize: 28 }}
