@@ -1,6 +1,11 @@
 import { Colors } from "@/lib/constants/colors";
 import { EstudianteDelPadre } from "@/lib/services/padres.service";
-import { ChevronDown, ChevronRight, Clock, GraduationCap } from "lucide-react-native";
+import {
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  GraduationCap,
+} from "lucide-react-native";
 import { Text, TouchableOpacity, View } from "react-native";
 
 interface StudentInfoCardProps {
@@ -32,7 +37,7 @@ export function StudentInfoCard({
         backgroundColor: "#ffffff",
         borderRadius: 20,
         padding: 20,
-        shadowColor: Colors.padre[600],
+        shadowColor: Colors.tecnibus[600],
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.15,
         shadowRadius: 20,
@@ -48,13 +53,13 @@ export function StudentInfoCard({
               width: 52,
               height: 52,
               borderRadius: 26,
-              backgroundColor: Colors.padre[100],
+              backgroundColor: Colors.tecnibus[100],
               marginRight: 14,
             }}
           >
             <GraduationCap
               size={28}
-              color={Colors.padre[600]}
+              color={Colors.tecnibus[600]}
               strokeWidth={2.5}
             />
           </View>
@@ -76,7 +81,7 @@ export function StudentInfoCard({
             onPress={onChangeStudent}
             activeOpacity={0.7}
             style={{
-              backgroundColor: Colors.padre[100],
+              backgroundColor: Colors.tecnibus[100],
               paddingHorizontal: 12,
               paddingVertical: 8,
               borderRadius: 12,
@@ -84,7 +89,7 @@ export function StudentInfoCard({
           >
             <ChevronDown
               size={20}
-              color={Colors.padre[600]}
+              color={Colors.tecnibus[600]}
               strokeWidth={2.5}
             />
           </TouchableOpacity>
@@ -99,7 +104,7 @@ export function StudentInfoCard({
         {/* ETA */}
         <View className="flex-1 mr-3">
           <View className="flex-row items-center mb-2">
-            <Clock size={16} color={Colors.padre[600]} strokeWidth={2.5} />
+            <Clock size={16} color={Colors.tecnibus[600]} strokeWidth={2.5} />
             <Text
               className="text-gray-500 font-semibold ml-2"
               style={{ fontSize: 12 }}
@@ -109,7 +114,7 @@ export function StudentInfoCard({
           </View>
           <Text
             className="font-bold font-calsans"
-            style={{ fontSize: 22, color: Colors.padre[700] }}
+            style={{ fontSize: 22, color: Colors.tecnibus[700] }}
           >
             {etaMinutes}
           </Text>
@@ -119,7 +124,7 @@ export function StudentInfoCard({
         <View
           style={{
             backgroundColor:
-              busStatus === "En camino" ? Colors.padre[100] : "#F3F4F6",
+              busStatus === "En camino" ? Colors.tecnibus[100] : "#F3F4F6",
             paddingHorizontal: 16,
             paddingVertical: 10,
             borderRadius: 14,
@@ -129,7 +134,8 @@ export function StudentInfoCard({
             className="font-bold"
             style={{
               fontSize: 13,
-              color: busStatus === "En camino" ? Colors.padre[700] : "#6B7280",
+              color:
+                busStatus === "En camino" ? Colors.tecnibus[700] : "#6B7280",
             }}
           >
             {busStatus}
@@ -143,20 +149,20 @@ export function StudentInfoCard({
         activeOpacity={0.7}
         className="flex-row items-center justify-center mt-5"
         style={{
-          backgroundColor: Colors.padre[50],
+          backgroundColor: Colors.tecnibus[50],
           paddingVertical: 12,
           borderRadius: 12,
         }}
       >
         <Text
           className="font-semibold"
-          style={{ fontSize: 14, color: Colors.padre[700] }}
+          style={{ fontSize: 14, color: Colors.tecnibus[700] }}
         >
           Ver más detalles
         </Text>
         <ChevronRight
           size={18}
-          color={Colors.padre[700]}
+          color={Colors.tecnibus[700]}
           strokeWidth={2.5}
           style={{ marginLeft: 4 }}
         />

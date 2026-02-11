@@ -1,5 +1,10 @@
 import { Colors } from "@/lib/constants/colors";
-import { BellOff, CheckCircle2, MessageCircle, User } from "lucide-react-native";
+import {
+  BellOff,
+  CheckCircle2,
+  MessageCircle,
+  User,
+} from "lucide-react-native";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 
 interface ParentTrackingHeroProps {
@@ -44,7 +49,11 @@ export function ParentTrackingHero({
         <View className="flex-1">
           <Text
             className="font-bold font-calsans"
-            style={{ fontSize: 20, color: Colors.tecnibus[800], marginBottom: 4 }}
+            style={{
+              fontSize: 20,
+              color: Colors.tecnibus[800],
+              marginBottom: 4,
+            }}
           >
             {studentName} is on the way
           </Text>
@@ -63,7 +72,7 @@ export function ParentTrackingHero({
                 height: 48,
                 borderRadius: 24,
                 borderWidth: 2,
-                borderColor: Colors.sky[200],
+                borderColor: Colors.tecnibus[200],
               }}
             />
           ) : (
@@ -72,14 +81,14 @@ export function ParentTrackingHero({
                 width: 48,
                 height: 48,
                 borderRadius: 24,
-                backgroundColor: Colors.sky[100],
+                backgroundColor: Colors.tecnibus[100],
                 alignItems: "center",
                 justifyContent: "center",
                 borderWidth: 2,
-                borderColor: Colors.sky[200],
+                borderColor: Colors.tecnibus[200],
               }}
             >
-              <User size={24} color={Colors.sky[600]} strokeWidth={2} />
+              <User size={24} color={Colors.tecnibus[600]} strokeWidth={2} />
             </View>
           )}
 
@@ -110,13 +119,13 @@ export function ParentTrackingHero({
           activeOpacity={0.8}
           style={{
             flex: 1,
-            backgroundColor: Colors.sky[500],
+            backgroundColor: Colors.tecnibus[500],
             borderRadius: 12,
             paddingVertical: 14,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            shadowColor: Colors.sky[500],
+            shadowColor: Colors.tecnibus[500],
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.3,
             shadowRadius: 6,
@@ -151,11 +160,18 @@ export function ParentTrackingHero({
           {isAttending ? (
             <BellOff size={18} color="#6B7280" strokeWidth={2.5} />
           ) : (
-            <CheckCircle2 size={18} color={Colors.tecnibus[600]} strokeWidth={2.5} />
+            <CheckCircle2
+              size={18}
+              color={Colors.tecnibus[600]}
+              strokeWidth={2.5}
+            />
           )}
           <Text
             className="font-semibold ml-2"
-            style={{ fontSize: 14, color: isAttending ? "#374151" : Colors.tecnibus[700] }}
+            style={{
+              fontSize: 14,
+              color: isAttending ? "#374151" : Colors.tecnibus[700],
+            }}
           >
             {isAttending ? "Notify Absence" : "Mark Present"}
           </Text>

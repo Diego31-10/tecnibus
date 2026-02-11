@@ -40,7 +40,10 @@ export function RouteTrackingCard({
             <Text className="text-amber-800 font-semibold text-sm">
               Sin ruta asignada
             </Text>
-            <Text className="text-amber-700 text-xs mt-1" style={{ lineHeight: 16 }}>
+            <Text
+              className="text-amber-700 text-xs mt-1"
+              style={{ lineHeight: 16 }}
+            >
               Este estudiante aún no tiene una ruta asignada. Contacta al
               administrador para asignar una ruta.
             </Text>
@@ -73,12 +76,12 @@ export function RouteTrackingCard({
       {/* Info del bus */}
       <View
         className="rounded-xl p-4 flex-row items-center mt-4"
-        style={{ backgroundColor: Colors.padre[50] }}
+        style={{ backgroundColor: Colors.tecnibus[50] }}
       >
         <View
           className="items-center justify-center"
           style={{
-            backgroundColor: Colors.padre[600],
+            backgroundColor: Colors.tecnibus[600],
             padding: 8,
             borderRadius: 999,
           }}
@@ -88,17 +91,17 @@ export function RouteTrackingCard({
         <View className="flex-1 ml-3">
           <Text
             className="font-bold text-base"
-            style={{ color: Colors.padre[800] }}
+            style={{ color: Colors.tecnibus[800] }}
           >
             {recorridoActivo ? "En camino" : "No iniciado"}
           </Text>
-          <Text className="text-sm" style={{ color: Colors.padre[600] }}>
+          <Text className="text-sm" style={{ color: Colors.tecnibus[600] }}>
             Ruta: {rutaNombre || "Sin ruta"}
           </Text>
           {ubicacionBus && (
             <Text
               className="text-xs mt-1"
-              style={{ color: Colors.padre[500] }}
+              style={{ color: Colors.tecnibus[500] }}
             >
               Última actualización:{" "}
               {new Date(ubicacionBus.ubicacion_timestamp).toLocaleTimeString(
@@ -106,7 +109,7 @@ export function RouteTrackingCard({
                 {
                   hour: "2-digit",
                   minute: "2-digit",
-                }
+                },
               )}
             </Text>
           )}

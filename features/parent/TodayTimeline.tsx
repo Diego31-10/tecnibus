@@ -1,6 +1,6 @@
 import { Colors } from "@/lib/constants/colors";
 import { CheckCircle2, Circle, Clock, MapPin } from "lucide-react-native";
-import { ScrollView, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 interface TimelineEvent {
   id: string;
@@ -17,15 +17,27 @@ interface TodayTimelineProps {
 }
 
 export function TodayTimeline({ events, isLive = false }: TodayTimelineProps) {
-  const getIconComponent = (iconType: TimelineEvent["icon"], status: TimelineEvent["status"]) => {
-    const iconColor = status === "active" ? Colors.sky[600] : status === "completed" ? "#9CA3AF" : Colors.sky[600];
+  const getIconComponent = (
+    iconType: TimelineEvent["icon"],
+    status: TimelineEvent["status"],
+  ) => {
+    const iconColor =
+      status === "active"
+        ? Colors.tecnibus[600]
+        : status === "completed"
+          ? "#9CA3AF"
+          : Colors.tecnibus[600];
     const iconSize = 20;
 
     switch (iconType) {
       case "board":
-        return <CheckCircle2 size={iconSize} color={iconColor} strokeWidth={2.5} />;
+        return (
+          <CheckCircle2 size={iconSize} color={iconColor} strokeWidth={2.5} />
+        );
       case "departure":
-        return <CheckCircle2 size={iconSize} color={iconColor} strokeWidth={2.5} />;
+        return (
+          <CheckCircle2 size={iconSize} color={iconColor} strokeWidth={2.5} />
+        );
       case "stop":
         return <MapPin size={iconSize} color={iconColor} strokeWidth={2.5} />;
       default:
@@ -59,7 +71,7 @@ export function TodayTimeline({ events, isLive = false }: TodayTimelineProps) {
         {isLive && (
           <View
             style={{
-              backgroundColor: Colors.sky[100],
+              backgroundColor: Colors.tecnibus[100],
               paddingHorizontal: 10,
               paddingVertical: 4,
               borderRadius: 8,
@@ -69,7 +81,7 @@ export function TodayTimeline({ events, isLive = false }: TodayTimelineProps) {
               className="font-bold"
               style={{
                 fontSize: 11,
-                color: Colors.sky[700],
+                color: Colors.tecnibus[700],
                 letterSpacing: 0.5,
               }}
             >
@@ -89,7 +101,10 @@ export function TodayTimeline({ events, isLive = false }: TodayTimelineProps) {
           return (
             <View key={event.id} className="flex-row">
               {/* Icon column */}
-              <View className="items-center" style={{ width: 36, marginRight: 12 }}>
+              <View
+                className="items-center"
+                style={{ width: 36, marginRight: 12 }}
+              >
                 {/* Icon */}
                 <View
                   style={{
@@ -97,12 +112,16 @@ export function TodayTimeline({ events, isLive = false }: TodayTimelineProps) {
                     height: 36,
                     borderRadius: 18,
                     backgroundColor: isActive
-                      ? Colors.sky[100]
+                      ? Colors.tecnibus[100]
                       : isCompleted
-                      ? "#F3F4F6"
-                      : "#ffffff",
+                        ? "#F3F4F6"
+                        : "#ffffff",
                     borderWidth: isActive ? 0 : 1.5,
-                    borderColor: isActive ? "transparent" : isCompleted ? "#E5E7EB" : Colors.sky[300],
+                    borderColor: isActive
+                      ? "transparent"
+                      : isCompleted
+                        ? "#E5E7EB"
+                        : Colors.tecnibus[300],
                     alignItems: "center",
                     justifyContent: "center",
                   }}
@@ -117,7 +136,9 @@ export function TodayTimeline({ events, isLive = false }: TodayTimelineProps) {
                       width: 2,
                       flex: 1,
                       minHeight: 40,
-                      backgroundColor: isCompleted ? "#E5E7EB" : Colors.sky[200],
+                      backgroundColor: isCompleted
+                        ? "#E5E7EB"
+                        : Colors.tecnibus[200],
                       marginVertical: 4,
                     }}
                   />
@@ -130,7 +151,11 @@ export function TodayTimeline({ events, isLive = false }: TodayTimelineProps) {
                   className="font-semibold"
                   style={{
                     fontSize: 15,
-                    color: isActive ? Colors.tecnibus[800] : isCompleted ? "#9CA3AF" : Colors.tecnibus[700],
+                    color: isActive
+                      ? Colors.tecnibus[800]
+                      : isCompleted
+                        ? "#9CA3AF"
+                        : Colors.tecnibus[700],
                     marginBottom: 4,
                   }}
                 >
@@ -147,10 +172,14 @@ export function TodayTimeline({ events, isLive = false }: TodayTimelineProps) {
                 </Text>
                 {event.time && (
                   <View className="flex-row items-center mt-1">
-                    <Clock size={14} color={Colors.sky[600]} strokeWidth={2.5} />
+                    <Clock
+                      size={14}
+                      color={Colors.tecnibus[600]}
+                      strokeWidth={2.5}
+                    />
                     <Text
                       className="font-semibold ml-1"
-                      style={{ fontSize: 13, color: Colors.sky[700] }}
+                      style={{ fontSize: 13, color: Colors.tecnibus[700] }}
                     >
                       {event.time}
                     </Text>
