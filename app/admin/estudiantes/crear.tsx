@@ -1,36 +1,35 @@
-import { Colors } from '@/lib/constants/colors';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
-import { useRouter } from 'expo-router';
+import { Colors } from "@/lib/constants/colors";
+import { haptic } from "@/lib/utils/haptics";
+import { createShadow } from "@/lib/utils/shadows";
+import { useRouter } from "expo-router";
 import {
-  ArrowLeft,
-  Check,
-  GraduationCap,
-  MapPin,
-  Search,
-  User,
-  X
-} from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+    ArrowLeft,
+    Check,
+    MapPin,
+    Search,
+    User,
+    X
+} from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AnimatedCard } from '../../../components';
-import Toast from '../../../components/Toast';
+    ActivityIndicator,
+    FlatList,
+    Modal,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AnimatedCard } from "../../../components";
+import Toast from "../../../components/Toast";
 import {
-  createEstudiante,
-  getPadresParaAsignar,
-  getParadasDisponibles
-} from '../../../lib/services/estudiantes.service';
+    createEstudiante,
+    getPadresParaAsignar,
+    getParadasDisponibles,
+} from "../../../lib/services/estudiantes.service";
 
 type Padre = {
   id: string;
@@ -54,13 +53,17 @@ export default function CrearEstudianteScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow('lg');
+  const shadow = createShadow("lg");
 
   // Form state
-  const [nombre, setNombre] = useState('');
-  const [apellido, setApellido] = useState('');
-  const [padreSeleccionado, setPadreSeleccionado] = useState<Padre | null>(null);
-  const [paradaSeleccionada, setParadaSeleccionada] = useState<Parada | null>(null);
+  const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [padreSeleccionado, setPadreSeleccionado] = useState<Padre | null>(
+    null,
+  );
+  const [paradaSeleccionada, setParadaSeleccionada] = useState<Parada | null>(
+    null,
+  );
 
   // Lists
   const [padres, setPadres] = useState<Padre[]>([]);
@@ -71,15 +74,15 @@ export default function CrearEstudianteScreen() {
   const [loadingData, setLoadingData] = useState(true);
   const [showPadresModal, setShowPadresModal] = useState(false);
   const [showParadasModal, setShowParadasModal] = useState(false);
-  const [searchPadre, setSearchPadre] = useState('');
+  const [searchPadre, setSearchPadre] = useState("");
   const [toast, setToast] = useState<{
     visible: boolean;
     message: string;
-    type: 'success' | 'error' | 'warning' | 'info';
+    type: "success" | "error" | "warning" | "info";
   }>({
     visible: false,
-    message: '',
-    type: 'success',
+    message: "",
+    type: "success",
   });
 
   useEffect(() => {
@@ -98,14 +101,14 @@ export default function CrearEstudianteScreen() {
   };
 
   const filteredPadres = padres.filter((padre) =>
-    padre.nombreCompleto.toLowerCase().includes(searchPadre.toLowerCase())
+    padre.nombreCompleto.toLowerCase().includes(searchPadre.toLowerCase()),
   );
 
   const handleSelectPadre = (padre: Padre) => {
     haptic.light();
     setPadreSeleccionado(padre);
     setShowPadresModal(false);
-    setSearchPadre('');
+    setSearchPadre("");
   };
 
   const handleSelectParada = (parada: Parada) => {
@@ -117,20 +120,28 @@ export default function CrearEstudianteScreen() {
   const handleSubmit = async () => {
     // Validaciones
     if (!nombre.trim()) {
-      setToast({ visible: true, message: 'Ingresa el nombre', type: 'warning' });
+      setToast({
+        visible: true,
+        message: "Ingresa el nombre",
+        type: "warning",
+      });
       return;
     }
 
     if (!apellido.trim()) {
-      setToast({ visible: true, message: 'Ingresa el apellido', type: 'warning' });
+      setToast({
+        visible: true,
+        message: "Ingresa el apellido",
+        type: "warning",
+      });
       return;
     }
 
     if (!padreSeleccionado) {
       setToast({
         visible: true,
-        message: 'Debes seleccionar un padre',
-        type: 'warning',
+        message: "Debes seleccionar un padre",
+        type: "warning",
       });
       return;
     }
@@ -150,15 +161,15 @@ export default function CrearEstudianteScreen() {
     if (result) {
       setToast({
         visible: true,
-        message: 'Estudiante creado correctamente',
-        type: 'success',
+        message: "Estudiante creado correctamente",
+        type: "success",
       });
       setTimeout(() => router.back(), 1500);
     } else {
       setToast({
         visible: true,
-        message: 'No se pudo crear el estudiante',
-        type: 'error',
+        message: "No se pudo crear el estudiante",
+        type: "error",
       });
     }
   };
@@ -174,10 +185,17 @@ export default function CrearEstudianteScreen() {
 
   return (
     <View className="flex-1 bg-admin-50">
-      <StatusBar barStyle="light-content" backgroundColor={Colors.estudiante[700]} translucent={false} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={Colors.tecnibus[700]}
+        translucent={false}
+      />
 
       {/* Header */}
-      <View className="bg-estudiante-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View
+        className="bg-estudiante-700 pb-6 px-6 rounded-b-3xl"
+        style={[{ paddingTop }, shadow]}
+      >
         <View className="flex-row items-center">
           <TouchableOpacity
             className="bg-estudiante-600 p-2 rounded-xl mr-4"
@@ -186,7 +204,9 @@ export default function CrearEstudianteScreen() {
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
           <View className="flex-1">
-            <Text className="text-white text-2xl font-bold">Nuevo Estudiante</Text>
+            <Text className="text-white text-2xl font-bold">
+              Nuevo Estudiante
+            </Text>
             <Text className="text-white text-xl mt-1">Complete los datos</Text>
           </View>
         </View>
@@ -238,7 +258,7 @@ export default function CrearEstudianteScreen() {
           >
             {padreSeleccionado ? (
               <View className="flex-row items-center flex-1">
-                <User size={18} className='text-padre-500' strokeWidth={2} />
+                <User size={18} className="text-padre-500" strokeWidth={2} />
                 <Text className="text-base text-gray-800 ml-2">
                   {padreSeleccionado.nombreCompleto}
                 </Text>
@@ -269,7 +289,7 @@ export default function CrearEstudianteScreen() {
                 <View className="flex-row items-center">
                   <MapPin size={18} color="#16a34a" strokeWidth={2} />
                   <Text className="text-base text-gray-800 ml-2">
-                    {paradaSeleccionada.nombre || 'Sin nombre'}
+                    {paradaSeleccionada.nombre || "Sin nombre"}
                   </Text>
                 </View>
                 {paradaSeleccionada.ruta && (
@@ -279,7 +299,9 @@ export default function CrearEstudianteScreen() {
                 )}
               </View>
             ) : (
-              <Text className="text-base text-gray-400">Sin parada asignada</Text>
+              <Text className="text-base text-gray-400">
+                Sin parada asignada
+              </Text>
             )}
             {paradaSeleccionada && (
               <TouchableOpacity onPress={() => setParadaSeleccionada(null)}>
@@ -294,7 +316,7 @@ export default function CrearEstudianteScreen() {
           onPress={handleSubmit}
           disabled={loading}
           className={`bg-estudiante-600 rounded-xl py-4 mb-8 mt-4 ${
-            loading ? 'opacity-60' : ''
+            loading ? "opacity-60" : ""
           }`}
         >
           {loading ? (
@@ -318,7 +340,7 @@ export default function CrearEstudianteScreen() {
         onRequestClose={() => setShowPadresModal(false)}
       >
         <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-3xl" style={{ maxHeight: '80%' }}>
+          <View className="bg-white rounded-t-3xl" style={{ maxHeight: "80%" }}>
             {/* Header Modal */}
             <View className="p-6 border-b border-gray-200">
               <View className="flex-row items-center justify-between mb-4">
@@ -357,7 +379,11 @@ export default function CrearEstudianteScreen() {
                   className="px-6 py-4 border-b border-gray-100 flex-row items-center"
                 >
                   <View className="bg-padre-100 p-2 rounded-full mr-3">
-                    <User size={20} className='text-padre-500' strokeWidth={2} />
+                    <User
+                      size={20}
+                      className="text-padre-500"
+                      strokeWidth={2}
+                    />
                   </View>
                   <Text className="text-base text-gray-800 flex-1">
                     {item.nombreCompleto}
@@ -369,7 +395,9 @@ export default function CrearEstudianteScreen() {
               )}
               ListEmptyComponent={
                 <View className="py-12 items-center">
-                  <Text className="text-gray-500">No se encontraron padres</Text>
+                  <Text className="text-gray-500">
+                    No se encontraron padres
+                  </Text>
                 </View>
               }
             />
@@ -385,7 +413,7 @@ export default function CrearEstudianteScreen() {
         onRequestClose={() => setShowParadasModal(false)}
       >
         <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-3xl" style={{ maxHeight: '70%' }}>
+          <View className="bg-white rounded-t-3xl" style={{ maxHeight: "70%" }}>
             {/* Header Modal */}
             <View className="p-6 border-b border-gray-200 flex-row items-center justify-between">
               <Text className="text-xl font-bold text-gray-800">
@@ -414,7 +442,7 @@ export default function CrearEstudianteScreen() {
                     </View>
                     <View className="flex-1">
                       <Text className="text-base text-gray-800 font-semibold">
-                        {item.nombre || 'Sin nombre'}
+                        {item.nombre || "Sin nombre"}
                       </Text>
                       {item.ruta && (
                         <Text className="text-sm text-gray-500 mt-1">
@@ -435,7 +463,9 @@ export default function CrearEstudianteScreen() {
               )}
               ListEmptyComponent={
                 <View className="py-12 items-center">
-                  <Text className="text-gray-500">No hay paradas disponibles</Text>
+                  <Text className="text-gray-500">
+                    No hay paradas disponibles
+                  </Text>
                 </View>
               }
             />
