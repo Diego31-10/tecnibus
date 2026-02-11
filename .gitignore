@@ -47,6 +47,7 @@ app-example
 .clauderc
 .claude/
 CLAUDE.md
+.mcp.json
 
 # notion
 notion-tasks-export.json
