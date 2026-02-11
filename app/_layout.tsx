@@ -79,6 +79,18 @@ function AppContent() {
           name="admin/perfil"
           options={{ animation: "fade", animationDuration: 200 }}
         />
+        <Stack.Screen
+          name="admin/settings"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
+        <Stack.Screen
+          name="parent/settings"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
+        <Stack.Screen
+          name="driver/settings"
+          options={{ animation: "fade", animationDuration: 200 }}
+        />
       </Stack>
     </AuthGuard>
   );
