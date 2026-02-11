@@ -1,23 +1,25 @@
-import { Colors } from '@/lib/constants/colors';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
-import { useRouter } from 'expo-router';
+import { Colors } from "@/lib/constants/colors";
+import { haptic } from "@/lib/utils/haptics";
+import { createShadow } from "@/lib/utils/shadows";
+import { useRouter } from "expo-router";
+import { ChevronRight, LogOut, User } from "lucide-react-native";
 import {
-  ChevronRight,
-  LogOut,
-  User
-} from 'lucide-react-native';
-import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AnimatedCard } from '../../components';
-import { useAuth } from '../../contexts/AuthContext';
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AnimatedCard } from "../../components";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function ParentSettingsScreen() {
   const router = useRouter();
   const { signOut, profile } = useAuth();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow('lg');
+  const shadow = createShadow("lg");
 
   const handleLogout = async () => {
     haptic.warning();
@@ -27,7 +29,7 @@ export default function ParentSettingsScreen() {
 
   const handleViewProfile = () => {
     haptic.light();
-    router.push('/parent/perfil');
+    router.push("/parent/perfil");
   };
 
   return (
@@ -35,15 +37,16 @@ export default function ParentSettingsScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#1e40af" />
 
       {/* Header */}
-      <View className="bg-padre-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View
+        className="bg-padre-700 pb-6 px-6 rounded-b-3xl"
+        style={[{ paddingTop }, shadow]}
+      >
         <View className="flex-row items-center">
           <View className="bg-padre-600 p-3 rounded-full mr-4">
             <User size={28} color="#ffffff" strokeWidth={2.5} />
           </View>
           <View className="flex-1">
-            <Text className="text-white text-2xl font-bold">
-              Configuración
-            </Text>
+            <Text className="text-white text-2xl font-bold">Configuración</Text>
             <Text className="text-padre-200 text-sm mt-1">
               {profile?.nombre} {profile?.apellido}
             </Text>
@@ -51,7 +54,10 @@ export default function ParentSettingsScreen() {
         </View>
       </View>
 
-      <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1 px-6 pt-6"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Sección Cuenta */}
         <AnimatedCard delay={0} className="mb-4">
           <Text className="text-lg font-bold text-gray-800 mb-4">
@@ -66,7 +72,11 @@ export default function ParentSettingsScreen() {
           >
             <View className="flex-row items-center flex-1">
               <View className="bg-padre-100 p-2 rounded-lg">
-                <User size={24} color={Colors.padre[600]} strokeWidth={2.5} />
+                <User
+                  size={24}
+                  color={Colors.tecnibus[600]}
+                  strokeWidth={2.5}
+                />
               </View>
               <View className="ml-3 flex-1">
                 <Text className="text-gray-800 font-bold text-base">
@@ -83,9 +93,7 @@ export default function ParentSettingsScreen() {
 
         {/* Sección Sesión */}
         <AnimatedCard delay={100} className="mb-4">
-          <Text className="text-lg font-bold text-gray-800 mb-4">
-            Sesión
-          </Text>
+          <Text className="text-lg font-bold text-gray-800 mb-4">Sesión</Text>
 
           {/* Cerrar Sesión */}
           <TouchableOpacity
@@ -101,9 +109,7 @@ export default function ParentSettingsScreen() {
                 <Text className="text-red-700 font-bold text-base">
                   Cerrar Sesión
                 </Text>
-                <Text className="text-red-600 text-xs">
-                  Salir de tu cuenta
-                </Text>
+                <Text className="text-red-600 text-xs">Salir de tu cuenta</Text>
               </View>
             </View>
             <ChevronRight size={20} color="#dc2626" strokeWidth={2.5} />
