@@ -1,36 +1,44 @@
-import { Colors } from '@/lib/constants/colors';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { ArrowLeft, Plus, Trash2, Users } from 'lucide-react-native';
-import { useCallback, useState } from 'react';
+import { Colors } from "@/lib/constants/colors";
+import { haptic } from "@/lib/utils/haptics";
+import { createShadow } from "@/lib/utils/shadows";
+import { useFocusEffect, useRouter } from "expo-router";
+import { ArrowLeft, Plus, Trash2, Users } from "lucide-react-native";
+import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Toast from '../../../components/Toast';
-import { eliminarUsuario, obtenerPadres, type Profile } from '../../../lib/services/admin.service';
+    ActivityIndicator,
+    Alert,
+    RefreshControl,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "../../../components/Toast";
+import {
+    eliminarUsuario,
+    obtenerPadres,
+    type Profile,
+} from "../../../lib/services/admin.service";
 
 export default function ListaPadresScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow('lg');
+  const shadow = createShadow("lg");
   const [padres, setPadres] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' | 'warning' | 'info' }>({
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  }>({
     visible: false,
-    message: '',
-    type: 'success'
+    message: "",
+    type: "success",
   });
 
   const cargarPadres = useCallback(async () => {
@@ -40,8 +48,8 @@ export default function ListaPadresScreen() {
     } catch (error) {
       setToast({
         visible: true,
-        message: 'Error al cargar padres',
-        type: 'error',
+        message: "Error al cargar padres",
+        type: "error",
       });
     } finally {
       setLoading(false);
@@ -53,7 +61,7 @@ export default function ListaPadresScreen() {
   useFocusEffect(
     useCallback(() => {
       cargarPadres();
-    }, [cargarPadres])
+    }, [cargarPadres]),
   );
 
   const onRefresh = useCallback(() => {
@@ -64,16 +72,16 @@ export default function ListaPadresScreen() {
   const confirmarEliminar = (padre: Profile) => {
     haptic.medium();
     Alert.alert(
-      'Eliminar Padre',
-      `¿Estás seguro de eliminar a ${padre.nombre} ${padre.apellido || ''}? Esta acción no se puede deshacer.`,
+      "Eliminar Padre",
+      `¿Estás seguro de eliminar a ${padre.nombre} ${padre.apellido || ""}? Esta acción no se puede deshacer.`,
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: "Cancelar", style: "cancel" },
         {
-          text: 'Eliminar',
-          style: 'destructive',
+          text: "Eliminar",
+          style: "destructive",
           onPress: () => handleEliminar(padre.id),
         },
-      ]
+      ],
     );
   };
 
@@ -85,14 +93,14 @@ export default function ListaPadresScreen() {
       setPadres((prev) => prev.filter((p) => p.id !== userId));
       setToast({
         visible: true,
-        message: 'Padre eliminado correctamente',
-        type: 'success',
+        message: "Padre eliminado correctamente",
+        type: "success",
       });
     } else {
       setToast({
         visible: true,
-        message: result.error || 'Error al eliminar',
-        type: 'error',
+        message: result.error || "Error al eliminar",
+        type: "error",
       });
     }
     setDeletingId(null);
@@ -100,10 +108,17 @@ export default function ListaPadresScreen() {
 
   return (
     <View className="flex-1 bg-padre-50">
-      <StatusBar barStyle="light-content" backgroundColor={Colors.padre[700]} translucent={false} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={Colors.tecnibus[700]}
+        translucent={false}
+      />
 
       {/* Header */}
-      <View className="bg-padre-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View
+        className="bg-padre-700 pb-6 px-6 rounded-b-3xl"
+        style={[{ paddingTop }, shadow]}
+      >
         <View className="flex-row items-center">
           <TouchableOpacity
             className="bg-padre-600 p-2 rounded-xl"
@@ -112,14 +127,16 @@ export default function ListaPadresScreen() {
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
           <View className="flex-1">
-            <Text className="text-white text-2xl font-bold text-center">Padres</Text>
+            <Text className="text-white text-2xl font-bold text-center">
+              Padres
+            </Text>
             <Text className="text-white text-xl mt-1 text-center">
               {padres.length} registrados
             </Text>
           </View>
           <TouchableOpacity
             className="bg-padre-600 p-2 rounded-xl"
-            onPress={() => router.push('/admin/padres/crear')}
+            onPress={() => router.push("/admin/padres/crear")}
           >
             <Plus size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
@@ -135,7 +152,11 @@ export default function ListaPadresScreen() {
           className="flex-1 px-6 pt-6"
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#9333ea']} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#9333ea"]}
+            />
           }
         >
           {padres.length === 0 ? (
@@ -146,9 +167,11 @@ export default function ListaPadresScreen() {
               </Text>
               <TouchableOpacity
                 className="bg-padre-600 py-3 px-6 rounded-xl mt-4"
-                onPress={() => router.push('/admin/padres/crear')}
+                onPress={() => router.push("/admin/padres/crear")}
               >
-                <Text className="text-white font-semibold">Crear Primer Padre</Text>
+                <Text className="text-white font-semibold">
+                  Crear Primer Padre
+                </Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -161,7 +184,9 @@ export default function ListaPadresScreen() {
                   <Users size={28} color="#9333ea" strokeWidth={2} />
                 </View>
                 <View className="flex-1 ml-4">
-                  <Text className="text-gray-800 font-bold text-base">{padre.nombre} {padre.apellido}</Text>
+                  <Text className="text-gray-800 font-bold text-base">
+                    {padre.nombre} {padre.apellido}
+                  </Text>
                   <Text className="text-gray-500 text-sm">{padre.correo}</Text>
                 </View>
                 <TouchableOpacity
