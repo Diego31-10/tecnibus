@@ -10,14 +10,20 @@ interface DashboardHeaderProps {
   gradientColors?: string[];
   icon?: LucideIcon;
   iconBgOpacity?: number;
+  rightBadge?: { text: string; bgColor: string; textColor: string } | null;
 }
 
 export function DashboardHeader({
   title,
   subtitle,
-  gradientColors = [Colors.tecnibus[600], Colors.tecnibus[500], Colors.tecnibus[400]],
+  gradientColors = [
+    Colors.tecnibus[600],
+    Colors.tecnibus[500],
+    Colors.tecnibus[400],
+  ],
   icon: Icon = Shield,
   iconBgOpacity = 0.2,
+  rightBadge,
 }: DashboardHeaderProps) {
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top + 8, 44);
@@ -35,7 +41,7 @@ export function DashboardHeader({
         borderBottomRightRadius: 24,
       }}
     >
-      {/* Top bar: icon + title */}
+      {/* Top bar: icon + title + optional badge */}
       <View className="flex-row items-center" style={{ marginBottom: 20 }}>
         <View
           className="items-center justify-center"
@@ -55,18 +61,31 @@ export function DashboardHeader({
         >
           {title}
         </Text>
+        {rightBadge && (
+          <View style={{ flex: 1, alignItems: "flex-end" }}>
+            <View
+              style={{
+                backgroundColor: rightBadge.bgColor,
+                borderRadius: 999,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+              }}
+            >
+              <Text
+                className="font-bold"
+                style={{
+                  fontSize: 11,
+                  color: rightBadge.textColor,
+                  letterSpacing: 0.5,
+                }}
+              >
+                {rightBadge.text}
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
-
-      {/* Greeting */}
-      <Text
-        style={{
-          fontSize: 15,
-          marginBottom: 4,
-          color: "rgba(255,255,255,0.8)",
-        }}
-      >
-        Bienvenido de nuevo
-      </Text>
+      )
       <Text
         className="text-white font-bold font-calsans"
         style={{ fontSize: 28 }}

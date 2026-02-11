@@ -11,6 +11,7 @@ interface BottomNavigationProps {
   onTrackingPress: () => void;
   onSettingsPress: () => void;
   activeColor?: string;
+  trackingLabel?: string;
 }
 
 const INACTIVE_COLOR = "#9CA3AF";
@@ -21,6 +22,7 @@ export function BottomNavigation({
   onTrackingPress,
   onSettingsPress,
   activeColor = Colors.tecnibus[600],
+  trackingLabel = "Tracking",
 }: BottomNavigationProps) {
   const insets = useSafeAreaInsets();
   const paddingBottom = Math.max(insets.bottom, 8);
@@ -88,7 +90,7 @@ export function BottomNavigation({
             />
 
             <TabItem
-              label="Tracking"
+              label={trackingLabel}
               icon={<MapPin size={21} color={activeTab === "tracking" ? "#ffffff" : INACTIVE_COLOR} strokeWidth={2} />}
               active={activeTab === "tracking"}
               onPress={onTrackingPress}
