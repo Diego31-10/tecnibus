@@ -7,6 +7,7 @@ import {
   EstimatedArrivalBadge,
   ParentTrackingHero,
   RecorridoStatusBadge,
+  StudentSelector,
   TodayTimeline,
 } from "@/features/parent";
 import { Colors } from "@/lib/constants/colors";
@@ -25,7 +26,7 @@ import {
 } from "@/lib/services/ubicaciones.service";
 import { haptic } from "@/lib/utils/haptics";
 import { useRouter } from "expo-router";
-import { GraduationCap, Heart } from "lucide-react-native";
+import { ChevronDown, GraduationCap, Heart } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -33,6 +34,7 @@ import {
   ScrollView,
   StatusBar,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -55,6 +57,7 @@ export default function ParentHomeScreen() {
     null,
   );
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
+  const [showStudentSelector, setShowStudentSelector] = useState(false);
 
   // Datos temporales
   const estimatedMinutes = 8;
@@ -351,6 +354,12 @@ export default function ParentHomeScreen() {
     router.push("/parent/settings");
   };
 
+  const handleSelectStudent = (estudiante: EstudianteDelPadre) => {
+    haptic.light();
+    setEstudianteSeleccionado(estudiante);
+    setShowStudentSelector(false);
+  };
+
   const handleChatDriver = () => {
     haptic.light();
     Alert.alert("Chat Chofer", "Funcionalidad en desarrollo");
@@ -422,7 +431,7 @@ export default function ParentHomeScreen() {
         style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}
       >
         <DashboardHeader
-          title="Seguimiento Escolar"
+          title="PANEL DE PADRE"
           subtitle={`¡Hola ${profile?.nombre}!`}
           gradientColors={[
             Colors.tecnibus[600],
@@ -440,6 +449,55 @@ export default function ParentHomeScreen() {
           minutes={estimatedMinutes}
           onSchedule={choferEnCamino}
         />
+
+        {/* Student Selector Chip - Solo si hay más de 1 estudiante */}
+        {estudiantes.length > 1 && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              haptic.light();
+              setShowStudentSelector(true);
+            }}
+            style={{
+              marginHorizontal: 16,
+              marginTop: 8,
+              alignSelf: "flex-start",
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "rgba(255, 255, 255, 0.95)",
+              borderRadius: 12,
+              paddingVertical: 8,
+              paddingHorizontal: 12,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 3,
+            }}
+          >
+            <GraduationCap
+              size={16}
+              color={Colors.tecnibus[600]}
+              strokeWidth={2.5}
+            />
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: "600",
+                color: Colors.tecnibus[800],
+                marginLeft: 6,
+              }}
+            >
+              {estudianteSeleccionado?.nombre || "Seleccionar"}
+            </Text>
+            <ChevronDown
+              size={14}
+              color={Colors.tecnibus[500]}
+              strokeWidth={2.5}
+              style={{ marginLeft: 4 }}
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Draggable Bottom Sheet */}
@@ -473,6 +531,15 @@ export default function ParentHomeScreen() {
           <TodayTimeline events={timelineEvents} isLive={choferEnCamino} />
         </ScrollView>
       </DraggableBottomSheet>
+
+      {/* Student Selector Modal */}
+      <StudentSelector
+        visible={showStudentSelector}
+        estudiantes={estudiantes}
+        selectedId={estudianteSeleccionado?.id}
+        onSelect={handleSelectStudent}
+        onClose={() => setShowStudentSelector(false)}
+      />
 
       {/* Bottom Navigation - Always on top */}
       <BottomNavigation
