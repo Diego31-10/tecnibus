@@ -1,56 +1,49 @@
-import { Colors } from '@/lib/constants/colors';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
-import { useRouter } from 'expo-router';
+import { Colors } from "@/lib/constants/colors";
+import { haptic } from "@/lib/utils/haptics";
+import { createShadow } from "@/lib/utils/shadows";
+import { useRouter } from "expo-router";
+import { ArrowLeft, Bus, Hash, Users } from "lucide-react-native";
+import { useState } from "react";
 import {
-  ArrowLeft,
-  Bus,
-  Hash,
-  Users
-} from 'lucide-react-native';
-import { useState } from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AnimatedCard } from '../../../components';
-import Toast from '../../../components/Toast';
-import {
-  createBuseta
-} from '../../../lib/services/busetas.service';
+    ActivityIndicator,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AnimatedCard } from "../../../components";
+import Toast from "../../../components/Toast";
+import { createBuseta } from "../../../lib/services/busetas.service";
 
 export default function CrearBusetaScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow('lg');
+  const shadow = createShadow("lg");
 
   // Form state
-  const [placa, setPlaca] = useState('');
-  const [capacidad, setCapacidad] = useState('');
+  const [placa, setPlaca] = useState("");
+  const [capacidad, setCapacidad] = useState("");
 
   // UI State
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{
     visible: boolean;
     message: string;
-    type: 'success' | 'error' | 'warning' | 'info';
+    type: "success" | "error" | "warning" | "info";
   }>({
     visible: false,
-    message: '',
-    type: 'success',
+    message: "",
+    type: "success",
   });
 
   const handleSubmit = async () => {
     // Validaciones
     if (!placa.trim()) {
-      setToast({ visible: true, message: 'Ingresa la placa', type: 'warning' });
+      setToast({ visible: true, message: "Ingresa la placa", type: "warning" });
       return;
     }
 
@@ -58,8 +51,8 @@ export default function CrearBusetaScreen() {
     if (!capacidad.trim() || isNaN(capacidadNum) || capacidadNum <= 0) {
       setToast({
         visible: true,
-        message: 'Ingresa una capacidad válida',
-        type: 'warning',
+        message: "Ingresa una capacidad válida",
+        type: "warning",
       });
       return;
     }
@@ -77,25 +70,32 @@ export default function CrearBusetaScreen() {
     if (result) {
       setToast({
         visible: true,
-        message: 'Buseta creada correctamente',
-        type: 'success',
+        message: "Buseta creada correctamente",
+        type: "success",
       });
       setTimeout(() => router.back(), 1500);
     } else {
       setToast({
         visible: true,
-        message: 'Error al crear la buseta',
-        type: 'error',
+        message: "Error al crear la buseta",
+        type: "error",
       });
     }
   };
 
   return (
     <View className="flex-1 bg-admin-50">
-      <StatusBar barStyle="light-content" backgroundColor={Colors.buseta[700]} translucent={false} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={Colors.tecnibus[700]}
+        translucent={false}
+      />
 
       {/* Header */}
-      <View className="bg-buseta-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View
+        className="bg-buseta-700 pb-6 px-6 rounded-b-3xl"
+        style={[{ paddingTop }, shadow]}
+      >
         <View className="flex-row items-center">
           <TouchableOpacity
             className="bg-buseta-600 p-2 rounded-xl mr-4"
@@ -113,7 +113,11 @@ export default function CrearBusetaScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 32 }}
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingTop: 24,
+          paddingBottom: 32,
+        }}
         showsVerticalScrollIndicator={false}
       >
         {/* Placa */}
@@ -160,7 +164,7 @@ export default function CrearBusetaScreen() {
             onPress={handleSubmit}
             disabled={loading}
             className={`rounded-xl py-4 flex-row items-center justify-center ${
-              loading ? 'bg-buseta-400' : 'bg-buseta-600'
+              loading ? "bg-buseta-400" : "bg-buseta-600"
             }`}
             style={shadow}
           >

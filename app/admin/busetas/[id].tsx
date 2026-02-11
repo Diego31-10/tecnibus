@@ -1,44 +1,38 @@
-import { Colors } from '@/lib/constants/colors';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Colors } from "@/lib/constants/colors";
+import { haptic } from "@/lib/utils/haptics";
+import { createShadow } from "@/lib/utils/shadows";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { ArrowLeft, Bus, Hash, Trash2, Users } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
-  ArrowLeft,
-  Bus,
-  Hash,
-  Trash2,
-  Users
-} from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AnimatedCard } from "../../../components";
+import Toast from "../../../components/Toast";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AnimatedCard } from '../../../components';
-import Toast from '../../../components/Toast';
-import {
-  deleteBuseta,
-  getBusetas,
-  updateBuseta
-} from '../../../lib/services/busetas.service';
+    deleteBuseta,
+    getBusetas,
+    updateBuseta,
+} from "../../../lib/services/busetas.service";
 
 export default function EditarBusetaScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow('lg');
+  const shadow = createShadow("lg");
 
   // Form state
-  const [placa, setPlaca] = useState('');
-  const [capacidad, setCapacidad] = useState('');
+  const [placa, setPlaca] = useState("");
+  const [capacidad, setCapacidad] = useState("");
 
   // UI State
   const [loading, setLoading] = useState(false);
@@ -46,11 +40,11 @@ export default function EditarBusetaScreen() {
   const [toast, setToast] = useState<{
     visible: boolean;
     message: string;
-    type: 'success' | 'error' | 'warning' | 'info';
+    type: "success" | "error" | "warning" | "info";
   }>({
     visible: false,
-    message: '',
-    type: 'success',
+    message: "",
+    type: "success",
   });
 
   useEffect(() => {
@@ -67,8 +61,8 @@ export default function EditarBusetaScreen() {
     const busetaActual = busetasData.find((b) => b.id === id);
 
     if (!busetaActual) {
-      Alert.alert('Error', 'No se encontró la buseta', [
-        { text: 'OK', onPress: () => router.back() },
+      Alert.alert("Error", "No se encontró la buseta", [
+        { text: "OK", onPress: () => router.back() },
       ]);
       return;
     }
@@ -83,7 +77,7 @@ export default function EditarBusetaScreen() {
   const handleUpdate = async () => {
     // Validaciones
     if (!placa.trim()) {
-      setToast({ visible: true, message: 'Ingresa la placa', type: 'warning' });
+      setToast({ visible: true, message: "Ingresa la placa", type: "warning" });
       return;
     }
 
@@ -91,8 +85,8 @@ export default function EditarBusetaScreen() {
     if (!capacidad.trim() || isNaN(capacidadNum) || capacidadNum <= 0) {
       setToast({
         visible: true,
-        message: 'Ingresa una capacidad válida',
-        type: 'warning',
+        message: "Ingresa una capacidad válida",
+        type: "warning",
       });
       return;
     }
@@ -110,15 +104,15 @@ export default function EditarBusetaScreen() {
     if (success) {
       setToast({
         visible: true,
-        message: 'Buseta actualizada correctamente',
-        type: 'success',
+        message: "Buseta actualizada correctamente",
+        type: "success",
       });
       setTimeout(() => router.back(), 1500);
     } else {
       setToast({
         visible: true,
-        message: 'No se pudo actualizar la buseta',
-        type: 'error',
+        message: "No se pudo actualizar la buseta",
+        type: "error",
       });
     }
   };
@@ -127,16 +121,16 @@ export default function EditarBusetaScreen() {
     haptic.light();
 
     Alert.alert(
-      'Confirmar eliminación',
-      '¿Estás seguro de eliminar esta buseta? Esta acción no se puede deshacer.',
+      "Confirmar eliminación",
+      "¿Estás seguro de eliminar esta buseta? Esta acción no se puede deshacer.",
       [
         {
-          text: 'Cancelar',
-          style: 'cancel',
+          text: "Cancelar",
+          style: "cancel",
         },
         {
-          text: 'Eliminar',
-          style: 'destructive',
+          text: "Eliminar",
+          style: "destructive",
           onPress: async () => {
             haptic.heavy();
             setLoading(true);
@@ -147,27 +141,31 @@ export default function EditarBusetaScreen() {
             if (result.success) {
               setToast({
                 visible: true,
-                message: 'Buseta eliminada correctamente',
-                type: 'success',
+                message: "Buseta eliminada correctamente",
+                type: "success",
               });
               setTimeout(() => router.back(), 1500);
             } else {
               setToast({
                 visible: true,
-                message: result.error || 'No se pudo eliminar la buseta',
-                type: 'error',
+                message: result.error || "No se pudo eliminar la buseta",
+                type: "error",
               });
             }
           },
         },
-      ]
+      ],
     );
   };
 
   if (loadingData) {
     return (
       <View className="flex-1 bg-admin-50 items-center justify-center">
-        <StatusBar barStyle="light-content" backgroundColor={Colors.buseta[700]} translucent={false} />
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor={Colors.tecnibus[700]}
+          translucent={false}
+        />
         <ActivityIndicator size="large" color="#16a34a" />
         <Text className="text-gray-500 mt-4">Cargando datos...</Text>
       </View>
@@ -176,10 +174,17 @@ export default function EditarBusetaScreen() {
 
   return (
     <View className="flex-1 bg-admin-50">
-      <StatusBar barStyle="light-content" backgroundColor="#15803d" translucent={false} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#15803d"
+        translucent={false}
+      />
 
       {/* Header */}
-      <View className="bg-buseta-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View
+        className="bg-buseta-700 pb-6 px-6 rounded-b-3xl"
+        style={[{ paddingTop }, shadow]}
+      >
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -210,7 +215,11 @@ export default function EditarBusetaScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 32 }}
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingTop: 24,
+          paddingBottom: 32,
+        }}
         showsVerticalScrollIndicator={false}
       >
         {/* Placa */}
@@ -257,7 +266,7 @@ export default function EditarBusetaScreen() {
             onPress={handleUpdate}
             disabled={loading}
             className={`rounded-xl py-4 flex-row items-center justify-center ${
-              loading ? 'bg-buseta-400' : 'bg-buseta-600'
+              loading ? "bg-buseta-400" : "bg-buseta-600"
             }`}
             style={shadow}
           >
