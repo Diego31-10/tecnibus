@@ -1,36 +1,44 @@
-import { Colors } from '@/lib/constants/colors';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { ArrowLeft, Plus, Trash2, UserCircle } from 'lucide-react-native';
-import { useCallback, useState } from 'react';
+import { Colors } from "@/lib/constants/colors";
+import { haptic } from "@/lib/utils/haptics";
+import { createShadow } from "@/lib/utils/shadows";
+import { useFocusEffect, useRouter } from "expo-router";
+import { ArrowLeft, Plus, Trash2, UserCircle } from "lucide-react-native";
+import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Toast from '../../../components/Toast';
-import { eliminarUsuario, obtenerChoferes, type Profile } from '../../../lib/services/admin.service';
+    ActivityIndicator,
+    Alert,
+    RefreshControl,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "../../../components/Toast";
+import {
+    eliminarUsuario,
+    obtenerChoferes,
+    type Profile,
+} from "../../../lib/services/admin.service";
 
 export default function ListaChoferesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow('lg');
+  const shadow = createShadow("lg");
   const [choferes, setChoferes] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' | 'warning' | 'info' }>({
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  }>({
     visible: false,
-    message: '',
-    type: 'success'
+    message: "",
+    type: "success",
   });
 
   const cargarChoferes = useCallback(async () => {
@@ -40,8 +48,8 @@ export default function ListaChoferesScreen() {
     } catch (error) {
       setToast({
         visible: true,
-        message: 'Error al cargar choferes',
-        type: 'error',
+        message: "Error al cargar choferes",
+        type: "error",
       });
     } finally {
       setLoading(false);
@@ -53,7 +61,7 @@ export default function ListaChoferesScreen() {
   useFocusEffect(
     useCallback(() => {
       cargarChoferes();
-    }, [cargarChoferes])
+    }, [cargarChoferes]),
   );
 
   const onRefresh = useCallback(() => {
@@ -64,16 +72,16 @@ export default function ListaChoferesScreen() {
   const confirmarEliminar = (chofer: Profile) => {
     haptic.medium();
     Alert.alert(
-      'Eliminar Chofer',
-      `¿Estás seguro de eliminar a ${chofer.nombre} ${chofer.apellido || ''}? Esta acción no se puede deshacer.`,
+      "Eliminar Chofer",
+      `¿Estás seguro de eliminar a ${chofer.nombre} ${chofer.apellido || ""}? Esta acción no se puede deshacer.`,
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: "Cancelar", style: "cancel" },
         {
-          text: 'Eliminar',
-          style: 'destructive',
+          text: "Eliminar",
+          style: "destructive",
           onPress: () => handleEliminar(chofer.id),
         },
-      ]
+      ],
     );
   };
 
@@ -85,14 +93,14 @@ export default function ListaChoferesScreen() {
       setChoferes((prev) => prev.filter((c) => c.id !== userId));
       setToast({
         visible: true,
-        message: 'Chofer eliminado correctamente',
-        type: 'success',
+        message: "Chofer eliminado correctamente",
+        type: "success",
       });
     } else {
       setToast({
         visible: true,
-        message: result.error || 'Error al eliminar',
-        type: 'error',
+        message: result.error || "Error al eliminar",
+        type: "error",
       });
     }
     setDeletingId(null);
@@ -100,10 +108,17 @@ export default function ListaChoferesScreen() {
 
   return (
     <View className="flex-1 bg-chofer-50">
-      <StatusBar barStyle="light-content" backgroundColor={Colors.chofer[700]} translucent={false} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={Colors.tecnibus[700]}
+        translucent={false}
+      />
 
       {/* HEADER */}
-      <View className="bg-chofer-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View
+        className="bg-chofer-700 pb-6 px-6 rounded-b-3xl"
+        style={[{ paddingTop }, shadow]}
+      >
         <View className="flex-row items-center">
           <TouchableOpacity
             className="bg-chofer-600 p-2 rounded-xl"
@@ -112,14 +127,16 @@ export default function ListaChoferesScreen() {
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
           <View className="flex-1 ">
-            <Text className="text-white text-2xl font-bold text-center">Choferes</Text>
+            <Text className="text-white text-2xl font-bold text-center">
+              Choferes
+            </Text>
             <Text className="text-white text-xl mt-1 text-center">
               {choferes.length} registrados
             </Text>
           </View>
           <TouchableOpacity
             className="bg-chofer-600 p-2 rounded-xl"
-            onPress={() => router.push('/admin/choferes/crear')}
+            onPress={() => router.push("/admin/choferes/crear")}
           >
             <Plus size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
@@ -135,7 +152,11 @@ export default function ListaChoferesScreen() {
           className="flex-1 px-6 pt-6"
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#ca8a04']} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#ca8a04"]}
+            />
           }
         >
           {choferes.length === 0 ? (
@@ -146,9 +167,11 @@ export default function ListaChoferesScreen() {
               </Text>
               <TouchableOpacity
                 className="bg-chofer-600 py-3 px-6 rounded-xl mt-4"
-                onPress={() => router.push('/admin/choferes/crear')}
+                onPress={() => router.push("/admin/choferes/crear")}
               >
-                <Text className="text-white font-semibold">Crear Primer Chofer</Text>
+                <Text className="text-white font-semibold">
+                  Crear Primer Chofer
+                </Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -161,7 +184,9 @@ export default function ListaChoferesScreen() {
                   <UserCircle size={28} color="#ca8a04" strokeWidth={2} />
                 </View>
                 <View className="flex-1 ml-4">
-                  <Text className="text-gray-800 font-bold text-base">{chofer.nombre} {chofer.apellido}</Text>
+                  <Text className="text-gray-800 font-bold text-base">
+                    {chofer.nombre} {chofer.apellido}
+                  </Text>
                   <Text className="text-gray-500 text-sm">{chofer.correo}</Text>
                 </View>
                 <TouchableOpacity

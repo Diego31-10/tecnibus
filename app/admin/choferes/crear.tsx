@@ -1,56 +1,84 @@
-import { Colors } from '@/lib/constants/colors';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
-import { useRouter } from 'expo-router';
-import { ArrowLeft, Eye, EyeOff, Lock, Mail, Save, User } from 'lucide-react-native';
-import { useState } from 'react';
+import { Colors } from "@/lib/constants/colors";
+import { haptic } from "@/lib/utils/haptics";
+import { createShadow } from "@/lib/utils/shadows";
+import { useRouter } from "expo-router";
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Toast from '../../../components/Toast';
-import { crearUsuario } from '../../../lib/services/admin.service';
+    ArrowLeft,
+    Eye,
+    EyeOff,
+    Lock,
+    Mail,
+    Save,
+    User,
+} from "lucide-react-native";
+import { useState } from "react";
+import {
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "../../../components/Toast";
+import { crearUsuario } from "../../../lib/services/admin.service";
 
 export default function CrearChoferScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow('lg');
-  const [nombre, setNombre] = useState('');
-  const [apellido, setApellido] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const shadow = createShadow("lg");
+  const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' | 'warning' | 'info' }>({
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  }>({
     visible: false,
-    message: '',
-    type: 'success'
+    message: "",
+    type: "success",
   });
 
   const validarFormulario = () => {
     if (!nombre.trim()) {
-      setToast({ visible: true, message: 'Ingresa el nombre', type: 'warning' });
+      setToast({
+        visible: true,
+        message: "Ingresa el nombre",
+        type: "warning",
+      });
       return false;
     }
     if (!apellido.trim()) {
-      setToast({ visible: true, message: 'Ingresa el apellido', type: 'warning' });
+      setToast({
+        visible: true,
+        message: "Ingresa el apellido",
+        type: "warning",
+      });
       return false;
     }
-    if (!email.trim() || !email.includes('@')) {
-      setToast({ visible: true, message: 'Ingresa un correo válido', type: 'warning' });
+    if (!email.trim() || !email.includes("@")) {
+      setToast({
+        visible: true,
+        message: "Ingresa un correo válido",
+        type: "warning",
+      });
       return false;
     }
     if (password.length < 6) {
-      setToast({ visible: true, message: 'La contraseña debe tener al menos 6 caracteres', type: 'warning' });
+      setToast({
+        visible: true,
+        message: "La contraseña debe tener al menos 6 caracteres",
+        type: "warning",
+      });
       return false;
     }
     return true;
@@ -67,21 +95,21 @@ export default function CrearChoferScreen() {
       apellido: apellido.trim(),
       email: email.trim().toLowerCase(),
       password,
-      rol: 'chofer',
+      rol: "chofer",
     });
 
     if (result.success) {
       setToast({
         visible: true,
-        message: 'Chofer creado correctamente',
-        type: 'success',
+        message: "Chofer creado correctamente",
+        type: "success",
       });
       setTimeout(() => router.back(), 1500);
     } else {
       setToast({
         visible: true,
-        message: result.error || 'Error al crear chofer',
-        type: 'error',
+        message: result.error || "Error al crear chofer",
+        type: "error",
       });
     }
     setLoading(false);
@@ -89,10 +117,17 @@ export default function CrearChoferScreen() {
 
   return (
     <View className="flex-1 bg-chofer-50">
-      <StatusBar barStyle="light-content" backgroundColor={Colors.chofer[700]} translucent={false} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={Colors.tecnibus[700]}
+        translucent={false}
+      />
 
       {/* Header */}
-      <View className="bg-chofer-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View
+        className="bg-chofer-700 pb-6 px-6 rounded-b-3xl"
+        style={[{ paddingTop }, shadow]}
+      >
         <View className="flex-row items-center">
           <TouchableOpacity
             className="bg-chofer-600 p-2 rounded-xl mr-4"
@@ -110,12 +145,14 @@ export default function CrearChoferScreen() {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-        <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="flex-1 px-6 pt-6"
+          showsVerticalScrollIndicator={false}
+        >
           <View className="bg-white rounded-2xl p-6 shadow-sm">
-
             {/* Nombre */}
             <View className="mb-4">
               <Text className="text-gray-700 font-semibold mb-2">Nombre</Text>
@@ -150,7 +187,9 @@ export default function CrearChoferScreen() {
 
             {/* Email */}
             <View className="mb-4">
-              <Text className="text-gray-700 font-semibold mb-2">Correo electrónico</Text>
+              <Text className="text-gray-700 font-semibold mb-2">
+                Correo electrónico
+              </Text>
               <View className="flex-row items-center bg-gray-100 rounded-xl px-4">
                 <Mail size={20} color="#6b7280" strokeWidth={2} />
                 <TextInput
@@ -168,7 +207,9 @@ export default function CrearChoferScreen() {
 
             {/* Password */}
             <View className="mb-6">
-              <Text className="text-gray-700 font-semibold mb-2">Contraseña</Text>
+              <Text className="text-gray-700 font-semibold mb-2">
+                Contraseña
+              </Text>
               <View className="flex-row items-center bg-gray-100 rounded-xl px-4">
                 <Lock size={20} color="#6b7280" strokeWidth={2} />
                 <TextInput
@@ -179,7 +220,9 @@ export default function CrearChoferScreen() {
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                 />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                >
                   {showPassword ? (
                     <EyeOff size={20} color="#6b7280" strokeWidth={2} />
                   ) : (
@@ -192,7 +235,7 @@ export default function CrearChoferScreen() {
             {/* Botón Crear */}
             <TouchableOpacity
               className={`py-4 rounded-xl flex-row items-center justify-center ${
-                loading ? 'bg-chofer-400' : 'bg-chofer-600'
+                loading ? "bg-chofer-400" : "bg-chofer-600"
               }`}
               onPress={handleCrear}
               disabled={loading}
@@ -203,7 +246,9 @@ export default function CrearChoferScreen() {
               ) : (
                 <>
                   <Save size={20} color="#ffffff" strokeWidth={2.5} />
-                  <Text className="text-white font-bold text-lg ml-2">Crear Chofer</Text>
+                  <Text className="text-white font-bold text-lg ml-2">
+                    Crear Chofer
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -211,7 +256,8 @@ export default function CrearChoferScreen() {
 
           <View className="bg-chofer-100 rounded-xl p-4 mt-4 mb-6">
             <Text className="text-chofer-800 text-sm text-center">
-              El chofer recibirá acceso para gestionar recorridos y ver estudiantes asignados.
+              El chofer recibirá acceso para gestionar recorridos y ver
+              estudiantes asignados.
             </Text>
           </View>
         </ScrollView>
