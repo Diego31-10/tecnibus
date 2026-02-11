@@ -1,102 +1,151 @@
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
-import { useRouter } from 'expo-router';
+import { BottomNavigation } from "@/components/layout/BottomNavigation";
+import { DashboardHeader } from "@/components/layout/DashboardHeader";
+import { useAuth } from "@/contexts/AuthContext";
 import {
-  ArrowLeft,
-  ArrowDown,
-  ArrowUp,
-  Clock,
-  MapPin,
-  Navigation,
-  Play,
-  Settings,
-  Square,
-  Users,
-  CheckCircle2,
-  XCircle
-} from 'lucide-react-native';
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AnimatedButton, AnimatedCard, StatusBadge } from '../../components';
-import { useAuth } from '../../contexts/AuthContext';
+  DriverQuickStats,
+  MapCard,
+  NextStudentHero,
+  RecorridoSelector,
+} from "@/features/driver";
+import { Colors } from "@/lib/constants/colors";
+import { useGPSTracking } from "@/lib/hooks/useGPSTracking";
+import {
+  getRecorridosHoy,
+  type RecorridoChofer,
+} from "@/lib/services/asignaciones.service";
 import {
   getEstudiantesConAsistencia,
   marcarAusente,
   type EstudianteConAsistencia,
-  type EstadoAsistencia
-} from '@/lib/services/asistencias.service';
-import { supabase } from '@/lib/services/supabase';
+} from "@/lib/services/asistencias.service";
 import {
-  getRecorridosHoy,
-  type RecorridoChofer
-} from '@/lib/services/asignaciones.service';
-import {
-  iniciarRecorrido,
   finalizarRecorrido,
   getEstadoRecorrido,
-} from '@/lib/services/recorridos.service';
-import { useGPSTracking } from '@/lib/hooks/useGPSTracking';
+  iniciarRecorrido,
+} from "@/lib/services/recorridos.service";
+import { getParadasByRuta, type Parada } from "@/lib/services/rutas.service";
+import { supabase } from "@/lib/services/supabase";
+import type { UbicacionActual } from "@/lib/services/ubicaciones.service";
+import { haptic } from "@/lib/utils/haptics";
+import { useRouter } from "expo-router";
+import { Bus, Play, Square } from "lucide-react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function DriverHomeScreen() {
   const router = useRouter();
-  const { signOut, profile } = useAuth();
-  const insets = useSafeAreaInsets();
+  const { profile } = useAuth();
+
+  // State
   const [routeActive, setRouteActive] = useState(false);
+  const [recorridos, setRecorridos] = useState<RecorridoChofer[]>([]);
+  const [recorridoActual, setRecorridoActual] =
+    useState<RecorridoChofer | null>(null);
+  const [estudiantes, setEstudiantes] = useState<EstudianteConAsistencia[]>([]);
+  const [processingStudent, setProcessingStudent] = useState<string | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [loadingRecorridos, setLoadingRecorridos] = useState(true);
-  const [recorridos, setRecorridos] = useState<RecorridoChofer[]>([]);
-  const [recorridoActual, setRecorridoActual] = useState<RecorridoChofer | null>(null);
-  const [estudiantes, setEstudiantes] = useState<EstudianteConAsistencia[]>([]);
-  const [processingStudent, setProcessingStudent] = useState<string | null>(null);
+  const [showRecorridoSelector, setShowRecorridoSelector] = useState(false);
+  const [paradas, setParadas] = useState<Parada[]>([]);
+  const [ubicacionBus, setUbicacionBus] = useState<UbicacionActual | null>(
+    null,
+  );
 
-  // Tracking GPS automático
-  const { permisoConcedido, error: errorGPS, tracking } = useGPSTracking({
+  // GPS tracking
+  const { error: errorGPS, tracking } = useGPSTracking({
     idAsignacion: recorridoActual?.id || null,
-    idChofer: profile?.id || '',
+    idChofer: profile?.id || "",
     recorridoActivo: routeActive,
     intervaloSegundos: 10,
   });
 
-  const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow('lg');
+  // Derived stats
+  const stats = useMemo(() => {
+    const completed = estudiantes.filter(
+      (e) => e.estado === "presente" || e.estado === "completado",
+    ).length;
+    const absent = estudiantes.filter((e) => e.estado === "ausente").length;
+    const total = estudiantes.length;
+    const remaining = total - completed - absent;
+    return { completed, absent, total, remaining };
+  }, [estudiantes]);
 
-  // Cargar recorridos del día
+  // Next student: first student not absent/completado, ordered by parada.orden
+  const nextStudent = useMemo(() => {
+    const pending = estudiantes
+      .filter((e) => e.estado !== "ausente" && e.estado !== "completado")
+      .sort((a, b) => (a.parada?.orden ?? 99) - (b.parada?.orden ?? 99));
+    return pending[0] || null;
+  }, [estudiantes]);
+
+  // Load recorridos
   const cargarRecorridos = useCallback(async () => {
     if (!profile?.id) return;
-
     try {
       setLoadingRecorridos(true);
       const data = await getRecorridosHoy(profile.id);
       setRecorridos(data);
-
-      // Auto-seleccionar el primer recorrido si hay
       if (data.length > 0 && !recorridoActual) {
         setRecorridoActual(data[0]);
       }
     } catch (error) {
-      console.error('Error cargando recorridos:', error);
-      Alert.alert('Error', 'No se pudieron cargar los recorridos');
+      console.error("Error cargando recorridos:", error);
+      Alert.alert("Error", "No se pudieron cargar los recorridos");
     } finally {
       setLoadingRecorridos(false);
     }
   }, [profile?.id]);
 
-  // Cargar estudiantes del recorrido actual
+  // Load students
   const cargarEstudiantes = useCallback(async () => {
     if (!profile?.id || !recorridoActual) return;
-
     try {
       setLoading(true);
-      const data = await getEstudiantesConAsistencia(recorridoActual.id_ruta, profile.id);
+      const data = await getEstudiantesConAsistencia(
+        recorridoActual.id_ruta,
+        profile.id,
+      );
       setEstudiantes(data);
     } catch (error) {
-      console.error('Error cargando estudiantes:', error);
-      Alert.alert('Error', 'No se pudieron cargar los estudiantes');
+      console.error("Error cargando estudiantes:", error);
+      Alert.alert("Error", "No se pudieron cargar los estudiantes");
     } finally {
       setLoading(false);
     }
   }, [profile?.id, recorridoActual]);
+
+  // Load paradas
+  const cargarParadas = useCallback(async () => {
+    if (!recorridoActual) return;
+    try {
+      const data = await getParadasByRuta(recorridoActual.id_ruta);
+      setParadas(data);
+    } catch (error) {
+      console.error("Error cargando paradas:", error);
+    }
+  }, [recorridoActual]);
+
+  // Load route state
+  const cargarEstadoRecorrido = useCallback(async () => {
+    if (!recorridoActual) return;
+    try {
+      const estado = await getEstadoRecorrido(recorridoActual.id);
+      setRouteActive(estado?.activo || false);
+    } catch (error) {
+      console.error("Error cargando estado del recorrido:", error);
+    }
+  }, [recorridoActual]);
 
   useEffect(() => {
     cargarRecorridos();
@@ -106,447 +155,524 @@ export default function DriverHomeScreen() {
     if (recorridoActual) {
       cargarEstudiantes();
       cargarEstadoRecorrido();
+      cargarParadas();
     }
-  }, [recorridoActual, cargarEstudiantes]);
+  }, [
+    recorridoActual,
+    cargarEstudiantes,
+    cargarEstadoRecorrido,
+    cargarParadas,
+  ]);
 
-  // Cargar estado del recorrido
-  const cargarEstadoRecorrido = useCallback(async () => {
-    if (!recorridoActual) return;
-
-    try {
-      const estado = await getEstadoRecorrido(recorridoActual.id);
-      setRouteActive(estado?.activo || false);
-    } catch (error) {
-      console.error('Error cargando estado del recorrido:', error);
-    }
-  }, [recorridoActual]);
-
-  // Suscripción en tiempo real a cambios en asistencias
+  // Realtime: attendance changes
   useEffect(() => {
     if (!recorridoActual) return;
-
-    console.log('🔔 Suscribiendo a cambios en asistencias...');
-
     const channel = supabase
-      .channel('asistencias-changes')
+      .channel("asistencias-changes")
       .on(
-        'postgres_changes',
-        {
-          event: '*', // INSERT, UPDATE, DELETE
-          schema: 'public',
-          table: 'asistencias',
-        },
-        (payload) => {
-          console.log('🔔 Cambio detectado en asistencias:', payload);
-          // Recargar lista automáticamente
-          cargarEstudiantes();
-        }
+        "postgres_changes",
+        { event: "*", schema: "public", table: "asistencias" },
+        () => cargarEstudiantes(),
       )
       .subscribe();
-
     return () => {
-      console.log('🔕 Desuscribiendo de cambios en asistencias');
       supabase.removeChannel(channel);
     };
   }, [recorridoActual, cargarEstudiantes]);
 
-  // Suscripción en tiempo real a cambios en estados de recorrido
+  // Realtime: route state changes
   useEffect(() => {
     if (!recorridoActual) return;
-
-    console.log('🔔 Suscribiendo a cambios en estados de recorrido...');
-
     const channel = supabase
-      .channel('estados-recorrido-changes')
+      .channel("estados-recorrido-changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'estados_recorrido',
+          event: "*",
+          schema: "public",
+          table: "estados_recorrido",
           filter: `id_asignacion=eq.${recorridoActual.id}`,
         },
-        (payload) => {
-          console.log('🔔 Cambio detectado en estado de recorrido:', payload);
-          cargarEstadoRecorrido();
-        }
+        () => cargarEstadoRecorrido(),
       )
       .subscribe();
-
     return () => {
-      console.log('🔕 Desuscribiendo de cambios en estados de recorrido');
       supabase.removeChannel(channel);
     };
   }, [recorridoActual, cargarEstadoRecorrido]);
 
-  const handleMarcarAusente = async (idEstudiante: string) => {
-    if (!profile?.id || !recorridoActual) return;
-
+  // Handlers
+  const handleMarcarAusente = async () => {
+    if (!profile?.id || !recorridoActual || !nextStudent) return;
     try {
-      setProcessingStudent(idEstudiante);
+      setProcessingStudent(nextStudent.id);
       haptic.medium();
-
       const result = await marcarAusente(
-        idEstudiante,
+        nextStudent.id,
         recorridoActual.id_ruta,
-        profile.id
+        profile.id,
       );
-
       if (result) {
         await cargarEstudiantes();
         haptic.success();
       } else {
         haptic.error();
-        Alert.alert('Error', 'No se pudo marcar como ausente');
+        Alert.alert("Error", "No se pudo marcar como ausente");
       }
     } catch (error) {
-      console.error('Error marcando ausente:', error);
+      console.error("Error marcando ausente:", error);
       haptic.error();
-      Alert.alert('Error', 'Ocurrió un error');
+      Alert.alert("Error", "Ocurrio un error");
     } finally {
       setProcessingStudent(null);
     }
   };
 
-  const presentesCount = estudiantes.filter(e => e.estado === 'presente').length;
-  const ausentesCount = estudiantes.filter(e => e.estado === 'ausente').length;
-  const totalStudents = estudiantes.length;
+  const handleNavigate = () => {
+    if (!nextStudent?.parada) return;
+    const paradaData = paradas.find((p) => p.id === nextStudent.parada?.id);
+    if (!paradaData) return;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${paradaData.latitud},${paradaData.longitud}&travelmode=driving`;
+    Linking.openURL(url);
+  };
 
-  const renderStudentItem = (item: EstudianteConAsistencia) => {
-    const isProcessing = processingStudent === item.id;
-    const { estado } = item;
-    const estaAusente = estado === 'ausente';
+  const handleIniciarRecorrido = async () => {
+    if (!recorridoActual) return;
+    haptic.heavy();
+    const success = await iniciarRecorrido(recorridoActual.id);
+    if (success) {
+      setRouteActive(true);
+      haptic.success();
+    } else {
+      haptic.error();
+      Alert.alert("Error", "No se pudo iniciar el recorrido");
+    }
+  };
 
-    return (
-      <View key={item.id} className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-gray-100">
-        <View className="flex-row items-start justify-between">
-          <View className="flex-1">
-            {/* Nombre */}
-            <Text className="text-base font-bold text-gray-800 mb-1">
-              {item.nombre} {item.apellido}
-            </Text>
-
-            {/* Parada */}
-            {item.parada && (
-              <View className="flex-row items-center mb-1">
-                <MapPin size={12} color="#ca8a04" strokeWidth={2} />
-                <Text className="text-xs text-chofer-700 ml-1 font-semibold">
-                  {item.parada.nombre || 'Sin nombre'}
-                  {item.parada.orden && ` (#${item.parada.orden})`}
-                </Text>
-              </View>
-            )}
-
-            {/* Estado */}
-            <View className="flex-row items-center mt-1">
-              {estaAusente ? (
-                <>
-                  <XCircle size={14} color="#dc2626" strokeWidth={2.5} />
-                  <Text className="text-red-600 font-semibold text-sm ml-1">
-                    No asiste
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 size={14} color="#16a34a" strokeWidth={2.5} />
-                  <Text className="text-green-600 font-semibold text-sm ml-1">
-                    Asiste
-                  </Text>
-                </>
-              )}
-            </View>
-          </View>
-
-          {/* Botón Ausente (solo si está presente) */}
-          {!estaAusente && (
-            <TouchableOpacity
-              className="bg-red-500 px-4 py-2 rounded-lg"
-              onPress={() => handleMarcarAusente(item.id)}
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
-                <Text className="text-white font-bold text-sm">
-                  Marcar
-                  {'\n'}
-                  Ausente
-                </Text>
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+  const handleFinalizarRecorrido = async () => {
+    if (!recorridoActual) return;
+    Alert.alert(
+      "Finalizar Recorrido",
+      "Estas seguro de que deseas finalizar el recorrido?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Finalizar",
+          style: "destructive",
+          onPress: async () => {
+            haptic.heavy();
+            const success = await finalizarRecorrido(recorridoActual.id);
+            if (success) {
+              setRouteActive(false);
+              haptic.success();
+            } else {
+              haptic.error();
+              Alert.alert("Error", "No se pudo finalizar el recorrido");
+            }
+          },
+        },
+      ],
     );
   };
 
-  const handleSettings = () => {
-    haptic.light();
-    router.push('/driver/settings');
-  };
+  const headerSubtitle = recorridoActual?.nombre_ruta || "Sin recorrido";
 
   return (
-    <View className="flex-1 bg-chofer-50">
-      <StatusBar barStyle="light-content" backgroundColor="#854d0e" />
+    <View className="flex-1" style={{ backgroundColor: "#F8FAFB" }}>
+      <StatusBar barStyle="light-content" />
 
-      {/* Header */}
-      <View className="bg-chofer-600 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
-        <View className="flex-row items-center justify-between mb-4">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="bg-chofer-700 p-2 rounded-xl"
-          >
-            <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
-          </TouchableOpacity>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
+        {/* Header */}
+        <DashboardHeader
+          title="PANEL DE CHOFER"
+          subtitle={headerSubtitle}
+          icon={Bus}
+          rightBadge={
+            routeActive
+              ? {
+                  text: "EN CURSO",
+                  bgColor: "rgba(255,255,255,0.25)",
+                  textColor: "#ffffff",
+                }
+              : null
+          }
+        />
 
-          <TouchableOpacity
-            className="bg-chofer-700 p-2 rounded-xl"
-            onPress={handleSettings}
-          >
-            <Settings size={24} color="#ffffff" strokeWidth={2.5} />
-          </TouchableOpacity>
-        </View>
-
-        <View className="flex-row items-center justify-between">
-          <View className="flex-1">
-            {loadingRecorridos ? (
-              <ActivityIndicator size="small" color="#fef3c7" />
-            ) : recorridos.length === 0 ? (
-              <Text className="text-white text-base">
-                No tienes recorridos asignados hoy
-              </Text>
-            ) : (
-              <>
-                <Text className="text-white text-2xl font-bold">
-                  {recorridoActual?.nombre_ruta || 'Selecciona recorrido'}
-                </Text>
-                <View className="flex-row items-center mt-2">
-                  <Clock size={16} color="#fef3c7" strokeWidth={2} />
-                  <Text className="text-chofer-100 text-sm ml-1">
-                    {recorridoActual?.hora_inicio} - {recorridoActual?.hora_fin}
-                  </Text>
-                  {recorridoActual?.descripcion && (
-                    <Text className="text-chofer-100 text-xs ml-2">
-                      ({recorridoActual.descripcion})
-                    </Text>
-                  )}
-                </View>
-                {routeActive && tracking && (
-                  <View className="flex-row items-center mt-2">
-                    <View className="bg-green-500 w-2 h-2 rounded-full mr-2" />
-                    <Text className="text-chofer-100 text-xs">GPS activo</Text>
-                  </View>
-                )}
-              </>
-            )}
-          </View>
-        </View>
-
-        {/* Contador de estudiantes */}
-        <View className="bg-chofer-700 rounded-xl p-3 mt-4 flex-row items-center justify-between">
-          <View className="flex-row items-center gap-3">
-            <View className="flex-row items-center bg-chofer-700 px-2 py-1 rounded-lg">
-              <CheckCircle2 size={16} color="#10b981" strokeWidth={2.5} />
-              <Text className="text-white font-bold ml-1 text-sm">
-                {presentesCount}
-              </Text>
-            </View>
-            <View className="flex-row items-center bg-chofer-700 px-2 py-1 rounded-lg">
-              <XCircle size={16} color="#ef4444" strokeWidth={2.5} />
-              <Text className="text-white font-bold ml-1 text-sm">
-                {ausentesCount}
-              </Text>
-            </View>
-          </View>
-          {routeActive && (
-            <StatusBadge status="active" size="sm" showIcon={false} />
-          )}
-        </View>
-      </View>
-
-      {/* Selector de recorridos (si hay más de uno) */}
-      {recorridos.length > 1 && (
-        <View className="px-6 pt-4">
-          <Text className="text-gray-700 font-semibold mb-2">Mis recorridos hoy:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2">
-            {recorridos.map((rec) => (
-              <TouchableOpacity
-                key={rec.id}
-                onPress={() => {
-                  haptic.light();
-                  setRecorridoActual(rec);
-                }}
-                className={`px-4 py-3 rounded-xl border-2 ${
-                  recorridoActual?.id === rec.id
-                    ? 'bg-chofer-100 border-chofer-600'
-                    : 'bg-white border-gray-200'
-                }`}
-              >
-                <Text className={`font-bold text-sm ${
-                  recorridoActual?.id === rec.id ? 'text-chofer-800' : 'text-gray-700'
-                }`}>
-                  {rec.nombre_ruta}
-                </Text>
-                <Text className={`text-xs mt-1 ${
-                  recorridoActual?.id === rec.id ? 'text-chofer-600' : 'text-gray-500'
-                }`}>
-                  {rec.hora_inicio} - {rec.hora_fin}
-                </Text>
-                {rec.descripcion && (
-                  <Text className={`text-xs mt-0.5 ${
-                    recorridoActual?.id === rec.id ? 'text-chofer-600' : 'text-gray-400'
-                  }`}>
-                    {rec.descripcion}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      <ScrollView className="flex-1 px-6 pt-4" showsVerticalScrollIndicator={false}>
-        {/* Card del Mapa */}
-        <AnimatedCard
-          title="Mapa de Recorrido"
-          icon={Navigation}
-          iconColor="#ca8a04"
-          iconBgColor="bg-chofer-100"
-          delay={0}
-          className="mb-4"
-        >
-          <View className="bg-gray-100 rounded-xl h-48 items-center justify-center border-2 border-dashed border-gray-300">
-            <MapPin size={48} color="#9ca3af" strokeWidth={2} />
-            <Text className="text-gray-500 font-semibold mt-3 text-sm">
-              Vista de Mapa en Tiempo Real
-            </Text>
-            <Text className="text-gray-400 text-xs mt-1">
-              Próxima funcionalidad
+        {loadingRecorridos ? (
+          <View className="items-center" style={{ paddingTop: 60 }}>
+            <ActivityIndicator size="large" color={Colors.tecnibus[600]} />
+            <Text style={{ color: "#6B7280", marginTop: 12, fontSize: 14 }}>
+              Cargando recorridos...
             </Text>
           </View>
-        </AnimatedCard>
-
-        {/* Lista de Estudiantes */}
-        <AnimatedCard delay={100} className="mb-4">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-bold text-gray-800">
-              Control de Asistencia
-            </Text>
-            <TouchableOpacity
-              onPress={cargarEstudiantes}
-              disabled={loading}
-              className="bg-chofer-100 px-3 py-1.5 rounded-lg"
+        ) : recorridos.length === 0 ? (
+          <View className="items-center" style={{ paddingTop: 60 }}>
+            <Bus size={56} color="#D1D5DB" strokeWidth={1.5} />
+            <Text
+              className="font-semibold"
+              style={{ color: "#6B7280", marginTop: 16, fontSize: 16 }}
             >
+              No hay recorridos hoy
+            </Text>
+            <Text style={{ color: "#9CA3AF", marginTop: 4, fontSize: 13 }}>
+              Contacta al administrador
+            </Text>
+          </View>
+        ) : routeActive && nextStudent ? (
+          <>
+            {/* Hero: next student */}
+            <NextStudentHero
+              studentName={`${nextStudent.nombre} ${nextStudent.apellido}`}
+              address={
+                nextStudent.parada
+                  ? paradas.find((p) => p.id === nextStudent.parada?.id)
+                      ?.direccion ||
+                    nextStudent.parada.nombre ||
+                    "Sin direccion"
+                  : "Sin parada asignada"
+              }
+              parentName={undefined}
+              parentPhone={undefined}
+              estimatedMinutes={
+                stats.remaining > 0 ? stats.remaining * 4 : undefined
+              }
+              isApproaching={false}
+              onNavigate={handleNavigate}
+              onMarkAbsent={handleMarcarAusente}
+              isProcessing={processingStudent === nextStudent.id}
+            />
+
+            {/* Quick stats */}
+            <DriverQuickStats
+              pickedUp={stats.completed}
+              total={stats.total}
+              remaining={stats.remaining}
+              estimatedMinutes={stats.remaining > 0 ? stats.remaining * 4 : 0}
+            />
+
+            {/* Map card */}
+            <MapCard
+              paradas={paradas}
+              ubicacionBus={ubicacionBus}
+              recorridoActivo={routeActive}
+            />
+
+            {/* Finalize button */}
+            <View style={{ marginHorizontal: 16, marginTop: 16 }}>
+              <TouchableOpacity
+                onPress={handleFinalizarRecorrido}
+                activeOpacity={0.8}
+                style={{
+                  backgroundColor: "#EF4444",
+                  borderRadius: 16,
+                  paddingVertical: 16,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  shadowColor: "#EF4444",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 6,
+                  elevation: 4,
+                }}
+              >
+                <Square size={18} color="#ffffff" strokeWidth={2.5} />
+                <Text
+                  className="font-bold"
+                  style={{
+                    fontSize: 15,
+                    color: "#ffffff",
+                    marginLeft: 8,
+                  }}
+                >
+                  Finalizar Recorrido
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : routeActive && !nextStudent ? (
+          <>
+            {/* Route active but all students done */}
+            <View
+              style={{
+                backgroundColor: "#ffffff",
+                borderRadius: 20,
+                padding: 24,
+                marginHorizontal: 16,
+                marginTop: -20,
+                alignItems: "center",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 16,
+                elevation: 8,
+              }}
+            >
+              <Text style={{ fontSize: 48, marginBottom: 12 }}>{"\u2705"}</Text>
+              <Text
+                className="font-bold"
+                style={{ fontSize: 18, color: "#1F2937" }}
+              >
+                Recorrido completado
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: "#6B7280",
+                  textAlign: "center",
+                  marginTop: 8,
+                }}
+              >
+                Todos los estudiantes han sido procesados
+              </Text>
+            </View>
+
+            <DriverQuickStats
+              pickedUp={stats.completed}
+              total={stats.total}
+              remaining={0}
+              estimatedMinutes={0}
+            />
+
+            <MapCard
+              paradas={paradas}
+              ubicacionBus={ubicacionBus}
+              recorridoActivo={routeActive}
+            />
+
+            <View style={{ marginHorizontal: 16, marginTop: 16 }}>
+              <TouchableOpacity
+                onPress={handleFinalizarRecorrido}
+                activeOpacity={0.8}
+                style={{
+                  backgroundColor: "#EF4444",
+                  borderRadius: 16,
+                  paddingVertical: 16,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  shadowColor: "#EF4444",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 6,
+                  elevation: 4,
+                }}
+              >
+                <Square size={18} color="#ffffff" strokeWidth={2.5} />
+                <Text
+                  className="font-bold"
+                  style={{
+                    fontSize: 15,
+                    color: "#ffffff",
+                    marginLeft: 8,
+                  }}
+                >
+                  Finalizar Recorrido
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          <>
+            {/* Route not active: start button */}
+            <View
+              style={{
+                backgroundColor: "#ffffff",
+                borderRadius: 20,
+                padding: 24,
+                marginHorizontal: 16,
+                marginTop: -20,
+                alignItems: "center",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 16,
+                elevation: 8,
+              }}
+            >
+              <Bus size={48} color={Colors.tecnibus[400]} strokeWidth={1.5} />
+              <Text
+                className="font-bold"
+                style={{
+                  fontSize: 18,
+                  color: "#1F2937",
+                  marginTop: 16,
+                }}
+              >
+                {recorridoActual?.nombre_ruta || "Selecciona un recorrido"}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: "#6B7280",
+                  textAlign: "center",
+                  marginTop: 4,
+                }}
+              >
+                {recorridoActual
+                  ? `${recorridoActual.hora_inicio} - ${recorridoActual.hora_fin}${recorridoActual.descripcion ? ` • ${recorridoActual.descripcion}` : ""}`
+                  : "No hay recorridos asignados"}
+              </Text>
+
               {loading ? (
-                <ActivityIndicator size="small" color="#ca8a04" />
+                <ActivityIndicator
+                  size="small"
+                  color={Colors.tecnibus[600]}
+                  style={{ marginTop: 12 }}
+                />
               ) : (
-                <Text className="text-chofer-700 font-bold text-sm">
-                  Actualizar
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: "#9CA3AF",
+                    marginTop: 8,
+                  }}
+                >
+                  {estudiantes.length} estudiantes en esta ruta
                 </Text>
               )}
-            </TouchableOpacity>
-          </View>
 
-          {!recorridoActual ? (
-            <View className="py-8 items-center">
-              <Navigation size={48} color="#9ca3af" strokeWidth={1.5} />
-              <Text className="text-gray-500 mt-3 font-semibold">
-                Selecciona un recorrido
-              </Text>
-              <Text className="text-gray-400 text-xs mt-1">
-                Elige tu recorrido arriba para ver los estudiantes
-              </Text>
-            </View>
-          ) : loading && estudiantes.length === 0 ? (
-            <View className="py-8 items-center">
-              <ActivityIndicator size="large" color="#ca8a04" />
-              <Text className="text-gray-500 mt-3">Cargando estudiantes...</Text>
-            </View>
-          ) : estudiantes.length === 0 ? (
-            <View className="py-8 items-center">
-              <Users size={48} color="#9ca3af" strokeWidth={1.5} />
-              <Text className="text-gray-500 mt-3 font-semibold">
-                No hay estudiantes en esta ruta
-              </Text>
-              <Text className="text-gray-400 text-xs mt-1">
-                Contacta al administrador si esto es un error
-              </Text>
-            </View>
-          ) : (
-            <View>
-              {estudiantes.map(renderStudentItem)}
-            </View>
-          )}
-        </AnimatedCard>
+              {recorridoActual && (
+                <TouchableOpacity
+                  onPress={handleIniciarRecorrido}
+                  activeOpacity={0.8}
+                  style={{
+                    backgroundColor: Colors.tecnibus[600],
+                    borderRadius: 16,
+                    paddingVertical: 16,
+                    paddingHorizontal: 32,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginTop: 20,
+                    width: "100%",
+                    shadowColor: Colors.tecnibus[600],
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.35,
+                    shadowRadius: 6,
+                    elevation: 4,
+                  }}
+                >
+                  <Play size={20} color="#ffffff" strokeWidth={2.5} />
+                  <Text
+                    className="font-bold"
+                    style={{
+                      fontSize: 16,
+                      color: "#ffffff",
+                      marginLeft: 8,
+                    }}
+                  >
+                    Iniciar Recorrido
+                  </Text>
+                </TouchableOpacity>
+              )}
 
-        {/* Botones de Control */}
-        <View className="mb-4">
-          {!routeActive ? (
-            <AnimatedButton
-              title="Iniciar Recorrido"
-              onPress={async () => {
-                if (!recorridoActual) return;
-                haptic.heavy();
-                const success = await iniciarRecorrido(recorridoActual.id);
-                if (success) {
-                  setRouteActive(true);
-                  haptic.success();
-                } else {
-                  haptic.error();
-                  Alert.alert('Error', 'No se pudo iniciar el recorrido');
-                }
+              {recorridos.length > 1 && (
+                <TouchableOpacity
+                  onPress={() => setShowRecorridoSelector(true)}
+                  activeOpacity={0.7}
+                  style={{ marginTop: 12 }}
+                >
+                  <Text
+                    className="font-semibold"
+                    style={{
+                      fontSize: 14,
+                      color: Colors.tecnibus[600],
+                    }}
+                  >
+                    Cambiar recorrido
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Map preview when inactive */}
+            {paradas.length > 0 && (
+              <View style={{ marginTop: 16 }}>
+                <MapCard
+                  paradas={paradas}
+                  ubicacionBus={null}
+                  recorridoActivo={false}
+                />
+              </View>
+            )}
+          </>
+        )}
+
+        {/* GPS tracking indicator */}
+        {routeActive && tracking && (
+          <View
+            className="flex-row items-center justify-center"
+            style={{ marginTop: 12 }}
+          >
+            <View
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: "#10B981",
+                marginRight: 6,
               }}
-              variant="success"
-              icon={Play}
-              size="lg"
             />
-          ) : (
-            <AnimatedButton
-              title="Finalizar Recorrido"
-              onPress={async () => {
-                if (!recorridoActual) return;
-                haptic.heavy();
-                const success = await finalizarRecorrido(recorridoActual.id);
-                if (success) {
-                  setRouteActive(false);
-                  haptic.success();
-                } else {
-                  haptic.error();
-                  Alert.alert('Error', 'No se pudo finalizar el recorrido');
-                }
-              }}
-              variant="danger"
-              icon={Square}
-              size="lg"
-            />
-          )}
-        </View>
-
-        {/* Leyenda informativa */}
-        <View className="bg-chofer-100 rounded-xl p-4 mb-6">
-          <View className="flex-row items-center mb-2">
-            <CheckCircle2 size={16} color="#16a34a" strokeWidth={2} />
-            <Text className="text-chofer-800 text-xs ml-2 font-semibold">
-              Verde = Estudiante en la buseta
-            </Text>
+            <Text style={{ fontSize: 12, color: "#6B7280" }}>GPS activo</Text>
           </View>
-          <View className="flex-row items-center">
-            <XCircle size={16} color="#ef4444" strokeWidth={2} />
-            <Text className="text-chofer-800 text-xs ml-2 font-semibold">
-              Rojo = Estudiante fuera de la buseta
-            </Text>
-          </View>
-        </View>
-
-        <View className="h-4" />
+        )}
       </ScrollView>
 
-      {/* Alerta de error GPS */}
+      {/* Recorrido selector modal */}
+      <RecorridoSelector
+        visible={showRecorridoSelector}
+        recorridos={recorridos}
+        selectedId={recorridoActual?.id}
+        onSelect={(rec) => {
+          haptic.light();
+          setRecorridoActual(rec);
+          setShowRecorridoSelector(false);
+        }}
+        onClose={() => setShowRecorridoSelector(false)}
+      />
+
+      {/* GPS error alert */}
       {errorGPS && (
-        <View className="absolute bottom-20 left-6 right-6 bg-red-500 p-3 rounded-xl">
-          <Text className="text-white font-semibold text-sm text-center">⚠️ {errorGPS}</Text>
+        <View
+          style={{
+            position: "absolute",
+            bottom: 100,
+            left: 16,
+            right: 16,
+            backgroundColor: "#EF4444",
+            padding: 12,
+            borderRadius: 16,
+          }}
+        >
+          <Text
+            className="font-semibold"
+            style={{
+              color: "#ffffff",
+              fontSize: 13,
+              textAlign: "center",
+            }}
+          >
+            {errorGPS}
+          </Text>
         </View>
       )}
+
+      {/* Bottom navigation */}
+      <BottomNavigation
+        activeTab="home"
+        onHomePress={() => {}}
+        onTrackingPress={() => {
+          if (recorridos.length > 1) {
+            setShowRecorridoSelector(true);
+          }
+        }}
+        onSettingsPress={() => router.push("/driver/settings")}
+        trackingLabel="Ruta"
+      />
     </View>
   );
 }
