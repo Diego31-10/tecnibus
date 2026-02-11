@@ -1,54 +1,52 @@
-import { Colors } from '@/lib/constants/colors';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
-import { useRouter } from 'expo-router';
+import { Colors } from "@/lib/constants/colors";
+import { haptic } from "@/lib/utils/haptics";
+import { createShadow } from "@/lib/utils/shadows";
+import { useRouter } from "expo-router";
 import {
-  ArrowLeft,
-  CheckCircle,
-  Clock,
-  MapPin,
-  Type,
-  XCircle
-} from 'lucide-react-native';
-import { useState } from 'react';
+    ArrowLeft,
+    CheckCircle,
+    Clock,
+    MapPin,
+    Type,
+    XCircle,
+} from "lucide-react-native";
+import { useState } from "react";
 import {
-  ActivityIndicator,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AnimatedCard } from '../../../components';
-import Toast from '../../../components/Toast';
-import {
-  createRuta
-} from '../../../lib/services/rutas.service';
+    ActivityIndicator,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AnimatedCard } from "../../../components";
+import Toast from "../../../components/Toast";
+import { createRuta } from "../../../lib/services/rutas.service";
 
 export default function CrearRutaScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow('lg');
+  const shadow = createShadow("lg");
 
   // Form state
-  const [nombre, setNombre] = useState('');
-  const [horaInicio, setHoraInicio] = useState('');
-  const [horaFin, setHoraFin] = useState('');
-  const [estado, setEstado] = useState<'activa' | 'inactiva'>('activa');
+  const [nombre, setNombre] = useState("");
+  const [horaInicio, setHoraInicio] = useState("");
+  const [horaFin, setHoraFin] = useState("");
+  const [estado, setEstado] = useState<"activa" | "inactiva">("activa");
 
   // UI State
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{
     visible: boolean;
     message: string;
-    type: 'success' | 'error' | 'warning' | 'info';
+    type: "success" | "error" | "warning" | "info";
   }>({
     visible: false,
-    message: '',
-    type: 'success',
+    message: "",
+    type: "success",
   });
 
   const validateTime = (time: string): boolean => {
@@ -59,15 +57,19 @@ export default function CrearRutaScreen() {
   const handleSubmit = async () => {
     // Validaciones
     if (!nombre.trim()) {
-      setToast({ visible: true, message: 'Ingresa el nombre de la ruta', type: 'warning' });
+      setToast({
+        visible: true,
+        message: "Ingresa el nombre de la ruta",
+        type: "warning",
+      });
       return;
     }
 
     if (horaInicio && !validateTime(horaInicio)) {
       setToast({
         visible: true,
-        message: 'Formato de hora de inicio inválido (HH:MM)',
-        type: 'warning',
+        message: "Formato de hora de inicio inválido (HH:MM)",
+        type: "warning",
       });
       return;
     }
@@ -75,24 +77,24 @@ export default function CrearRutaScreen() {
     if (horaFin && !validateTime(horaFin)) {
       setToast({
         visible: true,
-        message: 'Formato de hora de fin inválido (HH:MM)',
-        type: 'warning',
+        message: "Formato de hora de fin inválido (HH:MM)",
+        type: "warning",
       });
       return;
     }
 
     // Validar que hora fin sea mayor que hora inicio
     if (horaInicio && horaFin) {
-      const [inicioH, inicioM] = horaInicio.split(':').map(Number);
-      const [finH, finM] = horaFin.split(':').map(Number);
+      const [inicioH, inicioM] = horaInicio.split(":").map(Number);
+      const [finH, finM] = horaFin.split(":").map(Number);
       const inicioMinutos = inicioH * 60 + inicioM;
       const finMinutos = finH * 60 + finM;
 
       if (finMinutos <= inicioMinutos) {
         setToast({
           visible: true,
-          message: 'La hora de fin debe ser mayor que la hora de inicio',
-          type: 'warning',
+          message: "La hora de fin debe ser mayor que la hora de inicio",
+          type: "warning",
         });
         return;
       }
@@ -113,25 +115,32 @@ export default function CrearRutaScreen() {
     if (result) {
       setToast({
         visible: true,
-        message: 'Ruta creada correctamente',
-        type: 'success',
+        message: "Ruta creada correctamente",
+        type: "success",
       });
       setTimeout(() => router.back(), 1500);
     } else {
       setToast({
         visible: true,
-        message: 'Error al crear la ruta',
-        type: 'error',
+        message: "Error al crear la ruta",
+        type: "error",
       });
     }
   };
 
   return (
     <View className="flex-1 bg-admin-50">
-      <StatusBar barStyle="light-content" backgroundColor={Colors.ruta[700]} translucent={false} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={Colors.tecnibus[700]}
+        translucent={false}
+      />
 
       {/* Header */}
-      <View className="bg-ruta-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View
+        className="bg-ruta-700 pb-6 px-6 rounded-b-3xl"
+        style={[{ paddingTop }, shadow]}
+      >
         <View className="flex-row items-center">
           <TouchableOpacity
             className="bg-ruta-600 p-2 rounded-xl mr-4"
@@ -149,7 +158,11 @@ export default function CrearRutaScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 32 }}
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingTop: 24,
+          paddingBottom: 32,
+        }}
         showsVerticalScrollIndicator={false}
       >
         {/* Nombre */}
@@ -217,20 +230,20 @@ export default function CrearRutaScreen() {
             <TouchableOpacity
               onPress={() => {
                 haptic.light();
-                setEstado('activa');
+                setEstado("activa");
               }}
               className={`flex-1 flex-row items-center justify-center rounded-lg px-4 py-3 ${
-                estado === 'activa' ? 'bg-green-100' : 'bg-gray-50'
+                estado === "activa" ? "bg-green-100" : "bg-gray-50"
               }`}
             >
               <CheckCircle
                 size={20}
-                color={estado === 'activa' ? '#16a34a' : '#6b7280'}
+                color={estado === "activa" ? "#16a34a" : "#6b7280"}
                 strokeWidth={2}
               />
               <Text
                 className={`ml-2 font-semibold ${
-                  estado === 'activa' ? 'text-green-700' : 'text-gray-600'
+                  estado === "activa" ? "text-green-700" : "text-gray-600"
                 }`}
               >
                 Activa
@@ -240,20 +253,20 @@ export default function CrearRutaScreen() {
             <TouchableOpacity
               onPress={() => {
                 haptic.light();
-                setEstado('inactiva');
+                setEstado("inactiva");
               }}
               className={`flex-1 flex-row items-center justify-center rounded-lg px-4 py-3 ${
-                estado === 'inactiva' ? 'bg-gray-200' : 'bg-gray-50'
+                estado === "inactiva" ? "bg-gray-200" : "bg-gray-50"
               }`}
             >
               <XCircle
                 size={20}
-                color={estado === 'inactiva' ? '#374151' : '#6b7280'}
+                color={estado === "inactiva" ? "#374151" : "#6b7280"}
                 strokeWidth={2}
               />
               <Text
                 className={`ml-2 font-semibold ${
-                  estado === 'inactiva' ? 'text-gray-700' : 'text-gray-600'
+                  estado === "inactiva" ? "text-gray-700" : "text-gray-600"
                 }`}
               >
                 Inactiva
@@ -275,7 +288,7 @@ export default function CrearRutaScreen() {
             onPress={handleSubmit}
             disabled={loading}
             className={`rounded-xl py-4 flex-row items-center justify-center ${
-              loading ? 'bg-ruta-400' : 'bg-ruta-600'
+              loading ? "bg-ruta-400" : "bg-ruta-600"
             }`}
             style={shadow}
           >

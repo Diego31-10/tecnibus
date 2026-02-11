@@ -1,44 +1,44 @@
-import { Colors } from '@/lib/constants/colors';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Colors } from "@/lib/constants/colors";
+import { haptic } from "@/lib/utils/haptics";
+import { createShadow } from "@/lib/utils/shadows";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-  ArrowLeft,
-  CheckCircle,
-  Clock,
-  Edit2,
-  MapPin,
-  Navigation,
-  Plus,
-  Trash2,
-  Type,
-  XCircle
-} from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+    ArrowLeft,
+    CheckCircle,
+    Clock,
+    Edit2,
+    MapPin,
+    Navigation,
+    Plus,
+    Trash2,
+    Type,
+    XCircle,
+} from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Modal,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AnimatedCard } from '../../../components';
-import Toast from '../../../components/Toast';
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Modal,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AnimatedCard } from "../../../components";
+import Toast from "../../../components/Toast";
 import {
-  Parada,
-  createParada,
-  deleteParada,
-  deleteRuta,
-  getRutaById,
-  updateParada,
-  updateRuta
-} from '../../../lib/services/rutas.service';
+    Parada,
+    createParada,
+    deleteParada,
+    deleteRuta,
+    getRutaById,
+    updateParada,
+    updateRuta,
+} from "../../../lib/services/rutas.service";
 
 type ParadaForm = {
   nombre: string;
@@ -54,13 +54,13 @@ export default function EditarRutaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow('lg');
+  const shadow = createShadow("lg");
 
   // Form state - Ruta
-  const [nombre, setNombre] = useState('');
-  const [horaInicio, setHoraInicio] = useState('');
-  const [horaFin, setHoraFin] = useState('');
-  const [estado, setEstado] = useState<'activa' | 'inactiva'>('activa');
+  const [nombre, setNombre] = useState("");
+  const [horaInicio, setHoraInicio] = useState("");
+  const [horaFin, setHoraFin] = useState("");
+  const [estado, setEstado] = useState<"activa" | "inactiva">("activa");
 
   // Paradas
   const [paradas, setParadas] = useState<Parada[]>([]);
@@ -69,12 +69,12 @@ export default function EditarRutaScreen() {
   const [showParadaModal, setShowParadaModal] = useState(false);
   const [editingParada, setEditingParada] = useState<Parada | null>(null);
   const [paradaForm, setParadaForm] = useState<ParadaForm>({
-    nombre: '',
-    direccion: '',
-    latitud: '',
-    longitud: '',
-    hora_aprox: '',
-    orden: '1',
+    nombre: "",
+    direccion: "",
+    latitud: "",
+    longitud: "",
+    hora_aprox: "",
+    orden: "1",
   });
 
   // UI State
@@ -84,11 +84,11 @@ export default function EditarRutaScreen() {
   const [toast, setToast] = useState<{
     visible: boolean;
     message: string;
-    type: 'success' | 'error' | 'warning' | 'info';
+    type: "success" | "error" | "warning" | "info";
   }>({
     visible: false,
-    message: '',
-    type: 'success',
+    message: "",
+    type: "success",
   });
 
   useEffect(() => {
@@ -101,17 +101,17 @@ export default function EditarRutaScreen() {
     const rutaData = await getRutaById(id);
 
     if (!rutaData) {
-      Alert.alert('Error', 'No se encontró la ruta', [
-        { text: 'OK', onPress: () => router.back() },
+      Alert.alert("Error", "No se encontró la ruta", [
+        { text: "OK", onPress: () => router.back() },
       ]);
       return;
     }
 
     // Cargar datos de la ruta
     setNombre(rutaData.nombre);
-    setHoraInicio(rutaData.hora_inicio || '');
-    setHoraFin(rutaData.hora_fin || '');
-    setEstado((rutaData.estado as 'activa' | 'inactiva') || 'activa');
+    setHoraInicio(rutaData.hora_inicio || "");
+    setHoraFin(rutaData.hora_fin || "");
+    setEstado((rutaData.estado as "activa" | "inactiva") || "activa");
     setParadas(rutaData.paradas || []);
 
     setLoadingData(false);
@@ -125,15 +125,19 @@ export default function EditarRutaScreen() {
   const handleUpdateRuta = async () => {
     // Validaciones
     if (!nombre.trim()) {
-      setToast({ visible: true, message: 'Ingresa el nombre de la ruta', type: 'warning' });
+      setToast({
+        visible: true,
+        message: "Ingresa el nombre de la ruta",
+        type: "warning",
+      });
       return;
     }
 
     if (horaInicio && !validateTime(horaInicio)) {
       setToast({
         visible: true,
-        message: 'Formato de hora de inicio inválido (HH:MM)',
-        type: 'warning',
+        message: "Formato de hora de inicio inválido (HH:MM)",
+        type: "warning",
       });
       return;
     }
@@ -141,23 +145,23 @@ export default function EditarRutaScreen() {
     if (horaFin && !validateTime(horaFin)) {
       setToast({
         visible: true,
-        message: 'Formato de hora de fin inválido (HH:MM)',
-        type: 'warning',
+        message: "Formato de hora de fin inválido (HH:MM)",
+        type: "warning",
       });
       return;
     }
 
     if (horaInicio && horaFin) {
-      const [inicioH, inicioM] = horaInicio.split(':').map(Number);
-      const [finH, finM] = horaFin.split(':').map(Number);
+      const [inicioH, inicioM] = horaInicio.split(":").map(Number);
+      const [finH, finM] = horaFin.split(":").map(Number);
       const inicioMinutos = inicioH * 60 + inicioM;
       const finMinutos = finH * 60 + finM;
 
       if (finMinutos <= inicioMinutos) {
         setToast({
           visible: true,
-          message: 'La hora de fin debe ser mayor que la hora de inicio',
-          type: 'warning',
+          message: "La hora de fin debe ser mayor que la hora de inicio",
+          type: "warning",
         });
         return;
       }
@@ -178,14 +182,14 @@ export default function EditarRutaScreen() {
     if (success) {
       setToast({
         visible: true,
-        message: 'Ruta actualizada correctamente',
-        type: 'success',
+        message: "Ruta actualizada correctamente",
+        type: "success",
       });
     } else {
       setToast({
         visible: true,
-        message: 'No se pudo actualizar la ruta',
-        type: 'error',
+        message: "No se pudo actualizar la ruta",
+        type: "error",
       });
     }
   };
@@ -194,16 +198,16 @@ export default function EditarRutaScreen() {
     haptic.light();
 
     Alert.alert(
-      'Confirmar eliminación',
-      '¿Estás seguro de eliminar esta ruta? Se eliminarán todas sus paradas. Esta acción no se puede deshacer.',
+      "Confirmar eliminación",
+      "¿Estás seguro de eliminar esta ruta? Se eliminarán todas sus paradas. Esta acción no se puede deshacer.",
       [
         {
-          text: 'Cancelar',
-          style: 'cancel',
+          text: "Cancelar",
+          style: "cancel",
         },
         {
-          text: 'Eliminar',
-          style: 'destructive',
+          text: "Eliminar",
+          style: "destructive",
           onPress: async () => {
             haptic.heavy();
             setLoading(true);
@@ -214,20 +218,20 @@ export default function EditarRutaScreen() {
             if (result.success) {
               setToast({
                 visible: true,
-                message: 'Ruta eliminada correctamente',
-                type: 'success',
+                message: "Ruta eliminada correctamente",
+                type: "success",
               });
               setTimeout(() => router.back(), 1500);
             } else {
               setToast({
                 visible: true,
-                message: result.error || 'No se pudo eliminar la ruta',
-                type: 'error',
+                message: result.error || "No se pudo eliminar la ruta",
+                type: "error",
               });
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -237,11 +241,11 @@ export default function EditarRutaScreen() {
     haptic.light();
     setEditingParada(null);
     setParadaForm({
-      nombre: '',
-      direccion: '',
-      latitud: '',
-      longitud: '',
-      hora_aprox: '',
+      nombre: "",
+      direccion: "",
+      latitud: "",
+      longitud: "",
+      hora_aprox: "",
       orden: String(paradas.length + 1),
     });
     setShowParadaModal(true);
@@ -251,11 +255,11 @@ export default function EditarRutaScreen() {
     haptic.light();
     setEditingParada(parada);
     setParadaForm({
-      nombre: parada.nombre || '',
-      direccion: parada.direccion || '',
+      nombre: parada.nombre || "",
+      direccion: parada.direccion || "",
       latitud: String(parada.latitud),
       longitud: String(parada.longitud),
-      hora_aprox: parada.hora_aprox || '',
+      hora_aprox: parada.hora_aprox || "",
       orden: String(parada.orden || 1),
     });
     setShowParadaModal(true);
@@ -264,12 +268,20 @@ export default function EditarRutaScreen() {
   const handleSaveParada = async () => {
     // Validaciones
     if (!paradaForm.nombre.trim()) {
-      setToast({ visible: true, message: 'Ingresa el nombre de la parada', type: 'warning' });
+      setToast({
+        visible: true,
+        message: "Ingresa el nombre de la parada",
+        type: "warning",
+      });
       return;
     }
 
     if (!paradaForm.direccion.trim()) {
-      setToast({ visible: true, message: 'Ingresa la dirección', type: 'warning' });
+      setToast({
+        visible: true,
+        message: "Ingresa la dirección",
+        type: "warning",
+      });
       return;
     }
 
@@ -277,8 +289,8 @@ export default function EditarRutaScreen() {
     if (isNaN(lat) || lat < -90 || lat > 90) {
       setToast({
         visible: true,
-        message: 'Latitud debe estar entre -90 y 90',
-        type: 'warning',
+        message: "Latitud debe estar entre -90 y 90",
+        type: "warning",
       });
       return;
     }
@@ -287,8 +299,8 @@ export default function EditarRutaScreen() {
     if (isNaN(lng) || lng < -180 || lng > 180) {
       setToast({
         visible: true,
-        message: 'Longitud debe estar entre -180 y 180',
-        type: 'warning',
+        message: "Longitud debe estar entre -180 y 180",
+        type: "warning",
       });
       return;
     }
@@ -297,8 +309,8 @@ export default function EditarRutaScreen() {
     if (isNaN(orden) || orden <= 0) {
       setToast({
         visible: true,
-        message: 'El orden debe ser un número mayor a 0',
-        type: 'warning',
+        message: "El orden debe ser un número mayor a 0",
+        type: "warning",
       });
       return;
     }
@@ -337,8 +349,8 @@ export default function EditarRutaScreen() {
     if (success) {
       setToast({
         visible: true,
-        message: editingParada ? 'Parada actualizada' : 'Parada creada',
-        type: 'success',
+        message: editingParada ? "Parada actualizada" : "Parada creada",
+        type: "success",
       });
       setShowParadaModal(false);
       // Recargar paradas
@@ -349,8 +361,8 @@ export default function EditarRutaScreen() {
     } else {
       setToast({
         visible: true,
-        message: 'Error al guardar la parada',
-        type: 'error',
+        message: "Error al guardar la parada",
+        type: "error",
       });
     }
   };
@@ -359,16 +371,16 @@ export default function EditarRutaScreen() {
     haptic.light();
 
     Alert.alert(
-      'Confirmar eliminación',
-      '¿Estás seguro de eliminar esta parada?',
+      "Confirmar eliminación",
+      "¿Estás seguro de eliminar esta parada?",
       [
         {
-          text: 'Cancelar',
-          style: 'cancel',
+          text: "Cancelar",
+          style: "cancel",
         },
         {
-          text: 'Eliminar',
-          style: 'destructive',
+          text: "Eliminar",
+          style: "destructive",
           onPress: async () => {
             haptic.heavy();
             setLoadingParadas(true);
@@ -379,8 +391,8 @@ export default function EditarRutaScreen() {
             if (success) {
               setToast({
                 visible: true,
-                message: 'Parada eliminada',
-                type: 'success',
+                message: "Parada eliminada",
+                type: "success",
               });
               // Recargar paradas
               const rutaData = await getRutaById(id);
@@ -390,13 +402,13 @@ export default function EditarRutaScreen() {
             } else {
               setToast({
                 visible: true,
-                message: 'No se pudo eliminar la parada',
-                type: 'error',
+                message: "No se pudo eliminar la parada",
+                type: "error",
               });
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -405,7 +417,9 @@ export default function EditarRutaScreen() {
       <View className="flex-1">
         <View className="flex-row items-center mb-1">
           <View className="bg-ruta-100 px-2 py-1 rounded">
-            <Text className="text-xs font-bold text-ruta-700">#{item.orden}</Text>
+            <Text className="text-xs font-bold text-ruta-700">
+              #{item.orden}
+            </Text>
           </View>
           <Text className="text-base font-bold text-gray-800 ml-2 flex-1">
             {item.nombre}
@@ -440,7 +454,11 @@ export default function EditarRutaScreen() {
   if (loadingData) {
     return (
       <View className="flex-1 bg-admin-50 items-center justify-center">
-        <StatusBar barStyle="light-content" backgroundColor={Colors.ruta[700]} translucent={false} />
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor={Colors.tecnibus[700]}
+          translucent={false}
+        />
         <ActivityIndicator size="large" color="#dc2626" />
         <Text className="text-gray-500 mt-4">Cargando datos...</Text>
       </View>
@@ -449,10 +467,17 @@ export default function EditarRutaScreen() {
 
   return (
     <View className="flex-1 bg-admin-50">
-      <StatusBar barStyle="light-content" backgroundColor="#b91c1c" translucent={false} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#b91c1c"
+        translucent={false}
+      />
 
       {/* Header */}
-      <View className="bg-ruta-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View
+        className="bg-ruta-700 pb-6 px-6 rounded-b-3xl"
+        style={[{ paddingTop }, shadow]}
+      >
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -483,12 +508,18 @@ export default function EditarRutaScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 32 }}
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingTop: 24,
+          paddingBottom: 32,
+        }}
         showsVerticalScrollIndicator={false}
       >
         {/* Información de la Ruta */}
         <AnimatedCard delay={0} className="mb-4">
-          <Text className="text-lg font-bold text-gray-800 mb-3">Información de la Ruta</Text>
+          <Text className="text-lg font-bold text-gray-800 mb-3">
+            Información de la Ruta
+          </Text>
 
           {/* Nombre */}
           <Text className="text-sm font-semibold text-gray-700 mb-2">
@@ -548,20 +579,20 @@ export default function EditarRutaScreen() {
             <TouchableOpacity
               onPress={() => {
                 haptic.light();
-                setEstado('activa');
+                setEstado("activa");
               }}
               className={`flex-1 flex-row items-center justify-center rounded-lg px-4 py-3 ${
-                estado === 'activa' ? 'bg-green-100' : 'bg-gray-50'
+                estado === "activa" ? "bg-green-100" : "bg-gray-50"
               }`}
             >
               <CheckCircle
                 size={20}
-                color={estado === 'activa' ? '#16a34a' : '#6b7280'}
+                color={estado === "activa" ? "#16a34a" : "#6b7280"}
                 strokeWidth={2}
               />
               <Text
                 className={`ml-2 font-semibold ${
-                  estado === 'activa' ? 'text-green-700' : 'text-gray-600'
+                  estado === "activa" ? "text-green-700" : "text-gray-600"
                 }`}
               >
                 Activa
@@ -571,20 +602,20 @@ export default function EditarRutaScreen() {
             <TouchableOpacity
               onPress={() => {
                 haptic.light();
-                setEstado('inactiva');
+                setEstado("inactiva");
               }}
               className={`flex-1 flex-row items-center justify-center rounded-lg px-4 py-3 ${
-                estado === 'inactiva' ? 'bg-gray-200' : 'bg-gray-50'
+                estado === "inactiva" ? "bg-gray-200" : "bg-gray-50"
               }`}
             >
               <XCircle
                 size={20}
-                color={estado === 'inactiva' ? '#374151' : '#6b7280'}
+                color={estado === "inactiva" ? "#374151" : "#6b7280"}
                 strokeWidth={2}
               />
               <Text
                 className={`ml-2 font-semibold ${
-                  estado === 'inactiva' ? 'text-gray-700' : 'text-gray-600'
+                  estado === "inactiva" ? "text-gray-700" : "text-gray-600"
                 }`}
               >
                 Inactiva
@@ -597,7 +628,7 @@ export default function EditarRutaScreen() {
             onPress={handleUpdateRuta}
             disabled={loading}
             className={`rounded-xl py-3 flex-row items-center justify-center ${
-              loading ? 'bg-ruta-400' : 'bg-ruta-600'
+              loading ? "bg-ruta-400" : "bg-ruta-600"
             }`}
             style={shadow}
           >
@@ -625,7 +656,9 @@ export default function EditarRutaScreen() {
               className="bg-ruta-600 px-3 py-2 rounded-lg flex-row items-center"
             >
               <Plus size={16} color="#ffffff" strokeWidth={2.5} />
-              <Text className="text-white font-semibold ml-1 text-sm">Agregar</Text>
+              <Text className="text-white font-semibold ml-1 text-sm">
+                Agregar
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -634,7 +667,9 @@ export default function EditarRutaScreen() {
           ) : paradas.length === 0 ? (
             <View className="items-center py-6">
               <Navigation size={32} color="#9ca3af" strokeWidth={1.5} />
-              <Text className="text-gray-500 mt-2">No hay paradas agregadas</Text>
+              <Text className="text-gray-500 mt-2">
+                No hay paradas agregadas
+              </Text>
             </View>
           ) : (
             <FlatList
@@ -655,10 +690,13 @@ export default function EditarRutaScreen() {
         onRequestClose={() => setShowParadaModal(false)}
       >
         <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-3xl p-6" style={{ maxHeight: '90%' }}>
+          <View
+            className="bg-white rounded-t-3xl p-6"
+            style={{ maxHeight: "90%" }}
+          >
             <View className="flex-row items-center justify-between mb-4">
               <Text className="text-xl font-bold text-gray-800">
-                {editingParada ? 'Editar Parada' : 'Nueva Parada'}
+                {editingParada ? "Editar Parada" : "Nueva Parada"}
               </Text>
               <TouchableOpacity onPress={() => setShowParadaModal(false)}>
                 <XCircle size={24} color="#6b7280" strokeWidth={2} />
@@ -667,70 +705,94 @@ export default function EditarRutaScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false}>
               {/* Nombre */}
-              <Text className="text-sm font-semibold text-gray-700 mb-2">Nombre *</Text>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">
+                Nombre *
+              </Text>
               <View className="flex-row items-center bg-gray-50 rounded-lg px-4 py-3 mb-3">
                 <Type size={20} color="#6b7280" strokeWidth={2} />
                 <TextInput
                   className="flex-1 ml-3 text-base text-gray-800"
                   placeholder="Ej: Parada Central"
                   value={paradaForm.nombre}
-                  onChangeText={(text) => setParadaForm({ ...paradaForm, nombre: text })}
+                  onChangeText={(text) =>
+                    setParadaForm({ ...paradaForm, nombre: text })
+                  }
                 />
               </View>
 
               {/* Dirección */}
-              <Text className="text-sm font-semibold text-gray-700 mb-2">Dirección *</Text>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">
+                Dirección *
+              </Text>
               <View className="flex-row items-center bg-gray-50 rounded-lg px-4 py-3 mb-3">
                 <Navigation size={20} color="#6b7280" strokeWidth={2} />
                 <TextInput
                   className="flex-1 ml-3 text-base text-gray-800"
                   placeholder="Ej: Calle 123 #45-67"
                   value={paradaForm.direccion}
-                  onChangeText={(text) => setParadaForm({ ...paradaForm, direccion: text })}
+                  onChangeText={(text) =>
+                    setParadaForm({ ...paradaForm, direccion: text })
+                  }
                 />
               </View>
 
               {/* Latitud */}
-              <Text className="text-sm font-semibold text-gray-700 mb-2">Latitud *</Text>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">
+                Latitud *
+              </Text>
               <TextInput
                 className="bg-gray-50 rounded-lg px-4 py-3 mb-3 text-base text-gray-800"
                 placeholder="Ej: 4.6097"
                 value={paradaForm.latitud}
-                onChangeText={(text) => setParadaForm({ ...paradaForm, latitud: text })}
+                onChangeText={(text) =>
+                  setParadaForm({ ...paradaForm, latitud: text })
+                }
                 keyboardType="numeric"
               />
 
               {/* Longitud */}
-              <Text className="text-sm font-semibold text-gray-700 mb-2">Longitud *</Text>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">
+                Longitud *
+              </Text>
               <TextInput
                 className="bg-gray-50 rounded-lg px-4 py-3 mb-3 text-base text-gray-800"
                 placeholder="Ej: -74.0817"
                 value={paradaForm.longitud}
-                onChangeText={(text) => setParadaForm({ ...paradaForm, longitud: text })}
+                onChangeText={(text) =>
+                  setParadaForm({ ...paradaForm, longitud: text })
+                }
                 keyboardType="numeric"
               />
 
               {/* Hora Aprox */}
-              <Text className="text-sm font-semibold text-gray-700 mb-2">Hora aproximada (HH:MM)</Text>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">
+                Hora aproximada (HH:MM)
+              </Text>
               <View className="flex-row items-center bg-gray-50 rounded-lg px-4 py-3 mb-3">
                 <Clock size={20} color="#6b7280" strokeWidth={2} />
                 <TextInput
                   className="flex-1 ml-3 text-base text-gray-800"
                   placeholder="Ej: 07:30"
                   value={paradaForm.hora_aprox}
-                  onChangeText={(text) => setParadaForm({ ...paradaForm, hora_aprox: text })}
+                  onChangeText={(text) =>
+                    setParadaForm({ ...paradaForm, hora_aprox: text })
+                  }
                   keyboardType="numbers-and-punctuation"
                   maxLength={5}
                 />
               </View>
 
               {/* Orden */}
-              <Text className="text-sm font-semibold text-gray-700 mb-2">Orden *</Text>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">
+                Orden *
+              </Text>
               <TextInput
                 className="bg-gray-50 rounded-lg px-4 py-3 mb-4 text-base text-gray-800"
                 placeholder="Ej: 1"
                 value={paradaForm.orden}
-                onChangeText={(text) => setParadaForm({ ...paradaForm, orden: text })}
+                onChangeText={(text) =>
+                  setParadaForm({ ...paradaForm, orden: text })
+                }
                 keyboardType="numeric"
               />
 
@@ -739,7 +801,7 @@ export default function EditarRutaScreen() {
                 onPress={handleSaveParada}
                 disabled={loadingParadas}
                 className={`rounded-xl py-4 flex-row items-center justify-center ${
-                  loadingParadas ? 'bg-ruta-400' : 'bg-ruta-600'
+                  loadingParadas ? "bg-ruta-400" : "bg-ruta-600"
                 }`}
                 style={shadow}
               >
@@ -749,7 +811,7 @@ export default function EditarRutaScreen() {
                   <>
                     <Navigation size={20} color="#ffffff" strokeWidth={2.5} />
                     <Text className="text-white font-bold text-lg ml-2">
-                      {editingParada ? 'Actualizar' : 'Guardar'} Parada
+                      {editingParada ? "Actualizar" : "Guardar"} Parada
                     </Text>
                   </>
                 )}

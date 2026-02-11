@@ -1,48 +1,39 @@
-import { Colors } from '@/lib/constants/colors';
-import { haptic } from '@/lib/utils/haptics';
-import { createShadow } from '@/lib/utils/shadows';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { Colors } from "@/lib/constants/colors";
+import { haptic } from "@/lib/utils/haptics";
+import { createShadow } from "@/lib/utils/shadows";
+import { useFocusEffect, useRouter } from "expo-router";
+import { ArrowLeft, Clock, MapPin, Plus, Search } from "lucide-react-native";
+import { useCallback, useEffect, useState } from "react";
 import {
-  ArrowLeft,
-  Clock,
-  MapPin,
-  Plus,
-  Search
-} from 'lucide-react-native';
-import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AnimatedCard } from '../../../components';
-import {
-  Ruta,
-  getRutas
-} from '../../../lib/services/rutas.service';
+    ActivityIndicator,
+    FlatList,
+    RefreshControl,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AnimatedCard } from "../../../components";
+import { Ruta, getRutas } from "../../../lib/services/rutas.service";
 
 export default function RutasListScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow('lg');
+  const shadow = createShadow("lg");
   const [rutas, setRutas] = useState<Ruta[]>([]);
   const [filteredRutas, setFilteredRutas] = useState<Ruta[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Cargar rutas cuando la pantalla recibe foco
   useFocusEffect(
     useCallback(() => {
       loadRutas();
-    }, [])
+    }, []),
   );
 
   useEffect(() => {
@@ -56,7 +47,7 @@ export default function RutasListScreen() {
       setRutas(data);
       setFilteredRutas(data);
     } catch (error) {
-      console.error('❌ Error cargando rutas:', error);
+      console.error("❌ Error cargando rutas:", error);
       setRutas([]);
       setFilteredRutas([]);
     } finally {
@@ -78,8 +69,8 @@ export default function RutasListScreen() {
       return;
     }
 
-    const filtered = rutas.filter(
-      (ruta) => ruta.nombre.toLowerCase().includes(trimmed)
+    const filtered = rutas.filter((ruta) =>
+      ruta.nombre.toLowerCase().includes(trimmed),
     );
 
     setFilteredRutas(filtered);
@@ -87,7 +78,7 @@ export default function RutasListScreen() {
 
   const handleCrearRuta = () => {
     haptic.medium();
-    router.push('/admin/rutas/crear');
+    router.push("/admin/rutas/crear");
   };
 
   const handleEditarRuta = (id: string) => {
@@ -97,7 +88,7 @@ export default function RutasListScreen() {
 
   const renderRuta = ({ item, index }: { item: Ruta; index: number }) => {
     const numParadas = item.paradas?.length || 0;
-    const estadoActiva = item.estado === 'activa';
+    const estadoActiva = item.estado === "activa";
 
     return (
       <AnimatedCard delay={index * 50} className="mb-3">
@@ -119,9 +110,13 @@ export default function RutasListScreen() {
                 </Text>
 
                 {/* Badge de estado */}
-                <View className={`px-2 py-1 rounded-full ${estadoActiva ? 'bg-green-100' : 'bg-gray-200'}`}>
-                  <Text className={`text-xs font-semibold ${estadoActiva ? 'text-green-700' : 'text-gray-600'}`}>
-                    {estadoActiva ? 'Activa' : 'Inactiva'}
+                <View
+                  className={`px-2 py-1 rounded-full ${estadoActiva ? "bg-green-100" : "bg-gray-200"}`}
+                >
+                  <Text
+                    className={`text-xs font-semibold ${estadoActiva ? "text-green-700" : "text-gray-600"}`}
+                  >
+                    {estadoActiva ? "Activa" : "Inactiva"}
                   </Text>
                 </View>
               </View>
@@ -131,7 +126,7 @@ export default function RutasListScreen() {
                 <View className="flex-row items-center mt-2">
                   <Clock size={14} color="#6b7280" strokeWidth={2} />
                   <Text className="text-sm text-gray-600 ml-1">
-                    {item.hora_inicio || '00:00'} - {item.hora_fin || '00:00'}
+                    {item.hora_inicio || "00:00"} - {item.hora_fin || "00:00"}
                   </Text>
                 </View>
               )}
@@ -140,7 +135,7 @@ export default function RutasListScreen() {
               <View className="flex-row items-center mt-1">
                 <MapPin size={14} color="#6b7280" strokeWidth={2} />
                 <Text className="text-sm text-gray-600 ml-1">
-                  {numParadas} {numParadas === 1 ? 'parada' : 'paradas'}
+                  {numParadas} {numParadas === 1 ? "parada" : "paradas"}
                 </Text>
               </View>
             </View>
@@ -156,22 +151,29 @@ export default function RutasListScreen() {
         <MapPin size={48} color="#9ca3af" strokeWidth={1.5} />
       </View>
       <Text className="text-lg font-semibold text-gray-700 mb-2">
-        {searchQuery ? 'No se encontraron rutas' : 'No hay rutas registradas'}
+        {searchQuery ? "No se encontraron rutas" : "No hay rutas registradas"}
       </Text>
       <Text className="text-sm text-gray-500 text-center px-8">
         {searchQuery
-          ? 'Intenta con otro término de búsqueda'
-          : 'Comienza agregando la primera ruta'}
+          ? "Intenta con otro término de búsqueda"
+          : "Comienza agregando la primera ruta"}
       </Text>
     </View>
   );
 
   return (
     <View className="flex-1 bg-admin-50">
-      <StatusBar barStyle="light-content" backgroundColor={Colors.ruta[700]} translucent={false} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={Colors.tecnibus[700]}
+        translucent={false}
+      />
 
       {/* Header */}
-      <View className="bg-ruta-700 pb-6 px-6 rounded-b-3xl" style={[{ paddingTop }, shadow]}>
+      <View
+        className="bg-ruta-700 pb-6 px-6 rounded-b-3xl"
+        style={[{ paddingTop }, shadow]}
+      >
         <View className="flex-row items-center">
           <TouchableOpacity
             className="bg-ruta-600 p-2 rounded-xl"
@@ -180,10 +182,12 @@ export default function RutasListScreen() {
             <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
           <View className="flex-1">
-            <Text className="text-white text-2xl font-bold text-center">Rutas</Text>
+            <Text className="text-white text-2xl font-bold text-center">
+              Rutas
+            </Text>
             <Text className="text-white text-xl mt-1 text-center">
-              {filteredRutas.length}{' '}
-              {filteredRutas.length === 1 ? 'ruta' : 'rutas'}
+              {filteredRutas.length}{" "}
+              {filteredRutas.length === 1 ? "ruta" : "rutas"}
             </Text>
           </View>
           <TouchableOpacity
@@ -228,7 +232,7 @@ export default function RutasListScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              colors={['#dc2626']}
+              colors={["#dc2626"]}
               tintColor="#dc2626"
             />
           }
