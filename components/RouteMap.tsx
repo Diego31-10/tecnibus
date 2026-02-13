@@ -6,6 +6,7 @@ import { Bus } from 'lucide-react-native';
 import { Colors } from '@/lib/constants/colors';
 import type { Parada } from '@/lib/services/rutas.service';
 import type { UbicacionActual } from '@/lib/services/ubicaciones.service';
+import { getRouteForWaypoints } from '@/lib/services/directions.service';
 
 const DEFAULT_REGION: Region = {
   latitude: 9.0,
@@ -24,6 +25,8 @@ export default function RouteMap({ paradas, ubicacionBus, recorridoActivo }: Rou
   const mapRef = useRef<MapView>(null);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<Region | null>(null);
+  const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
+  const [loadingRoute, setLoadingRoute] = useState(false);
 
   // Obtener ubicacion del dispositivo al montar
   useEffect(() => {
@@ -90,10 +93,37 @@ export default function RouteMap({ paradas, ubicacionBus, recorridoActivo }: Rou
     }
   }, [ubicacionBus, recorridoActivo]);
 
-  // Coordenadas para la polyline
-  const routeCoordinates = paradas
-    .sort((a, b) => (a.orden || 0) - (b.orden || 0))
-    .map(p => ({ latitude: p.latitud, longitude: p.longitud }));
+  // Obtener ruta real de Google Directions cuando cambian las paradas
+  useEffect(() => {
+    if (paradas.length < 2) {
+      setRouteCoordinates([]);
+      return;
+    }
+
+    (async () => {
+      setLoadingRoute(true);
+      try {
+        const sortedParadas = [...paradas].sort((a, b) => (a.orden || 0) - (b.orden || 0));
+        const waypoints = sortedParadas.map(p => ({ lat: p.latitud, lng: p.longitud }));
+
+        const directionsResult = await getRouteForWaypoints(waypoints);
+
+        if (directionsResult && directionsResult.decodedCoordinates.length > 0) {
+          setRouteCoordinates(directionsResult.decodedCoordinates);
+        } else {
+          // Fallback: usar lineas rectas si falla la API
+          setRouteCoordinates(waypoints.map(w => ({ latitude: w.lat, longitude: w.lng })));
+        }
+      } catch (error) {
+        console.error('Error obteniendo ruta de Google:', error);
+        // Fallback: lineas rectas
+        const sorted = [...paradas].sort((a, b) => (a.orden || 0) - (b.orden || 0));
+        setRouteCoordinates(sorted.map(p => ({ latitude: p.latitud, longitude: p.longitud })));
+      } finally {
+        setLoadingRoute(false);
+      }
+    })();
+  }, [paradas.map(p => `${p.id}-${p.orden}-${p.latitud}-${p.longitud}`).join(',')]);
 
   return (
     <View style={styles.container}>
@@ -149,6 +179,13 @@ export default function RouteMap({ paradas, ubicacionBus, recorridoActivo }: Rou
           <Text style={styles.loadingText}>Cargando mapa...</Text>
         </View>
       )}
+
+      {loadingRoute && !loading && (
+        <View style={styles.routeLoadingBadge}>
+          <ActivityIndicator size="small" color="#ffffff" />
+          <Text style={styles.routeLoadingText}>Obteniendo ruta...</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -174,5 +211,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
+  },
+  routeLoadingBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    backgroundColor: Colors.tecnibus[600],
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  routeLoadingText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
