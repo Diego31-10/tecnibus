@@ -40,29 +40,6 @@ export function MapCard({
         recorridoActivo={recorridoActivo}
       />
 
-      {/* Bottom-left overlay: traffic */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: 12,
-          left: 12,
-          backgroundColor: "rgba(220, 252, 231, 0.95)",
-          borderRadius: 999,
-          paddingHorizontal: 12,
-          paddingVertical: 6,
-          flexDirection: "row",
-          alignItems: "center",
-        }}
-      >
-        <Circle size={8} color="#16a34a" fill="#16a34a" strokeWidth={0} />
-        <Text
-          className="font-semibold"
-          style={{ fontSize: 11, color: "#16a34a", marginLeft: 6 }}
-        >
-          TRAFICO FLUIDO
-        </Text>
-      </View>
-
       {/* Bottom-right overlay: expand */}
       {onExpandMap && (
         <TouchableOpacity
