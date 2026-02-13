@@ -48,15 +48,7 @@ function AppContent() {
           options={{ animation: "fade", animationDuration: 200 }}
         />
         <Stack.Screen
-          name="admin/choferes/crear"
-          options={{ animation: "fade", animationDuration: 200 }}
-        />
-        <Stack.Screen
           name="admin/padres/index"
-          options={{ animation: "fade", animationDuration: 200 }}
-        />
-        <Stack.Screen
-          name="admin/padres/crear"
           options={{ animation: "fade", animationDuration: 200 }}
         />
         <Stack.Screen
