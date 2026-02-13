@@ -1,217 +1,224 @@
 import { Colors } from "@/lib/constants/colors";
-import { haptic } from "@/lib/utils/haptics";
-import { createShadow } from "@/lib/utils/shadows";
-import { useFocusEffect, useRouter } from "expo-router";
-import { ArrowLeft, Bus, Plus, Search, Users } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    RefreshControl,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  BusetaModal,
+  EntityCard,
+  SearchBar,
+  SubScreenHeader,
+} from "@/features/admin";
+import { haptic } from "@/lib/utils/haptics";
+import { useFocusEffect, useRouter } from "expo-router";
+import { Bus, Hash, Plus, Users } from "lucide-react-native";
+import { useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  RefreshControl,
+  StatusBar,
+  Text,
+  View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AnimatedCard } from "../../../components";
-import { Buseta, getBusetas } from "../../../lib/services/busetas.service";
+import Toast from "@/components/Toast";
+import {
+  Buseta,
+  deleteBuseta,
+  getBusetas,
+} from "@/lib/services/busetas.service";
 
 export default function BusetasListScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow("lg");
   const [busetas, setBusetas] = useState<Buseta[]>([]);
-  const [filteredBusetas, setFilteredBusetas] = useState<Buseta[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editBuseta, setEditBuseta] = useState<Buseta | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  }>({ visible: false, message: "", type: "success" });
 
-  // Cargar busetas cuando la pantalla recibe foco
+  const loadBusetas = useCallback(async () => {
+    try {
+      const data = await getBusetas();
+      setBusetas(data);
+    } catch {
+      showToast("Error al cargar busetas", "error");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       loadBusetas();
-    }, []),
+    }, [loadBusetas])
   );
 
-  useEffect(() => {
-    handleSearch(searchQuery);
-  }, [searchQuery, busetas]);
-
-  const loadBusetas = async () => {
-    try {
-      setLoading(true);
-      const data = await getBusetas();
-      setBusetas(data);
-      setFilteredBusetas(data);
-    } catch (error) {
-      console.error("❌ Error cargando busetas:", error);
-      setBusetas([]);
-      setFilteredBusetas([]);
-    } finally {
-      setLoading(false);
-    }
+  const showToast = (
+    message: string,
+    type: "success" | "error" | "warning"
+  ) => {
+    setToast({ visible: true, message, type });
   };
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadBusetas();
-    setRefreshing(false);
-  };
+  const filtered = useMemo(() => {
+    if (!search.trim()) return busetas;
+    const q = search.toLowerCase();
+    return busetas.filter((b) => b.placa.toLowerCase().includes(q));
+  }, [busetas, search]);
 
-  const handleSearch = (query: string) => {
-    const trimmed = query.trim().toLowerCase();
-
-    if (!trimmed) {
-      setFilteredBusetas(busetas);
-      return;
-    }
-
-    const filtered = busetas.filter((buseta) =>
-      buseta.placa.toLowerCase().includes(trimmed),
-    );
-
-    setFilteredBusetas(filtered);
-  };
-
-  const handleCrearBuseta = () => {
-    haptic.medium();
-    router.push("/admin/busetas/crear");
-  };
-
-  const handleEditarBuseta = (id: string) => {
+  const handleEdit = (buseta: Buseta) => {
     haptic.light();
-    router.push(`/admin/busetas/${id}` as any);
+    setEditBuseta(buseta);
+    setShowModal(true);
   };
 
-  const renderBuseta = ({ item, index }: { item: Buseta; index: number }) => (
-    <AnimatedCard delay={index * 50} className="mb-3">
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={() => handleEditarBuseta(item.id)}
-      >
-        <View className="flex-row items-center">
-          {/* Icono */}
-          <View className="bg-buseta-100 p-3 rounded-full mr-3">
-            <Bus size={24} color="#16a34a" strokeWidth={2} />
-          </View>
+  const handleCreate = () => {
+    haptic.medium();
+    setEditBuseta(null);
+    setShowModal(true);
+  };
 
-          {/* Info de la Buseta */}
-          <View className="flex-1">
-            <Text className="text-lg font-bold text-gray-800">
-              {item.placa}
-            </Text>
+  const confirmarEliminar = (buseta: Buseta) => {
+    haptic.medium();
+    Alert.alert(
+      "Eliminar Buseta",
+      `¿Eliminar la buseta ${buseta.placa}? Esta acción no se puede deshacer.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: () => handleEliminar(buseta),
+        },
+      ]
+    );
+  };
 
-            {/* Capacidad */}
-            <View className="flex-row items-center mt-1">
-              <Users size={14} color="#6b7280" strokeWidth={2} />
-              <Text className="text-sm text-gray-600 ml-1">
-                Capacidad: {item.capacidad} pasajeros
-              </Text>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    </AnimatedCard>
-  );
-
-  const renderEmpty = () => (
-    <View className="items-center justify-center py-12">
-      <View className="bg-gray-100 p-6 rounded-full mb-4">
-        <Bus size={48} color="#9ca3af" strokeWidth={1.5} />
-      </View>
-      <Text className="text-lg font-semibold text-gray-700 mb-2">
-        {searchQuery
-          ? "No se encontraron busetas"
-          : "No hay busetas registradas"}
-      </Text>
-      <Text className="text-sm text-gray-500 text-center px-8">
-        {searchQuery
-          ? "Intenta con otro término de búsqueda"
-          : "Comienza agregando la primera buseta"}
-      </Text>
-    </View>
-  );
+  const handleEliminar = async (buseta: Buseta) => {
+    setDeletingId(buseta.id);
+    const result = await deleteBuseta(buseta.id);
+    if (result.success) {
+      setBusetas((prev) => prev.filter((b) => b.id !== buseta.id));
+      showToast("Buseta eliminada correctamente", "success");
+    } else {
+      showToast(result.error || "Error al eliminar", "error");
+    }
+    setDeletingId(null);
+  };
 
   return (
-    <View className="flex-1 bg-admin-50">
+    <View style={{ flex: 1, backgroundColor: Colors.tecnibus[50] }}>
       <StatusBar
         barStyle="light-content"
         backgroundColor={Colors.tecnibus[700]}
         translucent={false}
       />
 
-      {/* Header */}
-      <View
-        className="bg-buseta-700 pb-6 px-6 rounded-b-3xl"
-        style={[{ paddingTop }, shadow]}
-      >
-        <View className="flex-row items-center">
-          <TouchableOpacity
-            className="bg-buseta-600 p-2 rounded-xl"
-            onPress={() => router.back()}
-          >
-            <ArrowLeft size={24} color="#ffffff" strokeWidth={2.5} />
-          </TouchableOpacity>
-          <View className="flex-1">
-            <Text className="text-white text-2xl font-bold text-center">
-              Busetas
-            </Text>
-            <Text className="text-white text-xl mt-1 text-center">
-              {filteredBusetas.length}{" "}
-              {filteredBusetas.length === 1 ? "buseta" : "busetas"}
-            </Text>
-          </View>
-          <TouchableOpacity
-            className="bg-buseta-600 p-2 rounded-xl"
-            onPress={handleCrearBuseta}
-          >
-            <Plus size={24} color="#ffffff" strokeWidth={2.5} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <SubScreenHeader
+        title="BUSETAS"
+        subtitle={`${busetas.length} registradas`}
+        icon={Bus}
+        onBack={() => router.back()}
+        rightAction={{ icon: Plus, onPress: handleCreate }}
+      />
 
-      {/* Barra de búsqueda */}
-      <View className="px-6 pt-6 pb-3">
-        <View className="bg-white rounded-xl shadow-sm flex-row items-center px-4 py-3">
-          <Search size={20} color="#9ca3af" strokeWidth={2} />
-          <TextInput
-            className="flex-1 ml-3 text-base text-gray-800"
-            placeholder="Buscar por placa..."
-            placeholderTextColor="#9ca3af"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="characters"
-          />
-        </View>
-      </View>
+      <SearchBar
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Buscar por placa..."
+        autoCapitalize="characters"
+      />
 
-      {/* Lista de busetas */}
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#16a34a" />
-          <Text className="text-gray-500 mt-4">Cargando busetas...</Text>
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
+          <ActivityIndicator size="large" color={Colors.tecnibus[600]} />
+          <Text style={{ color: "#6B7280", marginTop: 16 }}>
+            Cargando busetas...
+          </Text>
         </View>
       ) : (
         <FlatList
-          data={filteredBusetas}
-          renderItem={renderBuseta}
+          data={filtered}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={renderEmpty}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={handleRefresh}
-              colors={["#16a34a"]}
-              tintColor="#16a34a"
+              onRefresh={() => {
+                setRefreshing(true);
+                loadBusetas();
+              }}
+              colors={[Colors.tecnibus[600]]}
+              tintColor={Colors.tecnibus[600]}
             />
+          }
+          renderItem={({ item }) => (
+            <EntityCard
+              icon={Bus}
+              title={item.placa}
+              meta={[
+                { icon: Users, text: `Capacidad: ${item.capacidad}` },
+              ]}
+              onPress={() => handleEdit(item)}
+              onDelete={() => confirmarEliminar(item)}
+              deleting={deletingId === item.id}
+            />
+          )}
+          ListEmptyComponent={
+            <View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 48,
+              }}
+            >
+              <Bus
+                size={48}
+                color={Colors.tecnibus[300]}
+                strokeWidth={1.5}
+              />
+              <Text
+                style={{
+                  color: "#6B7280",
+                  textAlign: "center",
+                  marginTop: 16,
+                  fontSize: 15,
+                }}
+              >
+                {search
+                  ? "No se encontraron busetas"
+                  : "No hay busetas registradas"}
+              </Text>
+            </View>
           }
         />
       )}
+
+      <BusetaModal
+        visible={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setEditBuseta(null);
+        }}
+        buseta={editBuseta}
+        onSuccess={loadBusetas}
+        onToast={showToast}
+      />
+
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast((prev) => ({ ...prev, visible: false }))}
+      />
     </View>
   );
 }
