@@ -1,7 +1,8 @@
-import { View } from "react-native";
+import { Colors } from "@/lib/constants/colors";
 import { StatCard } from "@/components/ui/StatCard";
-import { Bus, GraduationCap, User, Users } from "lucide-react-native";
 import { DashboardStats } from "@/lib/services/stats.service";
+import { Bus, GraduationCap, User, Users } from "lucide-react-native";
+import { View } from "react-native";
 
 interface AdminStatsGridProps {
   stats: DashboardStats;
@@ -19,20 +20,20 @@ export function AdminStatsGrid({
   onBusesPress,
 }: AdminStatsGridProps) {
   return (
-    <View style={{ paddingHorizontal: 20, marginTop: -36, zIndex: 10 }}>
+    <View style={{ paddingHorizontal: 20, marginTop: -20, zIndex: 10 }}>
       <View className="flex-row" style={{ gap: 12, marginBottom: 12 }}>
         <StatCard
           icon={GraduationCap}
-          iconColor="#7C3AED"
-          iconBgColor="#EDE9FE"
+          iconColor={Colors.tecnibus[700]}
+          iconBgColor={Colors.tecnibus[100]}
           value={stats.totalStudents}
           label="ESTUDIANTES"
           onPress={onStudentsPress}
         />
         <StatCard
           icon={User}
-          iconColor="#D97706"
-          iconBgColor="#FEF3C7"
+          iconColor={Colors.tecnibus[600]}
+          iconBgColor={Colors.tecnibus[200]}
           value={stats.totalDrivers}
           label="CONDUCTORES"
           onPress={onDriversPress}
@@ -41,16 +42,16 @@ export function AdminStatsGrid({
       <View className="flex-row" style={{ gap: 12 }}>
         <StatCard
           icon={Users}
-          iconColor="#2563EB"
-          iconBgColor="#DBEAFE"
+          iconColor={Colors.tecnibus[500]}
+          iconBgColor={Colors.tecnibus[100]}
           value={stats.totalParents}
           label="PADRES"
           onPress={onParentsPress}
         />
         <StatCard
           icon={Bus}
-          iconColor="#059669"
-          iconBgColor="#D1FAE5"
+          iconColor={Colors.tecnibus[800]}
+          iconBgColor={Colors.tecnibus[200]}
           value={stats.activeBuses}
           label="BUSES"
           onPress={onBusesPress}

@@ -23,7 +23,7 @@ export function AdminQuickActions({
           <ActionCard
             icon={MapPin}
             iconColor={Colors.tecnibus[600]}
-            iconBgColor="#E0F2FE"
+            iconBgColor={Colors.tecnibus[100]}
             title="Rutas"
             description="Optimizar y visualizar trayectos."
             onPress={onRoutesPress}
@@ -32,8 +32,8 @@ export function AdminQuickActions({
         <View className="flex-1">
           <ActionCard
             icon={Navigation}
-            iconColor="#7C3AED"
-            iconBgColor="#EDE9FE"
+            iconColor={Colors.tecnibus[700]}
+            iconBgColor={Colors.tecnibus[200]}
             title="Asignaciones"
             description="Vincular conductor y bus."
             onPress={onAssignmentsPress}
@@ -57,8 +57,8 @@ export function AdminQuickActions({
         <View className="flex-1">
           <ActionCard
             icon={BarChart3}
-            iconColor="#EA580C"
-            iconBgColor="#FFEDD5"
+            iconColor={Colors.tecnibus[800]}
+            iconBgColor={Colors.tecnibus[100]}
             title="Reportes"
             description="Estadísticas mensuales."
             onPress={onReportsPress}

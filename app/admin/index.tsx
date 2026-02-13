@@ -1,3 +1,10 @@
+import { useAuth } from "@/contexts/AuthContext";
+import { Colors } from "@/lib/constants/colors";
+import {
+  DashboardStats,
+  getDashboardStats,
+} from "@/lib/services/stats.service";
+import { haptic } from "@/lib/utils/haptics";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -8,17 +15,17 @@ import {
   Text,
   View,
 } from "react-native";
-import { useAuth } from "@/contexts/AuthContext";
-import {
-  DashboardStats,
-  getDashboardStats,
-} from "@/lib/services/stats.service";
-import { haptic } from "@/lib/utils/haptics";
-import { Colors } from "@/lib/constants/colors";
 
-import { DashboardHeader, Section, BottomNavigation, DecorationTop, DecorationMid, DecorationBottom } from "@/components/layout";
+import {
+  BottomNavigation,
+  DashboardHeader,
+  DecorationBottom,
+  DecorationMid,
+  DecorationTop,
+  Section,
+} from "@/components/layout";
 import { StatusPanel } from "@/components/ui";
-import { AdminStatsGrid, AdminQuickActions } from "@/features/admin";
+import { AdminQuickActions, AdminStatsGrid } from "@/features/admin";
 
 export default function AdminHomeScreen() {
   const router = useRouter();
@@ -110,7 +117,10 @@ export default function AdminHomeScreen() {
 
   return (
     <View className="flex-1" style={{ backgroundColor: Colors.tecnibus[50] }}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.tecnibus[600]} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={Colors.tecnibus[600]}
+      />
 
       <ScrollView
         className="flex-1"
@@ -157,7 +167,9 @@ export default function AdminHomeScreen() {
             <DecorationTop />
 
             {/* Estado Activo */}
-            <View style={{ paddingHorizontal: 20, marginTop: 20, marginBottom: 24 }}>
+            <View
+              style={{ paddingHorizontal: 20, marginTop: 20, marginBottom: 24 }}
+            >
               <StatusPanel
                 activeCount={14}
                 totalCount={15}

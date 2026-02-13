@@ -1,5 +1,5 @@
-import { Text, TouchableOpacity, View } from "react-native";
 import { LucideIcon } from "lucide-react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 
 interface StatCardProps {
   icon: LucideIcon;
@@ -46,10 +46,21 @@ export function StatCard({
       >
         <Icon size={20} color={iconColor} strokeWidth={2} />
       </View>
-      <Text className="font-bold font-calsans" style={{ fontSize: 26, color: "#111827", marginBottom: 2 }}>
+      <Text
+        className="font-bold font-calsans"
+        style={{ fontSize: 26, color: "#111827", marginBottom: 2 }}
+      >
         {value}
       </Text>
-      <Text className="font-semibold" style={{ fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: 1.2 }}>
+      <Text
+        className="font-semibold"
+        style={{
+          fontSize: 10,
+          color: "#9CA3AF",
+          textTransform: "uppercase",
+          letterSpacing: 1.2,
+        }}
+      >
         {label}
       </Text>
     </TouchableOpacity>
