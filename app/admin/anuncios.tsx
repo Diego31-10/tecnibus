@@ -4,8 +4,8 @@ import {
   TemplateAnuncio,
 } from "@/lib/constants/anuncios-templates";
 import { Colors } from "@/lib/constants/colors";
+import { SubScreenHeader } from "@/features/admin";
 import { haptic } from "@/lib/utils/haptics";
-import { createShadow } from "@/lib/utils/shadows";
 import { router } from "expo-router";
 import { ArrowLeft, FileText, Megaphone, Send, X } from "lucide-react-native";
 import { useState } from "react";
@@ -22,48 +22,36 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { supabase } from "../../lib/services/supabase";
+import { supabase } from "@/lib/services/supabase";
 
 type Audiencia = "todos" | "padres" | "choferes";
 
 export default function AnunciosScreen() {
-  const insets = useSafeAreaInsets();
   const [titulo, setTitulo] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [audiencia, setAudiencia] = useState<Audiencia>("todos");
   const [loading, setLoading] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<
-    string | null
-  >(null);
-
-  const paddingTop = Math.max(insets.top + 8, 48);
-  const shadow = createShadow("md");
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
 
   const handleEnviar = async () => {
-    // Validaciones
     if (!titulo.trim()) {
       Alert.alert("Error", "El título es obligatorio");
       return;
     }
-
     if (!mensaje.trim()) {
       Alert.alert("Error", "El mensaje es obligatorio");
       return;
     }
-
     if (titulo.length > 100) {
       Alert.alert("Error", "El título no puede superar 100 caracteres");
       return;
     }
-
     if (mensaje.length > 500) {
       Alert.alert("Error", "El mensaje no puede superar 500 caracteres");
       return;
     }
 
-    // Confirmar antes de enviar
     const audienciaText =
       audiencia === "todos"
         ? "todos los usuarios"
@@ -72,19 +60,12 @@ export default function AnunciosScreen() {
           : "todos los choferes";
 
     Alert.alert(
-      "📢 Confirmar envío",
+      "Confirmar envío",
       `¿Enviar este anuncio a ${audienciaText}?\n\n"${titulo}"\n\nEsta acción no se puede deshacer.`,
       [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Enviar",
-          style: "default",
-          onPress: enviarAnuncio,
-        },
-      ],
+        { text: "Cancelar", style: "cancel" },
+        { text: "Enviar", style: "default", onPress: enviarAnuncio },
+      ]
     );
   };
 
@@ -93,48 +74,23 @@ export default function AnunciosScreen() {
     haptic.light();
 
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "broadcast-anuncio",
-        {
-          body: {
-            titulo: titulo.trim(),
-            mensaje: mensaje.trim(),
-            audiencia,
-          },
-        },
-      );
+      const { data, error } = await supabase.functions.invoke("broadcast-anuncio", {
+        body: { titulo: titulo.trim(), mensaje: mensaje.trim(), audiencia },
+      });
 
       if (error) {
         console.error("Error enviando anuncio:", error);
-        Alert.alert(
-          "Error",
-          "No se pudo enviar el anuncio. Intenta nuevamente.",
-        );
+        Alert.alert("Error", "No se pudo enviar el anuncio. Intenta nuevamente.");
         return;
       }
 
-      console.log("Resultado del envío:", data);
-
-      // Mostrar resultado
       const enviados = data?.sent || 0;
       const fallidos = data?.failed || 0;
 
       Alert.alert(
-        "✅ Anuncio enviado",
-        `Se enviaron ${enviados} notificaciones correctamente.${
-          fallidos > 0 ? `\n\n${fallidos} notificaciones fallaron.` : ""
-        }`,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              // Limpiar formulario
-              setTitulo("");
-              setMensaje("");
-              setAudiencia("todos");
-            },
-          },
-        ],
+        "Anuncio enviado",
+        `Se enviaron ${enviados} notificaciones correctamente.${fallidos > 0 ? `\n\n${fallidos} notificaciones fallaron.` : ""}`,
+        [{ text: "OK", onPress: () => { setTitulo(""); setMensaje(""); setAudiencia("todos"); } }]
       );
 
       haptic.success();
@@ -145,14 +101,6 @@ export default function AnunciosScreen() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getAudienciaColor = (tipo: Audiencia) => {
-    return audiencia === tipo ? Colors.tecnibus[600] : Colors.tecnibus[300];
-  };
-
-  const getAudienciaTextColor = (tipo: Audiencia) => {
-    return audiencia === tipo ? Colors.tecnibus[50] : Colors.tecnibus[600];
   };
 
   const handleSeleccionarTemplate = (template: TemplateAnuncio) => {
@@ -167,650 +115,307 @@ export default function AnunciosScreen() {
     ? TEMPLATES_ANUNCIOS.filter((t) => t.categoria === categoriaSeleccionada)
     : TEMPLATES_ANUNCIOS;
 
+  const audienciaOptions: { key: Audiencia; label: string }[] = [
+    { key: "todos", label: "Todos" },
+    { key: "padres", label: "Padres" },
+    { key: "choferes", label: "Choferes" },
+  ];
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: Colors.tecnibus[50] }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor={Colors.tecnibus[50]}
+      <StatusBar barStyle="light-content" backgroundColor={Colors.tecnibus[700]} translucent={false} />
+
+      <SubScreenHeader
+        title="ANUNCIOS"
+        subtitle="Notificaciones push masivas"
+        icon={Megaphone}
+        onBack={() => router.back()}
       />
-
-      {/* Header */}
-      <View
-        style={[
-          {
-            paddingTop,
-            paddingHorizontal: 16,
-            paddingBottom: 16,
-            backgroundColor: Colors.tecnibus[50],
-            borderBottomWidth: 1,
-            borderBottomColor: Colors.tecnibus[200],
-          },
-          shadow,
-        ]}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <TouchableOpacity
-            onPress={() => {
-              haptic.light();
-              router.back();
-            }}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: Colors.tecnibus[100],
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <ArrowLeft size={20} color={Colors.tecnibus[700]} />
-          </TouchableOpacity>
-
-          <View style={{ flex: 1 }}>
-            <Text
-              style={{
-                fontSize: 20,
-                fontWeight: "700",
-                color: Colors.tecnibus[900],
-              }}
-            >
-              📢 Enviar Anuncios
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                color: Colors.tecnibus[500],
-                marginTop: 2,
-              }}
-            >
-              Notificaciones push masivas
-            </Text>
-          </View>
-        </View>
-      </View>
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, gap: 16 }}
+        contentContainerStyle={{ padding: 20, gap: 16 }}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Botón Usar Template */}
+        {/* Usar Template */}
         <TouchableOpacity
-          onPress={() => {
-            haptic.light();
-            setShowTemplates(true);
-          }}
+          onPress={() => { haptic.light(); setShowTemplates(true); }}
           style={{
-            backgroundColor: Colors.tecnibus[50],
+            backgroundColor: "#ffffff",
             paddingVertical: 14,
             paddingHorizontal: 16,
-            borderRadius: 8,
+            borderRadius: 12,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
             borderWidth: 1,
-            borderColor: Colors.tecnibus[100],
+            borderColor: Colors.tecnibus[200],
           }}
         >
           <FileText size={20} color={Colors.tecnibus[700]} />
-          <Text
-            style={{
-              fontSize: 15,
-              fontWeight: "600",
-              color: Colors.tecnibus[700],
-            }}
-          >
-            Usar Template
-          </Text>
+          <Text style={{ fontSize: 15, fontWeight: "600", color: Colors.tecnibus[700] }}>Usar Template</Text>
         </TouchableOpacity>
 
-        {/* Selector de Audiencia */}
+        {/* Audiencia */}
         <View>
-          <Text
-            style={{
-              fontSize: 16,
-              fontWeight: "600",
-              color: Colors.tecnibus[900],
-              marginBottom: 12,
-            }}
-          >
-            Audiencia
-          </Text>
-
+          <Text style={{ fontSize: 13, fontWeight: "600", color: "#374151", marginBottom: 8 }}>Audiencia</Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
-            <TouchableOpacity
-              onPress={() => {
-                haptic.light();
-                setAudiencia("todos");
-              }}
-              style={{
-                flex: 1,
-                backgroundColor: getAudienciaColor("todos"),
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                borderRadius: 8,
-                alignItems: "center",
-              }}
-            >
-              <Text
+            {audienciaOptions.map((opt) => (
+              <TouchableOpacity
+                key={opt.key}
+                onPress={() => { haptic.light(); setAudiencia(opt.key); }}
                 style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: getAudienciaTextColor("todos"),
+                  flex: 1,
+                  backgroundColor: audiencia === opt.key ? Colors.tecnibus[600] : "#ffffff",
+                  paddingVertical: 12,
+                  borderRadius: 10,
+                  alignItems: "center",
+                  borderWidth: audiencia === opt.key ? 0 : 1,
+                  borderColor: "#E5E7EB",
                 }}
               >
-                👥 Todos
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => {
-                haptic.light();
-                setAudiencia("padres");
-              }}
-              style={{
-                flex: 1,
-                backgroundColor: getAudienciaColor("padres"),
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                borderRadius: 8,
-                alignItems: "center",
-              }}
-            >
-              <Text
-                style={{
+                <Text style={{
                   fontSize: 14,
                   fontWeight: "600",
-                  color: getAudienciaTextColor("padres"),
-                }}
-              >
-                👨‍👩‍👧 Padres
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => {
-                haptic.light();
-                setAudiencia("choferes");
-              }}
-              style={{
-                flex: 1,
-                backgroundColor: getAudienciaColor("choferes"),
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                borderRadius: 8,
-                alignItems: "center",
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: getAudienciaTextColor("choferes"),
-                }}
-              >
-                🚌 Choferes
-              </Text>
-            </TouchableOpacity>
+                  color: audiencia === opt.key ? "#ffffff" : "#6B7280",
+                }}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
-        {/* Campo Título */}
+        {/* Título */}
         <View>
-          <Text
-            style={{
-              fontSize: 16,
-              fontWeight: "600",
-              color: Colors.tecnibus[900],
-              marginBottom: 8,
-            }}
-          >
-            Título
-          </Text>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: "#374151", marginBottom: 8 }}>Título</Text>
           <TextInput
             value={titulo}
             onChangeText={setTitulo}
             placeholder="Título del anuncio (max. 100 caracteres)"
-            placeholderTextColor={Colors.tecnibus[400]}
+            placeholderTextColor="#9CA3AF"
             maxLength={100}
             style={{
-              backgroundColor: Colors.tecnibus[50],
+              backgroundColor: "#ffffff",
               borderWidth: 1,
-              borderColor: Colors.tecnibus[300],
-              borderRadius: 8,
+              borderColor: "#E5E7EB",
+              borderRadius: 10,
               paddingVertical: 12,
               paddingHorizontal: 16,
-              fontSize: 16,
-              color: Colors.tecnibus[900],
+              fontSize: 15,
+              color: "#1F2937",
             }}
           />
-          <Text
-            style={{
-              fontSize: 12,
-              color: Colors.tecnibus[500],
-              marginTop: 4,
-              textAlign: "right",
-            }}
-          >
-            {titulo.length}/100
-          </Text>
+          <Text style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4, textAlign: "right" }}>{titulo.length}/100</Text>
         </View>
 
-        {/* Campo Mensaje */}
+        {/* Mensaje */}
         <View>
-          <Text
-            style={{
-              fontSize: 16,
-              fontWeight: "600",
-              color: Colors.tecnibus[900],
-              marginBottom: 8,
-            }}
-          >
-            Mensaje
-          </Text>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: "#374151", marginBottom: 8 }}>Mensaje</Text>
           <TextInput
             value={mensaje}
             onChangeText={setMensaje}
             placeholder="Escribe el mensaje del anuncio (max. 500 caracteres)"
-            placeholderTextColor={Colors.tecnibus[400]}
+            placeholderTextColor="#9CA3AF"
             multiline
             numberOfLines={6}
             maxLength={500}
             textAlignVertical="top"
             style={{
-              backgroundColor: Colors.tecnibus[50],
+              backgroundColor: "#ffffff",
               borderWidth: 1,
-              borderColor: Colors.tecnibus[300],
-              borderRadius: 8,
+              borderColor: "#E5E7EB",
+              borderRadius: 10,
               paddingVertical: 12,
               paddingHorizontal: 16,
-              fontSize: 16,
-              color: Colors.tecnibus[900],
+              fontSize: 15,
+              color: "#1F2937",
               minHeight: 120,
             }}
           />
-          <Text
-            style={{
-              fontSize: 12,
-              color: Colors.tecnibus[500],
-              marginTop: 4,
-              textAlign: "right",
-            }}
-          >
-            {mensaje.length}/500
-          </Text>
+          <Text style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4, textAlign: "right" }}>{mensaje.length}/500</Text>
         </View>
 
         {/* Vista Previa */}
         {(titulo || mensaje) && (
-          <View
-            style={{
-              backgroundColor: Colors.tecnibus[50],
-              borderWidth: 1,
-              borderColor: Colors.tecnibus[300],
-              borderRadius: 8,
-              padding: 16,
-              marginTop: 8,
-            }}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 8,
-              }}
-            >
+          <View style={{
+            backgroundColor: "#ffffff",
+            borderWidth: 1,
+            borderColor: Colors.tecnibus[200],
+            borderRadius: 12,
+            padding: 16,
+          }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <Megaphone size={16} color={Colors.tecnibus[600]} />
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "600",
-                  color: Colors.tecnibus[600],
-                  textTransform: "uppercase",
-                }}
-              >
-                Vista Previa
-              </Text>
+              <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.tecnibus[600], textTransform: "uppercase" }}>Vista Previa</Text>
             </View>
-
             {titulo ? (
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "600",
-                  color: Colors.tecnibus[900],
-                  marginBottom: 4,
-                }}
-              >
-                📢 {titulo}
-              </Text>
+              <Text style={{ fontSize: 15, fontWeight: "600", color: "#1F2937", marginBottom: 4 }}>{titulo}</Text>
             ) : null}
-
             {mensaje ? (
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: Colors.tecnibus[700],
-                  lineHeight: 20,
-                }}
-              >
-                {mensaje}
-              </Text>
+              <Text style={{ fontSize: 13, color: "#6B7280", lineHeight: 20 }}>{mensaje}</Text>
             ) : null}
           </View>
         )}
 
-        {/* Botón Enviar */}
+        {/* Enviar */}
         <TouchableOpacity
           onPress={handleEnviar}
           disabled={loading || !titulo.trim() || !mensaje.trim()}
           style={{
-            backgroundColor:
-              loading || !titulo.trim() || !mensaje.trim()
-                ? Colors.tecnibus[300]
-                : Colors.tecnibus[600],
+            backgroundColor: loading || !titulo.trim() || !mensaje.trim() ? Colors.tecnibus[300] : Colors.tecnibus[600],
             paddingVertical: 16,
-            borderRadius: 8,
+            borderRadius: 14,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
-            marginTop: 16,
+            marginTop: 8,
           }}
         >
           {loading ? (
-            <ActivityIndicator size="small" color={Colors.tecnibus[50]} />
+            <ActivityIndicator size="small" color="#ffffff" />
           ) : (
             <>
-              <Send size={20} color={Colors.tecnibus[50]} />
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "600",
-                  color: Colors.tecnibus[50],
-                }}
-              >
-                Enviar Anuncio
-              </Text>
+              <Send size={20} color="#ffffff" />
+              <Text style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}>Enviar Anuncio</Text>
             </>
           )}
         </TouchableOpacity>
 
-        {/* Info */}
-        <View
-          style={{
-            backgroundColor: Colors.tecnibus[50],
-            padding: 12,
-            borderRadius: 8,
-            borderLeftWidth: 4,
-            borderLeftColor: Colors.tecnibus[500],
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 14,
-              color: Colors.tecnibus[800],
-              lineHeight: 20,
-            }}
-          >
-            💡 <Text style={{ fontWeight: "600" }}>Consejo:</Text> Las
-            notificaciones se enviarán solo a usuarios con notificaciones
-            habilitadas y dispositivos registrados.
+        {/* Info tip */}
+        <View style={{
+          backgroundColor: Colors.tecnibus[50],
+          padding: 12,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: Colors.tecnibus[200],
+        }}>
+          <Text style={{ fontSize: 12, color: Colors.tecnibus[800], lineHeight: 18, textAlign: "center" }}>
+            Las notificaciones se enviarán solo a usuarios con notificaciones habilitadas y dispositivos registrados.
           </Text>
         </View>
       </ScrollView>
 
       {/* Modal de Templates */}
-      <Modal
-        visible={showTemplates}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowTemplates(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: Colors.tecnibus[50] }}>
-          <StatusBar barStyle="dark-content" />
+      <Modal visible={showTemplates} animationType="slide" transparent onRequestClose={() => setShowTemplates(false)}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+          <View style={{
+            backgroundColor: "#ffffff",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            maxHeight: "85%",
+          }}>
+            {/* Handle */}
+            <View style={{ alignItems: "center", paddingTop: 12 }}>
+              <View style={{ width: 40, height: 4, backgroundColor: "#D1D5DB", borderRadius: 2 }} />
+            </View>
 
-          {/* Header del Modal */}
-          <View
-            style={[
-              {
-                paddingTop: paddingTop,
-                paddingHorizontal: 16,
-                paddingBottom: 16,
-                backgroundColor: Colors.tecnibus[50],
-                borderBottomWidth: 1,
-                borderBottomColor: Colors.tecnibus[200],
-              },
-              shadow,
-            ]}
-          >
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
-            >
-              <TouchableOpacity
-                onPress={() => {
-                  haptic.light();
-                  setShowTemplates(false);
-                  setCategoriaSeleccionada(null);
-                }}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: Colors.tecnibus[100],
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <X size={20} color={Colors.tecnibus[700]} />
-              </TouchableOpacity>
-
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    fontSize: 20,
-                    fontWeight: "700",
-                    color: Colors.tecnibus[900],
-                  }}
-                >
-                  Templates de Anuncios
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    color: Colors.tecnibus[500],
-                    marginTop: 2,
-                  }}
-                >
-                  {categoriaSeleccionada
-                    ? "Selecciona un template"
-                    : "Elige una categoría"}
+            {/* Header */}
+            <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
+              <View style={{ backgroundColor: Colors.tecnibus[100], padding: 10, borderRadius: 14 }}>
+                <FileText size={22} color={Colors.tecnibus[600]} strokeWidth={2} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={{ fontSize: 18, fontWeight: "700", color: "#1F2937" }}>Templates de Anuncios</Text>
+                <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
+                  {categoriaSeleccionada ? "Selecciona un template" : "Elige una categoría"}
                 </Text>
               </View>
+              <TouchableOpacity
+                onPress={() => { setShowTemplates(false); setCategoriaSeleccionada(null); }}
+                style={{ backgroundColor: "#F3F4F6", padding: 8, borderRadius: 10 }}
+              >
+                <X size={20} color="#6B7280" strokeWidth={2} />
+              </TouchableOpacity>
             </View>
-          </View>
 
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={{ padding: 16, gap: 16 }}
-          >
-            {!categoriaSeleccionada ? (
-              // Vista de Categorías
-              <>
-                {CATEGORIAS_TEMPLATES.map((categoria) => (
+            <ScrollView style={{ paddingHorizontal: 20 }} contentContainerStyle={{ paddingBottom: 32, gap: 10 }}>
+              {!categoriaSeleccionada ? (
+                CATEGORIAS_TEMPLATES.map((categoria) => (
                   <TouchableOpacity
                     key={categoria.id}
-                    onPress={() => {
-                      haptic.light();
-                      setCategoriaSeleccionada(categoria.id);
-                    }}
+                    onPress={() => { haptic.light(); setCategoriaSeleccionada(categoria.id); }}
                     style={{
-                      backgroundColor: Colors.tecnibus[50],
+                      backgroundColor: "#ffffff",
                       borderRadius: 12,
                       padding: 16,
                       borderWidth: 1,
-                      borderColor: Colors.tecnibus[200],
+                      borderColor: "#E5E7EB",
                       flexDirection: "row",
                       alignItems: "center",
                       gap: 12,
                     }}
                   >
-                    <View
-                      style={{
-                        width: 50,
-                        height: 50,
-                        borderRadius: 25,
-                        backgroundColor: `${categoria.color}20`,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Text style={{ fontSize: 24 }}>{categoria.icono}</Text>
+                    <View style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 24,
+                      backgroundColor: Colors.tecnibus[100],
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}>
+                      <Text style={{ fontSize: 22 }}>{categoria.icono}</Text>
                     </View>
-
                     <View style={{ flex: 1 }}>
-                      <Text
-                        style={{
-                          fontSize: 17,
-                          fontWeight: "600",
-                          color: Colors.tecnibus[900],
-                        }}
-                      >
-                        {categoria.nombre}
-                      </Text>
-                      <Text
-                        style={{
-                          fontSize: 13,
-                          color: Colors.tecnibus[500],
-                          marginTop: 2,
-                        }}
-                      >
-                        {
-                          TEMPLATES_ANUNCIOS.filter(
-                            (t) => t.categoria === categoria.id,
-                          ).length
-                        }{" "}
-                        templates disponibles
+                      <Text style={{ fontSize: 16, fontWeight: "600", color: "#1F2937" }}>{categoria.nombre}</Text>
+                      <Text style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
+                        {TEMPLATES_ANUNCIOS.filter((t) => t.categoria === categoria.id).length} templates
                       </Text>
                     </View>
                   </TouchableOpacity>
-                ))}
-              </>
-            ) : (
-              // Vista de Templates de la Categoría
-              <>
-                <TouchableOpacity
-                  onPress={() => {
-                    haptic.light();
-                    setCategoriaSeleccionada(null);
-                  }}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                    paddingVertical: 8,
-                  }}
-                >
-                  <ArrowLeft size={20} color={Colors.tecnibus[600]} />
-                  <Text
-                    style={{
-                      fontSize: 15,
-                      fontWeight: "600",
-                      color: Colors.tecnibus[600],
-                    }}
-                  >
-                    Ver todas las categorías
-                  </Text>
-                </TouchableOpacity>
-
-                {templatesFiltrados.map((template) => (
+                ))
+              ) : (
+                <>
                   <TouchableOpacity
-                    key={template.id}
-                    onPress={() => handleSeleccionarTemplate(template)}
-                    style={{
-                      backgroundColor: Colors.tecnibus[50],
-                      borderRadius: 12,
-                      padding: 16,
-                      borderWidth: 1,
-                      borderColor: Colors.tecnibus[200],
-                    }}
+                    onPress={() => { haptic.light(); setCategoriaSeleccionada(null); }}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8 }}
                   >
-                    <View
+                    <ArrowLeft size={18} color={Colors.tecnibus[600]} />
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.tecnibus[600] }}>Ver categorías</Text>
+                  </TouchableOpacity>
+
+                  {templatesFiltrados.map((template) => (
+                    <TouchableOpacity
+                      key={template.id}
+                      onPress={() => handleSeleccionarTemplate(template)}
                       style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 12,
-                        marginBottom: 12,
+                        backgroundColor: "#ffffff",
+                        borderRadius: 12,
+                        padding: 16,
+                        borderWidth: 1,
+                        borderColor: "#E5E7EB",
                       }}
                     >
-                      <Text style={{ fontSize: 28 }}>{template.icono}</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={{
-                            fontSize: 16,
-                            fontWeight: "600",
-                            color: Colors.tecnibus[900],
-                          }}
-                        >
-                          {template.nombre}
-                        </Text>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            color: Colors.tecnibus[500],
-                            marginTop: 2,
-                          }}
-                        >
-                          Audiencia sugerida:{" "}
-                          {template.audienciaSugerida === "todos"
-                            ? "👥 Todos"
-                            : template.audienciaSugerida === "padres"
-                              ? "👨‍👩‍👧 Padres"
-                              : "🚌 Choferes"}
-                        </Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                        <Text style={{ fontSize: 24 }}>{template.icono}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 15, fontWeight: "600", color: "#1F2937" }}>{template.nombre}</Text>
+                          <Text style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>
+                            Audiencia: {template.audienciaSugerida === "todos" ? "Todos" : template.audienciaSugerida === "padres" ? "Padres" : "Choferes"}
+                          </Text>
+                        </View>
                       </View>
-                    </View>
-
-                    <View
-                      style={{
+                      <View style={{
                         backgroundColor: Colors.tecnibus[50],
                         padding: 12,
                         borderRadius: 8,
                         borderLeftWidth: 3,
                         borderLeftColor: Colors.tecnibus[500],
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontWeight: "600",
-                          color: Colors.tecnibus[900],
-                          marginBottom: 4,
-                        }}
-                      >
-                        {template.titulo}
-                      </Text>
-                      <Text
-                        style={{
-                          fontSize: 13,
-                          color: Colors.tecnibus[600],
-                          lineHeight: 18,
-                        }}
-                        numberOfLines={3}
-                      >
-                        {template.mensaje}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </>
-            )}
-          </ScrollView>
+                      }}>
+                        <Text style={{ fontSize: 13, fontWeight: "600", color: "#1F2937", marginBottom: 4 }}>{template.titulo}</Text>
+                        <Text style={{ fontSize: 12, color: "#6B7280", lineHeight: 18 }} numberOfLines={3}>{template.mensaje}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </>
+              )}
+            </ScrollView>
+          </View>
         </View>
       </Modal>
     </KeyboardAvoidingView>
