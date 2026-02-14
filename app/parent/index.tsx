@@ -12,12 +12,13 @@ import {
 } from "@/features/parent";
 import { Colors } from "@/lib/constants/colors";
 import { toggleAsistencia } from "@/lib/services/asistencias.service";
+import { getUbicacionColegio } from "@/lib/services/configuracion.service";
 import {
   EstudianteDelPadre,
   getMyEstudiantes,
 } from "@/lib/services/padres.service";
 import { getEstadoRecorridoPorRuta } from "@/lib/services/recorridos.service";
-import { getParadasByRuta, type Parada } from "@/lib/services/rutas.service";
+import { type Parada } from "@/lib/services/rutas.service";
 import { supabase } from "@/lib/services/supabase";
 import {
   getUltimaUbicacion,
@@ -58,6 +59,14 @@ export default function ParentHomeScreen() {
   );
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
   const [showStudentSelector, setShowStudentSelector] = useState(false);
+  const [ubicacionColegio, setUbicacionColegio] = useState<{
+    latitud: number;
+    longitud: number;
+    nombre: string;
+  } | null>(null);
+  const [polylineCoordinates, setPolylineCoordinates] = useState<
+    { latitude: number; longitude: number }[]
+  >([]);
 
   // Datos temporales
   const estimatedMinutes = 8;
@@ -122,12 +131,33 @@ export default function ParentHomeScreen() {
 
   useEffect(() => {
     loadEstudiantes();
+    cargarUbicacionColegio();
   }, []);
+
+  const cargarUbicacionColegio = async () => {
+    try {
+      const ubicacion = await getUbicacionColegio();
+      setUbicacionColegio(ubicacion);
+    } catch (error) {
+      console.error('Error cargando ubicación del colegio:', error);
+    }
+  };
 
   useEffect(() => {
     if (estudianteSeleccionado?.id) {
       cargarEstadoAsistencia();
-      cargarEstadoRecorrido();
+
+      // Solo cargar recorrido si el estudiante tiene ruta asignada
+      if (estudianteSeleccionado?.parada?.ruta?.id) {
+        cargarEstadoRecorrido();
+      } else {
+        // Si no tiene ruta, limpiar todo
+        console.log('⚠️ Estudiante sin ruta asignada, limpiando estado');
+        setChoferEnCamino(false);
+        setIdAsignacion(null);
+        setPolylineCoordinates([]);
+        setUbicacionBus(null);
+      }
     }
   }, [estudianteSeleccionado?.id]);
 
@@ -161,13 +191,20 @@ export default function ParentHomeScreen() {
     const channel = supabase
       .channel("recorrido-status")
       .on("broadcast", { event: "recorrido_iniciado" }, (payload: any) => {
+        console.log('📡 Broadcast recorrido_iniciado recibido:', payload.payload);
         if (payload.payload.id_asignacion === idAsignacion) {
           setChoferEnCamino(true);
+          // Recargar estado completo para obtener el polyline actualizado
+          cargarEstadoRecorrido();
         }
       })
       .on("broadcast", { event: "recorrido_finalizado" }, (payload: any) => {
+        console.log('📡 Broadcast recorrido_finalizado recibido:', payload.payload);
         if (payload.payload.id_asignacion === idAsignacion) {
+          console.log('🧹 Limpiando estado de recorrido finalizado');
           setChoferEnCamino(false);
+          setPolylineCoordinates([]); // Limpiar polyline
+          setUbicacionBus(null); // Limpiar ubicación del bus
         }
       })
       .subscribe();
@@ -177,60 +214,150 @@ export default function ParentHomeScreen() {
     };
   }, [estudianteSeleccionado?.parada?.ruta?.id, idAsignacion]);
 
-  // Cargar paradas cuando cambia la ruta del estudiante
+  // Suscripción directa a cambios en estados_recorrido para garantizar sincronización
   useEffect(() => {
-    const cargarParadas = async () => {
-      if (!estudianteSeleccionado?.parada?.ruta?.id) {
-        setParadasRuta([]);
-        return;
-      }
+    if (!estudianteSeleccionado?.parada?.ruta?.id) return;
 
-      try {
-        const paradas = await getParadasByRuta(
-          estudianteSeleccionado.parada.ruta.id,
-        );
-        setParadasRuta(paradas);
-      } catch (error) {
-        console.error("Error cargando paradas:", error);
-        setParadasRuta([]);
-      }
+    const channel = supabase
+      .channel("estados-recorrido-padre")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "estados_recorrido",
+          filter: `id_ruta=eq.${estudianteSeleccionado.parada.ruta.id}`,
+        },
+        () => {
+          // Recargar el estado del recorrido cuando hay cambios
+          cargarEstadoRecorrido();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [estudianteSeleccionado?.parada?.ruta?.id]);
+
+  // DEBUG: Monitorear cambios en polylineCoordinates
+  useEffect(() => {
+    console.log('🔄 Polyline actualizado:', {
+      cantidad: polylineCoordinates.length,
+      primeros3: polylineCoordinates.slice(0, 3),
+    });
+  }, [polylineCoordinates]);
+
+  // Cargar paradas cuando cambia la ruta del estudiante
+  // SOLO mostramos la parada del hijo, no todas las paradas (privacidad)
+  useEffect(() => {
+    console.log('🔍 Configurando parada del estudiante:', {
+      tieneEstudiante: !!estudianteSeleccionado,
+      tieneParada: !!estudianteSeleccionado?.parada,
+    });
+
+    if (!estudianteSeleccionado?.parada) {
+      console.log('⚠️ No hay parada para mostrar');
+      setParadasRuta([]);
+      return;
+    }
+
+    // Solo mostrar la parada del hijo (no todas las paradas de la ruta)
+    // Convertir a números para evitar NaN
+    const latitud = typeof estudianteSeleccionado.parada.latitud === 'string'
+      ? parseFloat(estudianteSeleccionado.parada.latitud)
+      : estudianteSeleccionado.parada.latitud;
+
+    const longitud = typeof estudianteSeleccionado.parada.longitud === 'string'
+      ? parseFloat(estudianteSeleccionado.parada.longitud)
+      : estudianteSeleccionado.parada.longitud;
+
+    // Validar que sean números válidos
+    if (isNaN(latitud) || isNaN(longitud)) {
+      console.error('❌ Coordenadas inválidas para la parada:', {
+        latitud: estudianteSeleccionado.parada.latitud,
+        longitud: estudianteSeleccionado.parada.longitud,
+      });
+      setParadasRuta([]);
+      return;
+    }
+
+    const paradaDelHijo: Parada = {
+      id: estudianteSeleccionado.parada.id,
+      nombre: estudianteSeleccionado.parada.nombre || 'Mi parada',
+      latitud,
+      longitud,
+      direccion: estudianteSeleccionado.parada.direccion,
+      orden: estudianteSeleccionado.parada.orden || 0,
+      id_ruta: estudianteSeleccionado.parada.ruta?.id || '',
     };
 
-    cargarParadas();
-  }, [estudianteSeleccionado?.parada?.ruta?.id]);
+    console.log('✅ Mostrando solo la parada del hijo:', paradaDelHijo.nombre, 'en', latitud, longitud);
+    setParadasRuta([paradaDelHijo]);
+  }, [estudianteSeleccionado?.parada]);
 
   // Cargar ubicación inicial del bus
   useEffect(() => {
     const cargarUbicacionInicial = async () => {
+      console.log('🔍 Cargando ubicación inicial del bus:', {
+        tieneAsignacion: !!idAsignacion,
+        choferEnCamino,
+        idAsignacion,
+      });
+
       if (!idAsignacion || !choferEnCamino) {
+        console.log('⚠️ No se puede cargar ubicación: falta asignación o chofer no está en camino');
         setUbicacionBus(null);
         return;
       }
 
       try {
+        console.log(`📍 Obteniendo última ubicación para asignación: ${idAsignacion}`);
         const ubicacion = await getUltimaUbicacion(idAsignacion);
+        console.log('✅ Ubicación inicial obtenida:', ubicacion);
         setUbicacionBus(ubicacion);
       } catch (error) {
-        console.error("Error cargando ubicación inicial:", error);
+        console.error("❌ Error cargando ubicación inicial:", error);
       }
     };
 
     cargarUbicacionInicial();
   }, [idAsignacion, choferEnCamino]);
 
-  // Suscripción a ubicaciones en tiempo real
+  // Polling de ubicaciones (más confiable que Realtime con RLS)
   useEffect(() => {
-    if (!idAsignacion || !choferEnCamino) return;
-
-    const unsubscribe = suscribirseAUbicaciones(
+    console.log('🔍 Configurando polling de ubicaciones:', {
+      tieneAsignacion: !!idAsignacion,
+      choferEnCamino,
       idAsignacion,
-      (nuevaUbicacion) => {
-        setUbicacionBus(nuevaUbicacion);
-      },
-    );
+    });
+
+    if (!idAsignacion || !choferEnCamino) {
+      console.log('⚠️ No se hace polling: falta asignación o chofer no está en camino');
+      return;
+    }
+
+    console.log(`📡 Iniciando polling de ubicaciones cada 5s para asignación: ${idAsignacion}`);
+
+    // Polling cada 5 segundos
+    const intervalo = setInterval(async () => {
+      try {
+        console.log('🔄 Polling: obteniendo ubicación actualizada...');
+        const ubicacion = await getUltimaUbicacion(idAsignacion);
+        if (ubicacion) {
+          console.log('✅ Polling: ubicación obtenida:', ubicacion);
+          setUbicacionBus(ubicacion);
+        } else {
+          console.log('⚠️ Polling: no se obtuvo ubicación');
+        }
+      } catch (error) {
+        console.error('❌ Error en polling de ubicación:', error);
+      }
+    }, 5000); // 5 segundos
 
     return () => {
-      unsubscribe();
+      console.log('🔕 Deteniendo polling de ubicaciones');
+      clearInterval(intervalo);
     };
   }, [idAsignacion, choferEnCamino]);
 
@@ -258,17 +385,47 @@ export default function ParentHomeScreen() {
   };
 
   const cargarEstadoRecorrido = async () => {
-    if (!estudianteSeleccionado?.parada?.ruta?.id) return;
+    if (!estudianteSeleccionado?.parada?.ruta?.id) {
+      console.log('⚠️ No hay ruta asignada al estudiante');
+      return;
+    }
 
     try {
       const estado = await getEstadoRecorridoPorRuta(
         estudianteSeleccionado.parada.ruta.id,
       );
-      setChoferEnCamino(estado?.activo || false);
+
+      const recorridoActivo = estado?.activo || false;
+      setChoferEnCamino(recorridoActivo);
       setIdAsignacion(estado?.id_asignacion || null);
+
+      // Cargar polyline si hay asignación activa usando RPC (evita recursión RLS)
+      if (estado?.activo && estado?.id_asignacion) {
+        console.log('🔍 Cargando polyline para asignación:', estado.id_asignacion);
+        const { data: polyline, error: polylineError } = await supabase
+          .rpc('get_polyline_asignacion', {
+            p_id_asignacion: estado.id_asignacion,
+          });
+
+        console.log('📡 Respuesta de polyline:', { polyline, polylineError });
+
+        if (polyline && Array.isArray(polyline)) {
+          setPolylineCoordinates(polyline);
+          console.log('✅ Polyline cargado desde BD:', polyline.length, 'puntos');
+        } else {
+          console.log('⚠️ No hay polyline guardado para esta asignación');
+          setPolylineCoordinates([]);
+        }
+      } else {
+        console.log('⚠️ No hay recorrido activo, limpiando estado');
+        setPolylineCoordinates([]);
+        setUbicacionBus(null);
+      }
     } catch (error) {
       console.error("Error cargando estado del recorrido:", error);
       setChoferEnCamino(false);
+      setPolylineCoordinates([]);
+      setUbicacionBus(null);
     }
   };
 
@@ -422,6 +579,9 @@ export default function ParentHomeScreen() {
             paradas={paradasRuta}
             ubicacionBus={ubicacionBus}
             recorridoActivo={choferEnCamino}
+            ubicacionColegio={ubicacionColegio}
+            showsUserLocation={false}
+            polylineCoordinates={polylineCoordinates}
           />
         </View>
       </View>
