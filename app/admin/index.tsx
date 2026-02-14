@@ -37,6 +37,7 @@ export default function AdminHomeScreen() {
     totalParents: 0,
     totalRoutes: 0,
     activeBuses: 0,
+    totalBuses: 0,
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -110,9 +111,9 @@ export default function AdminHomeScreen() {
     router.push("/admin/asignaciones");
   };
 
-  const handleReportsPress = () => {
+  const handleConfigPress = () => {
     haptic.light();
-    console.log("Reportes");
+    router.push("/admin/settings");
   };
 
   return (
@@ -171,8 +172,8 @@ export default function AdminHomeScreen() {
               style={{ paddingHorizontal: 20, marginTop: 20, marginBottom: 24 }}
             >
               <StatusPanel
-                activeCount={14}
-                totalCount={15}
+                activeCount={stats.activeBuses}
+                totalCount={stats.totalBuses}
                 label="En ruta actualmente"
                 onLiveViewPress={handleLiveView}
               />
@@ -187,7 +188,7 @@ export default function AdminHomeScreen() {
                 onRoutesPress={handleRoutesPress}
                 onAnnouncementsPress={handleAnnouncementsPress}
                 onAssignmentsPress={handleAssignmentsPress}
-                onReportsPress={handleReportsPress}
+                onConfigPress={handleConfigPress}
               />
             </Section>
 

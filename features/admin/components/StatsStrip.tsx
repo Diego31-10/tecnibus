@@ -8,15 +8,16 @@ interface StatsStripProps {
 
 export function StatsStrip({ stats }: StatsStripProps) {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{
-        paddingHorizontal: 20,
-        paddingVertical: 4,
-        gap: 8,
-      }}
-    >
+    <View style={{ height: 48 }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingVertical: 8,
+          gap: 8,
+        }}
+      >
       {stats.map((stat, index) => (
         <View
           key={index}
@@ -59,6 +60,7 @@ export function StatsStrip({ stats }: StatsStripProps) {
           </Text>
         </View>
       ))}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }

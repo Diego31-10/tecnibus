@@ -1,7 +1,7 @@
 import { Colors } from "@/lib/constants/colors";
 import { haptic } from "@/lib/utils/haptics";
 import { useRouter } from "expo-router";
-import { ChevronRight, LogOut, Settings, User } from "lucide-react-native";
+import { ChevronRight, LogOut, MapPin, Settings, User } from "lucide-react-native";
 import {
   ScrollView,
   StatusBar,
@@ -26,6 +26,11 @@ export default function AdminSettingsScreen() {
   const handleViewProfile = () => {
     haptic.light();
     router.push("/admin/perfil");
+  };
+
+  const handleSchoolLocation = () => {
+    haptic.light();
+    router.push("/admin/configuracion");
   };
 
   return (
@@ -66,6 +71,37 @@ export default function AdminSettingsScreen() {
                 </Text>
                 <Text className="text-gray-500 text-xs">
                   Editar información personal
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color="#9ca3af" strokeWidth={2.5} />
+          </TouchableOpacity>
+        </AnimatedCard>
+
+        {/* Sección Sistema */}
+        <AnimatedCard delay={50} className="mb-4">
+          <Text className="text-lg font-bold text-gray-800 mb-4">
+            Sistema
+          </Text>
+
+          <TouchableOpacity
+            className="bg-gray-50 rounded-xl p-4 flex-row items-center justify-between"
+            onPress={handleSchoolLocation}
+            activeOpacity={0.7}
+          >
+            <View className="flex-row items-center flex-1">
+              <View
+                className="p-2 rounded-lg"
+                style={{ backgroundColor: Colors.tecnibus[100] }}
+              >
+                <MapPin size={24} color={Colors.tecnibus[600]} strokeWidth={2.5} />
+              </View>
+              <View className="ml-3 flex-1">
+                <Text className="text-gray-800 font-bold text-base">
+                  Ubicación del Colegio
+                </Text>
+                <Text className="text-gray-500 text-xs">
+                  Configurar ubicación para rutas
                 </Text>
               </View>
             </View>

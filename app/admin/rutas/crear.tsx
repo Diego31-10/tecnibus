@@ -26,6 +26,7 @@ export default function CrearRutaScreen() {
   const router = useRouter();
 
   const [nombre, setNombre] = useState("");
+  const [tipo, setTipo] = useState<"ida" | "vuelta">("ida");
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
   const [estado, setEstado] = useState<"activa" | "inactiva">("activa");
@@ -66,6 +67,7 @@ export default function CrearRutaScreen() {
 
     const result = await createRuta({
       nombre: nombre.trim(),
+      tipo,
       hora_inicio: horaInicio || null,
       hora_fin: horaFin || null,
       estado,
@@ -106,6 +108,54 @@ export default function CrearRutaScreen() {
             onChangeText={setNombre}
             autoCapitalize="words"
           />
+
+          {/* Tipo toggle */}
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: "#374151", marginBottom: 6 }}>
+              Tipo de ruta <Text style={{ color: "#EF4444" }}>*</Text>
+            </Text>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => { haptic.light(); setTipo("ida"); }}
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  backgroundColor: tipo === "ida" ? "#DBEAFE" : "#F9FAFB",
+                  borderWidth: 1.5,
+                  borderColor: tipo === "ida" ? Colors.tecnibus[600] : "#E5E7EB",
+                }}
+              >
+                <MapPin size={18} color={tipo === "ida" ? Colors.tecnibus[600] : "#6B7280"} strokeWidth={2} />
+                <Text style={{ marginLeft: 6, fontWeight: "600", color: tipo === "ida" ? Colors.tecnibus[700] : "#6B7280" }}>
+                  Ida (→ Colegio)
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => { haptic.light(); setTipo("vuelta"); }}
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  backgroundColor: tipo === "vuelta" ? "#DBEAFE" : "#F9FAFB",
+                  borderWidth: 1.5,
+                  borderColor: tipo === "vuelta" ? Colors.tecnibus[600] : "#E5E7EB",
+                }}
+              >
+                <MapPin size={18} color={tipo === "vuelta" ? Colors.tecnibus[600] : "#6B7280"} strokeWidth={2} />
+                <Text style={{ marginLeft: 6, fontWeight: "600", color: tipo === "vuelta" ? Colors.tecnibus[700] : "#6B7280" }}>
+                  Vuelta (← Casa)
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <FormField
             label="Hora de inicio (HH:MM)"
             icon={Clock}
