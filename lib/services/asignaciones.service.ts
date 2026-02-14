@@ -25,6 +25,7 @@ export type RecorridoChofer = {
   id: string;
   id_ruta: string;
   nombre_ruta: string;
+  tipo_ruta: 'ida' | 'vuelta';
   hora_inicio: string;
   hora_fin: string;
   descripcion: string;
@@ -50,6 +51,7 @@ export async function getRecorridosHoy(idChofer: string): Promise<RecorridoChofe
       id: r.id,
       id_ruta: r.id_ruta,
       nombre_ruta: r.nombre_ruta,
+      tipo_ruta: r.tipo_ruta || 'ida',
       hora_inicio: r.hora_inicio,
       hora_fin: r.hora_fin,
       descripcion: r.descripcion || '',

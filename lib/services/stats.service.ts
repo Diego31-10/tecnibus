@@ -6,6 +6,7 @@ export type DashboardStats = {
   totalParents: number;
   totalRoutes: number;
   activeBuses: number;
+  totalBuses: number;
 };
 
 /**
@@ -20,7 +21,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       driversResult,
       parentsResult,
       routesResult,
-      busesResult,
+      activeBusesResult,
+      totalBusesResult,
     ] = await Promise.all([
       // Total de estudiantes
       supabase
@@ -44,6 +46,12 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         .from('rutas')
         .select('id', { count: 'exact', head: true }),
 
+      // Busetas activas en recorrido (estados_recorrido con activo=true)
+      supabase
+        .from('estados_recorrido')
+        .select('id', { count: 'exact', head: true })
+        .eq('activo', true),
+
       // Total de busetas
       supabase
         .from('busetas')
@@ -56,7 +64,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       totalDrivers: driversResult.count || 0,
       totalParents: parentsResult.count || 0,
       totalRoutes: routesResult.count || 0,
-      activeBuses: busesResult.count || 0,
+      activeBuses: activeBusesResult.count || 0,
+      totalBuses: totalBusesResult.count || 0,
     };
 
     console.log('✅ Estadísticas cargadas:', stats);
@@ -71,6 +80,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       totalParents: 0,
       totalRoutes: 0,
       activeBuses: 0,
+      totalBuses: 0,
     };
   }
 }

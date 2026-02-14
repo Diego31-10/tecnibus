@@ -9,6 +9,10 @@ export type EstudianteDelPadre = {
   parada?: {
     id: string;
     nombre: string | null;
+    latitud: number;
+    longitud: number;
+    direccion?: string | null;
+    orden?: number;
     ruta?: {
       id: string;
       nombre: string;
@@ -50,6 +54,14 @@ export async function getMyEstudiantes(): Promise<EstudianteDelPadre[]> {
         ? {
             id: est.id_parada,
             nombre: est.parada_nombre,
+            latitud: typeof est.parada_latitud === 'string'
+              ? parseFloat(est.parada_latitud)
+              : est.parada_latitud,
+            longitud: typeof est.parada_longitud === 'string'
+              ? parseFloat(est.parada_longitud)
+              : est.parada_longitud,
+            direccion: est.parada_direccion,
+            orden: est.parada_orden,
             ruta: est.ruta_id
               ? {
                   id: est.ruta_id,
