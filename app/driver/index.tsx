@@ -21,15 +21,18 @@ import {
 import {
   finalizarRecorrido,
   getEstadoRecorrido,
+  guardarPolylineRuta,
   iniciarRecorrido,
 } from "@/lib/services/recorridos.service";
-import { getParadasByRuta, type Parada } from "@/lib/services/rutas.service";
+import { getParadasByRuta, calcularRutaOptimizada, type Parada } from "@/lib/services/rutas.service";
+import { getUbicacionColegio } from "@/lib/services/configuracion.service";
 import { supabase } from "@/lib/services/supabase";
 import type { UbicacionActual } from "@/lib/services/ubicaciones.service";
 import { haptic } from "@/lib/utils/haptics";
 import { useRouter } from "expo-router";
 import { Bus, Play, Square } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import * as Location from "expo-location";
 import {
   ActivityIndicator,
   Alert,
@@ -58,9 +61,22 @@ export default function DriverHomeScreen() {
   const [loadingRecorridos, setLoadingRecorridos] = useState(true);
   const [showRecorridoSelector, setShowRecorridoSelector] = useState(false);
   const [paradas, setParadas] = useState<Parada[]>([]);
+  const [polylineCoordinates, setPolylineCoordinates] = useState<
+    { latitude: number; longitude: number }[]
+  >([]);
   const [ubicacionBus, setUbicacionBus] = useState<UbicacionActual | null>(
     null,
   );
+  const [optimizandoRuta, setOptimizandoRuta] = useState(false);
+  const [ubicacionColegio, setUbicacionColegio] = useState<{
+    latitud: number;
+    longitud: number;
+    nombre: string;
+  } | null>(null);
+  const [ubicacionChofer, setUbicacionChofer] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
   // GPS tracking
   const { error: errorGPS, tracking } = useGPSTracking({
@@ -88,6 +104,56 @@ export default function DriverHomeScreen() {
       .sort((a, b) => (a.parada?.orden ?? 99) - (b.parada?.orden ?? 99));
     return pending[0] || null;
   }, [estudiantes]);
+
+  // Cargar ubicación del colegio
+  useEffect(() => {
+    const cargarUbicacionColegio = async () => {
+      try {
+        const ubicacion = await getUbicacionColegio();
+        setUbicacionColegio(ubicacion);
+      } catch (error) {
+        console.error("Error cargando ubicación del colegio:", error);
+      }
+    };
+
+    cargarUbicacionColegio();
+  }, []);
+
+  // Obtener ubicación del chofer para mostrar en mapa (siempre)
+  useEffect(() => {
+    const obtenerUbicacionChofer = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") return;
+
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+
+        setUbicacionChofer({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+
+        // Actualizar cada 30 segundos
+        const interval = setInterval(async () => {
+          const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          setUbicacionChofer({
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+          });
+        }, 30000);
+
+        return () => clearInterval(interval);
+      } catch (error) {
+        console.error("Error obteniendo ubicación del chofer:", error);
+      }
+    };
+
+    obtenerUbicacionChofer();
+  }, []);
 
   // Load recorridos
   const cargarRecorridos = useCallback(async () => {
@@ -239,13 +305,87 @@ export default function DriverHomeScreen() {
   const handleIniciarRecorrido = async () => {
     if (!recorridoActual) return;
     haptic.heavy();
-    const success = await iniciarRecorrido(recorridoActual.id);
-    if (success) {
-      setRouteActive(true);
-      haptic.success();
-    } else {
+
+    // Mostrar loading INMEDIATAMENTE
+    setOptimizandoRuta(true);
+
+    try {
+      // 1. Obtener ubicación actual del chofer
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setOptimizandoRuta(false);
+        Alert.alert(
+          "Permisos necesarios",
+          "Necesitas habilitar permisos de ubicación para iniciar el recorrido"
+        );
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      const ubicacionChofer = {
+        lat: location.coords.latitude,
+        lng: location.coords.longitude,
+      };
+
+      // 2. Obtener ubicación del colegio
+      const ubicacionColegio = await getUbicacionColegio();
+
+      // 3. Calcular ruta optimizada si hay paradas
+      if (paradas.length > 0) {
+
+        try {
+          const resultado = await calcularRutaOptimizada(
+            ubicacionChofer,
+            paradas,
+            recorridoActual.tipo_ruta,
+            {
+              lat: ubicacionColegio.latitud,
+              lng: ubicacionColegio.longitud,
+            }
+          );
+
+          if (resultado) {
+            // Actualizar paradas con el orden optimizado y polyline
+            setParadas(resultado.paradasOptimizadas);
+            setPolylineCoordinates(resultado.polylineCoordinates);
+            console.log(
+              `✅ Ruta optimizada: ${resultado.paradasOptimizadas.length} paradas, ${(resultado.distanciaTotal / 1000).toFixed(1)} km, ${Math.round(resultado.duracionTotal / 60)} min`
+            );
+
+            // Guardar polyline en la BD para que el padre pueda verlo
+            console.log('💾 Guardando polyline:', {
+              id_asignacion: recorridoActual.id,
+              cantidad_puntos: resultado.polylineCoordinates.length,
+              primeros_3: resultado.polylineCoordinates.slice(0, 3),
+            });
+            const guardado = await guardarPolylineRuta(recorridoActual.id, resultado.polylineCoordinates);
+            console.log(guardado ? '✅ Polyline guardado en BD' : '❌ Error guardando polyline');
+          } else {
+            console.warn("⚠️ No se pudo optimizar ruta, usando orden actual");
+          }
+        } catch (error) {
+          console.error("Error optimizando ruta:", error);
+        } finally {
+          setOptimizandoRuta(false);
+        }
+      }
+
+      // 4. Iniciar recorrido
+      const success = await iniciarRecorrido(recorridoActual.id);
+      if (success) {
+        setRouteActive(true);
+        haptic.success();
+      } else {
+        haptic.error();
+        Alert.alert("Error", "No se pudo iniciar el recorrido");
+      }
+    } catch (error) {
+      console.error("Error en handleIniciarRecorrido:", error);
       haptic.error();
-      Alert.alert("Error", "No se pudo iniciar el recorrido");
+      Alert.alert("Error", "Ocurrió un error al iniciar el recorrido");
     }
   };
 
@@ -358,6 +498,10 @@ export default function DriverHomeScreen() {
               paradas={paradas}
               ubicacionBus={ubicacionBus}
               recorridoActivo={routeActive}
+              polylineCoordinates={polylineCoordinates}
+              ubicacionColegio={ubicacionColegio}
+              mostrarUbicacionChofer={true}
+              ubicacionChofer={ubicacionChofer}
             />
 
             {/* Finalize button */}
@@ -441,6 +585,10 @@ export default function DriverHomeScreen() {
               paradas={paradas}
               ubicacionBus={ubicacionBus}
               recorridoActivo={routeActive}
+              polylineCoordinates={polylineCoordinates}
+              ubicacionColegio={ubicacionColegio}
+              mostrarUbicacionChofer={true}
+              ubicacionChofer={ubicacionChofer}
             />
 
             <View style={{ marginHorizontal: 16, marginTop: 16 }}>
@@ -596,6 +744,9 @@ export default function DriverHomeScreen() {
                   paradas={paradas}
                   ubicacionBus={null}
                   recorridoActivo={false}
+                  ubicacionColegio={ubicacionColegio}
+                  mostrarUbicacionChofer={true}
+                  ubicacionChofer={ubicacionChofer}
                 />
               </View>
             )}
@@ -658,6 +809,59 @@ export default function DriverHomeScreen() {
           >
             {errorGPS}
           </Text>
+        </View>
+      )}
+
+      {/* Loading overlay: Optimizando ruta */}
+      {optimizandoRuta && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 999,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "#ffffff",
+              borderRadius: 20,
+              padding: 32,
+              alignItems: "center",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 16,
+              elevation: 10,
+            }}
+          >
+            <ActivityIndicator size="large" color={Colors.tecnibus[600]} />
+            <Text
+              className="font-bold"
+              style={{
+                fontSize: 18,
+                color: "#1F2937",
+                marginTop: 16,
+              }}
+            >
+              Optimizando ruta...
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                color: "#6B7280",
+                marginTop: 8,
+                textAlign: "center",
+              }}
+            >
+              Calculando mejor recorrido{"\n"}con Google Maps
+            </Text>
+          </View>
         </View>
       )}
 
