@@ -73,17 +73,28 @@ export function useGPSTracking({
 
     const enviarUbicacion = async () => {
       try {
+        console.log('🔍 Solicitando ubicación GPS...');
         const ubicacion = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
+          accuracy: Location.Accuracy.Low, // Cambio temporal: Low es más rápido que Balanced
+          maximumAge: 10000, // Aceptar ubicación de hasta 10 segundos de antigüedad
+          timeout: 15000, // Timeout de 15 segundos
         });
 
-        const { latitude, longitude, speed, accuracy } = ubicacion.coords;
+        const { latitude, longitude, speed, accuracy, heading } = ubicacion.coords;
+
+        console.log('📡 GPS obtenido:', {
+          lat: latitude.toFixed(6),
+          lng: longitude.toFixed(6),
+          speed: speed ? `${(speed * 3.6).toFixed(1)} km/h` : 'null',
+        });
 
         // Filtro de distancia: no enviar si el bus no se movió lo suficiente
         const ultima = ultimaUbicacionRef.current;
         if (ultima) {
           const dist = distanciaMetros(ultima.lat, ultima.lng, latitude, longitude);
+          console.log(`📏 Distancia desde última ubicación: ${dist.toFixed(1)}m (mínimo: ${distanciaMinimaMetros}m)`);
           if (dist < distanciaMinimaMetros) {
+            console.log('⏭️ Ubicación ignorada (distancia mínima no alcanzada)');
             return; // Bus detenido o movimiento mínimo, no gastar datos
           }
         }
@@ -94,7 +105,8 @@ export function useGPSTracking({
           latitude,
           longitude,
           speed ? speed * 3.6 : undefined,
-          accuracy || undefined
+          accuracy || undefined,
+          heading || undefined
         );
 
         ultimaUbicacionRef.current = { lat: latitude, lng: longitude };

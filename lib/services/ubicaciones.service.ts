@@ -8,6 +8,7 @@ export type UbicacionBus = {
   longitud: number;
   velocidad: number | null;
   precision_gps: number | null;
+  heading: number | null;
   ubicacion_timestamp: string;
 };
 
@@ -16,6 +17,7 @@ export type UbicacionActual = {
   longitud: number;
   velocidad: number | null;
   precision_gps: number | null;
+  heading: number | null;
   ubicacion_timestamp: string;
 };
 
@@ -28,22 +30,40 @@ export async function guardarUbicacion(
   latitud: number,
   longitud: number,
   velocidad?: number,
-  precisionGps?: number
+  precisionGps?: number,
+  heading?: number
 ): Promise<boolean> {
   try {
-    const { error } = await supabase.from('ubicaciones_bus').insert({
-      id_asignacion: idAsignacion,
-      id_chofer: idChofer,
-      latitud,
-      longitud,
-      velocidad: velocidad || null,
-      precision_gps: precisionGps || null,
+    console.log('💾 Intentando guardar ubicación:', {
+      idAsignacion,
+      idChofer,
+      lat: latitud.toFixed(6),
+      lng: longitud.toFixed(6),
+      velocidad: velocidad ? `${velocidad.toFixed(1)} km/h` : 'null',
+    });
+
+    // Usar RPC con SECURITY DEFINER para bypassear RLS
+    const { data, error } = await supabase.rpc('guardar_ubicacion_chofer', {
+      p_id_asignacion: idAsignacion,
+      p_id_chofer: idChofer,
+      p_latitud: latitud,
+      p_longitud: longitud,
+      p_velocidad: velocidad || null,
+      p_precision_gps: precisionGps || null,
+      p_heading: heading || null,
     });
 
     if (error) {
-      console.error('❌ Error guardando ubicación:', error);
+      console.error('❌ Error guardando ubicación:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
       return false;
     }
+
+    console.log('✅ Ubicación guardada exitosamente, ID:', data);
     return true;
   } catch (error) {
     console.error('❌ Error en guardarUbicacion:', error);
@@ -101,6 +121,7 @@ export function suscribirseAUbicaciones(
           longitud: newRow.longitud,
           velocidad: newRow.velocidad,
           precision_gps: newRow.precision_gps,
+          heading: newRow.heading,
           ubicacion_timestamp: newRow.ubicacion_timestamp,
         });
       }
