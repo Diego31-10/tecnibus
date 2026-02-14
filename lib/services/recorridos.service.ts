@@ -17,6 +17,40 @@ async function sendBroadcast(event: string, payload: Record<string, unknown>): P
 }
 
 /**
+ * Guardar el polyline calculado en la asignación
+ */
+export async function guardarPolylineRuta(
+  idAsignacion: string,
+  polylineCoordinates: { latitude: number; longitude: number }[]
+): Promise<boolean> {
+  try {
+    console.log('💾 guardarPolylineRuta - Iniciando:', {
+      idAsignacion,
+      cantidadPuntos: polylineCoordinates.length,
+    });
+
+    const { data, error } = await supabase
+      .from('asignaciones_ruta')
+      .update({ polyline_coordinates: polylineCoordinates })
+      .eq('id', idAsignacion)
+      .select();
+
+    console.log('💾 guardarPolylineRuta - Respuesta:', { data, error });
+
+    if (error) {
+      console.error('❌ Error guardando polyline:', error);
+      return false;
+    }
+
+    console.log('✅ Polyline guardado para asignación:', idAsignacion);
+    return true;
+  } catch (error) {
+    console.error('❌ Error en guardarPolylineRuta:', error);
+    return false;
+  }
+}
+
+/**
  * Iniciar un recorrido (chofer presiona "Iniciar Recorrido")
  */
 export async function iniciarRecorrido(idAsignacion: string): Promise<boolean> {
