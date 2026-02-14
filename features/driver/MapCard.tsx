@@ -9,6 +9,10 @@ interface MapCardProps {
   paradas: Parada[];
   ubicacionBus: UbicacionActual | null;
   recorridoActivo: boolean;
+  polylineCoordinates?: { latitude: number; longitude: number }[];
+  ubicacionColegio?: { latitud: number; longitud: number; nombre: string } | null;
+  mostrarUbicacionChofer?: boolean;
+  ubicacionChofer?: { latitude: number; longitude: number } | null;
   onExpandMap?: () => void;
 }
 
@@ -16,6 +20,10 @@ export function MapCard({
   paradas,
   ubicacionBus,
   recorridoActivo,
+  polylineCoordinates,
+  ubicacionColegio,
+  mostrarUbicacionChofer,
+  ubicacionChofer,
   onExpandMap,
 }: MapCardProps) {
   return (
@@ -38,6 +46,11 @@ export function MapCard({
         paradas={paradas}
         ubicacionBus={ubicacionBus}
         recorridoActivo={recorridoActivo}
+        polylineCoordinates={polylineCoordinates}
+        ubicacionColegio={ubicacionColegio}
+        mostrarUbicacionChofer={mostrarUbicacionChofer}
+        ubicacionChofer={ubicacionChofer}
+        showsUserLocation={false}
       />
 
       {/* Bottom-right overlay: expand */}
