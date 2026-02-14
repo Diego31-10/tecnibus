@@ -17,6 +17,7 @@ export type Ruta = {
   hora_inicio: string | null;
   hora_fin: string | null;
   estado: string | null;
+  tipo: 'ida' | 'vuelta';
   paradas?: Parada[];
 };
 
@@ -25,6 +26,7 @@ export type CreateRutaDto = {
   hora_inicio: string | null;
   hora_fin: string | null;
   estado?: string | null;
+  tipo: 'ida' | 'vuelta';
 };
 
 export type UpdateRutaDto = Partial<CreateRutaDto>;
@@ -36,7 +38,7 @@ export type CreateParadaDto = {
   latitud: number;
   longitud: number;
   hora_aprox: string | null;
-  orden: number;
+  orden?: number; // Opcional - usado solo para visualización, no afecta la optimización
 };
 
 export type UpdateParadaDto = Partial<Omit<CreateParadaDto, 'id_ruta'>>;
@@ -54,6 +56,7 @@ export async function getRutas(): Promise<Ruta[]> {
         hora_inicio,
         hora_fin,
         estado,
+        tipo,
         paradas(
           id,
           nombre,
@@ -91,7 +94,8 @@ export async function getRutaById(id: string): Promise<Ruta | null> {
         nombre,
         hora_inicio,
         hora_fin,
-        estado
+        estado,
+        tipo
       `)
       .eq('id', id)
       .single();
@@ -182,23 +186,37 @@ export async function updateRuta(
  */
 export async function deleteRuta(id: string): Promise<{ success: boolean; error?: string }> {
   try {
-    // Verificar si hay estudiantes asignados
-    const { data: estudiantes, error: estudiantesError } = await supabase
-      .from('estudiantes')
+    // Verificar si hay estudiantes asignados a paradas de esta ruta
+    const { data: paradas, error: paradasError } = await supabase
+      .from('paradas')
       .select('id')
-      .eq('id_ruta', id)
-      .limit(1);
+      .eq('id_ruta', id);
 
-    if (estudiantesError) {
-      console.error('❌ Error verificando estudiantes:', estudiantesError);
-      throw estudiantesError;
+    if (paradasError) {
+      console.error('❌ Error obteniendo paradas:', paradasError);
+      throw paradasError;
     }
 
-    if (estudiantes && estudiantes.length > 0) {
-      return {
-        success: false,
-        error: 'No se puede eliminar la ruta porque tiene estudiantes asignados',
-      };
+    if (paradas && paradas.length > 0) {
+      const paradaIds = paradas.map(p => p.id);
+
+      const { data: estudiantes, error: estudiantesError } = await supabase
+        .from('estudiantes')
+        .select('id')
+        .in('id_parada', paradaIds)
+        .limit(1);
+
+      if (estudiantesError) {
+        console.error('❌ Error verificando estudiantes:', estudiantesError);
+        throw estudiantesError;
+      }
+
+      if (estudiantes && estudiantes.length > 0) {
+        return {
+          success: false,
+          error: 'No se puede eliminar la ruta porque tiene estudiantes asignados',
+        };
+      }
     }
 
     // Si no hay estudiantes, proceder con la eliminación (cascada borrará paradas)
@@ -356,5 +374,113 @@ export async function getBusetasDisponibles(): Promise<Array<{
   } catch (error) {
     console.error('❌ Error en getBusetasDisponibles:', error);
     return [];
+  }
+}
+
+/**
+ * Calcula la ruta optimizada para el chofer
+ * @param ubicacionChofer - Ubicación actual del chofer
+ * @param paradas - Paradas de la ruta (sin orden)
+ * @param tipoRuta - Tipo de ruta ("ida" o "vuelta")
+ * @param ubicacionColegio - Ubicación del colegio
+ * @returns Paradas reordenadas según optimización de Google
+ */
+export async function calcularRutaOptimizada(
+  ubicacionChofer: { lat: number; lng: number },
+  paradas: Parada[],
+  tipoRuta: 'ida' | 'vuelta',
+  ubicacionColegio: { lat: number; lng: number },
+): Promise<{
+  paradasOptimizadas: Parada[];
+  distanciaTotal: number;
+  duracionTotal: number;
+  polylineCoordinates: { latitude: number; longitude: number }[];
+} | null> {
+  try {
+    const { getOptimizedRouteForDriver } = await import('./directions.service');
+
+    if (paradas.length === 0) {
+      console.warn('⚠️ No hay paradas para optimizar');
+      return null;
+    }
+
+    console.log('🗺️ Calculando ruta optimizada:', {
+      ubicacionChofer,
+      numParadas: paradas.length,
+      tipoRuta,
+      ubicacionColegio,
+    });
+
+    // Convertir paradas a coordenadas
+    const stops = paradas.map(p => ({ lat: p.latitud, lng: p.longitud }));
+
+    // Lógica diferente según tipo de ruta:
+    let origen: { lat: number; lng: number };
+    let destino: { lat: number; lng: number };
+    let waypointsIntermedios: { lat: number; lng: number }[];
+
+    if (tipoRuta === 'ida') {
+      // RUTA IDA: Chofer → Paradas → Colegio
+      origen = ubicacionChofer;
+      waypointsIntermedios = stops;
+      destino = ubicacionColegio;
+    } else {
+      // RUTA VUELTA: Colegio → Paradas → Última parada más lejana
+      origen = ubicacionColegio;
+      waypointsIntermedios = stops.slice(0, -1); // Todas menos la última
+      destino = stops[stops.length - 1]; // Última parada
+    }
+
+    console.log('📍 Configuración ruta:', {
+      tipo: tipoRuta,
+      origen: `${origen.lat.toFixed(4)}, ${origen.lng.toFixed(4)}`,
+      waypoints: waypointsIntermedios.length,
+      destino: `${destino.lat.toFixed(4)}, ${destino.lng.toFixed(4)}`,
+    });
+
+    // Llamar a Google Directions API con optimize:true
+    const result = await getOptimizedRouteForDriver(
+      origen,
+      waypointsIntermedios,
+      destino,
+    );
+
+    if (!result || !result.waypointOrder) {
+      console.warn('⚠️ No se pudo optimizar, usando orden original de paradas');
+      // Retornar paradas en orden original si no se puede optimizar
+      return {
+        paradasOptimizadas: paradas,
+        distanciaTotal: 0,
+        duracionTotal: 0,
+        polylineCoordinates: [],
+      };
+    }
+
+    // Reordenar paradas según waypoint_order de Google
+    const paradasOptimizadas = result.waypointOrder.map(index => paradas[index]);
+
+    console.log('✅ Ruta optimizada calculada:', {
+      paradasOriginales: paradas.length,
+      paradasOptimizadas: paradasOptimizadas.length,
+      distancia: result.distance,
+      duracion: result.duration,
+      polylinePoints: result.decodedCoordinates.length,
+    });
+
+    return {
+      paradasOptimizadas,
+      distanciaTotal: result.distance,
+      duracionTotal: result.duration,
+      polylineCoordinates: result.decodedCoordinates,
+    };
+  } catch (error) {
+    console.error('❌ Error calculando ruta optimizada:', error);
+    // Retornar paradas en orden original en caso de error
+    return {
+      paradasOptimizadas: paradas,
+      distanciaTotal: 0,
+      duracionTotal: 0,
+      polylineCoordinates: [],
+    };
   }
 }
