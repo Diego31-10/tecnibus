@@ -81,6 +81,15 @@ USING (
   )
 );
 
+-- Función genérica para updated_at (si no existe)
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Trigger para updated_at
 CREATE TRIGGER update_estados_geocercas_updated_at
 BEFORE UPDATE ON estados_geocercas_recorrido
