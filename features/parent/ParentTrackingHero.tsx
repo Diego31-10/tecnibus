@@ -55,7 +55,7 @@ export function ParentTrackingHero({
               marginBottom: 4,
             }}
           >
-            {studentName} is on the way
+            {studentName}
           </Text>
           <Text style={{ fontSize: 13, color: "#6B7280" }}>
             {busNumber} • Driver: {driverName}
@@ -137,7 +137,7 @@ export function ParentTrackingHero({
             className="font-semibold ml-2"
             style={{ fontSize: 14, color: "#ffffff" }}
           >
-            Chat Driver
+            Chat Chofer
           </Text>
         </TouchableOpacity>
 
@@ -173,7 +173,7 @@ export function ParentTrackingHero({
               color: isAttending ? "#374151" : Colors.tecnibus[700],
             }}
           >
-            {isAttending ? "Notify Absence" : "Mark Present"}
+            {isAttending ? "Marcar falta" : "Marcar presente"}
           </Text>
         </TouchableOpacity>
       </View>

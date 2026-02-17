@@ -1,9 +1,9 @@
 import { Colors } from "@/lib/constants/colors";
 import { Clock } from "lucide-react-native";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, View } from "react-native";
 
 interface EstimatedArrivalBadgeProps {
-  minutes: number;
+  minutes: number | null;
   onSchedule?: boolean;
 }
 
@@ -39,15 +39,20 @@ export function EstimatedArrivalBadge({
             className="font-bold font-calsans ml-2"
             style={{ fontSize: 20, color: Colors.tecnibus[800] }}
           >
-            {minutes}
+            {minutes !== null ? `~${minutes}` : "--"}
           </Text>
           <Text
             className="font-semibold ml-1"
             style={{ fontSize: 12, color: Colors.tecnibus[600] }}
           >
-            mins
+            min
           </Text>
         </View>
+        <Text
+          style={{ fontSize: 10, color: "#9CA3AF", marginTop: 2 }}
+        >
+          a tu parada
+        </Text>
       </View>
     </View>
   );

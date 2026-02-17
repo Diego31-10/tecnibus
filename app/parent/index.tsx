@@ -25,10 +25,11 @@ import {
   suscribirseAUbicaciones,
   type UbicacionActual,
 } from "@/lib/services/ubicaciones.service";
+import { calcularETA } from "@/lib/services/geocercas.service";
 import { haptic } from "@/lib/utils/haptics";
 import { useRouter } from "expo-router";
-import { ChevronDown, GraduationCap, Heart } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { ChevronDown, GraduationCap, Heart, UserX } from "lucide-react-native";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -67,67 +68,80 @@ export default function ParentHomeScreen() {
   const [polylineCoordinates, setPolylineCoordinates] = useState<
     { latitude: number; longitude: number }[]
   >([]);
+  const [horaInicioRecorrido, setHoraInicioRecorrido] = useState<string | null>(null);
 
-  // Datos temporales
-  const estimatedMinutes = 8;
+  // ETA dinámico: bus → parada del hijo
+  const estimatedMinutes = useMemo(() => {
+    if (!ubicacionBus || !estudianteSeleccionado?.parada) return null;
+    const parada = estudianteSeleccionado.parada;
+    const latParada = typeof parada.latitud === 'string' ? parseFloat(parada.latitud) : parada.latitud;
+    const lonParada = typeof parada.longitud === 'string' ? parseFloat(parada.longitud) : parada.longitud;
+    if (isNaN(latParada) || isNaN(lonParada)) return null;
+    return calcularETA(ubicacionBus.latitud, ubicacionBus.longitud, latParada, lonParada, ubicacionBus.velocidad);
+  }, [ubicacionBus, estudianteSeleccionado?.parada]);
 
-  // Timeline events
-  const timelineEvents = [
-    {
-      id: "1",
-      title: "Currently On Board",
-      subtitle: "Departed from school at 3:15 PM",
-      status: "active" as const,
-      icon: "board" as const,
-    },
-    {
-      id: "2",
-      title: "School Departure",
-      subtitle: "Checked out by Teacher at 3:10 PM",
-      status: "completed" as const,
-      icon: "departure" as const,
-    },
-    {
-      id: "3",
-      title: "Stop 1: Main Street",
-      subtitle: "Parada intermedia",
-      time: "4:20 PM",
-      status: "upcoming" as const,
-      icon: "stop" as const,
-    },
-    {
-      id: "4",
-      title: "Stop 2: Park Avenue",
-      subtitle: "Parada intermedia",
-      time: "4:30 PM",
-      status: "upcoming" as const,
-      icon: "stop" as const,
-    },
-    {
-      id: "5",
-      title: "Stop 3: Oak Boulevard",
-      subtitle: "Parada intermedia",
-      time: "4:37 PM",
-      status: "upcoming" as const,
-      icon: "stop" as const,
-    },
-    {
-      id: "6",
-      title: "Your Stop: 124 Maple St.",
-      subtitle: "Estimated Drop-off",
-      time: "4:43 PM",
-      status: "upcoming" as const,
-      icon: "stop" as const,
-    },
-    {
-      id: "7",
-      title: "Final Stop: Cedar Lane",
-      subtitle: "Última parada de la ruta",
-      time: "4:50 PM",
-      status: "upcoming" as const,
-      icon: "stop" as const,
-    },
-  ];
+  // ETA dinámico: bus → colegio
+  const etaColegio = useMemo(() => {
+    if (!ubicacionBus || !ubicacionColegio) return null;
+    return calcularETA(ubicacionBus.latitud, ubicacionBus.longitud, ubicacionColegio.latitud, ubicacionColegio.longitud, ubicacionBus.velocidad);
+  }, [ubicacionBus, ubicacionColegio]);
+
+  // Timeline dinámico con datos reales
+  const timelineEvents = useMemo(() => {
+    const formatHora = (isoString: string) => {
+      const date = new Date(isoString);
+      return date.toLocaleTimeString('es-EC', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'America/Guayaquil',
+      });
+    };
+
+    const events: {
+      id: string;
+      title: string;
+      subtitle: string;
+      time?: string;
+      status: 'completed' | 'active' | 'upcoming';
+      icon: 'board' | 'departure' | 'stop';
+    }[] = [];
+
+    // 1. Inicio de recorrido
+    events.push({
+      id: 'inicio',
+      title: 'Inicio de recorrido',
+      subtitle: choferEnCamino
+        ? `Salió a las ${horaInicioRecorrido ? formatHora(horaInicioRecorrido) : '--:--'}`
+        : 'Esperando inicio del recorrido',
+      time: horaInicioRecorrido ? formatHora(horaInicioRecorrido) : undefined,
+      status: choferEnCamino ? 'completed' : 'upcoming',
+      icon: 'departure',
+    });
+
+    // 2. Parada del estudiante (casa)
+    const parada = estudianteSeleccionado?.parada;
+    events.push({
+      id: 'parada-casa',
+      title: parada?.nombre || 'Tu parada',
+      subtitle: parada?.direccion || 'Parada asignada del estudiante',
+      time: choferEnCamino && estimatedMinutes !== null ? `~${estimatedMinutes} min` : undefined,
+      status: choferEnCamino ? 'active' : 'upcoming',
+      icon: 'stop',
+    });
+
+    // 3. Llegada al colegio
+    events.push({
+      id: 'colegio',
+      title: ubicacionColegio?.nombre || 'Colegio',
+      subtitle: 'Destino final del recorrido',
+      time: choferEnCamino && etaColegio !== null ? `~${etaColegio} min` : undefined,
+      status: 'upcoming',
+      icon: 'board',
+    });
+
+    return events;
+  }, [choferEnCamino, horaInicioRecorrido, estudianteSeleccionado?.parada, ubicacionColegio, estimatedMinutes, etaColegio, ubicacionBus]);
 
   useEffect(() => {
     loadEstudiantes();
@@ -155,6 +169,7 @@ export default function ParentHomeScreen() {
         console.log('⚠️ Estudiante sin ruta asignada, limpiando estado');
         setChoferEnCamino(false);
         setIdAsignacion(null);
+        setHoraInicioRecorrido(null);
         setPolylineCoordinates([]);
         setUbicacionBus(null);
       }
@@ -203,6 +218,7 @@ export default function ParentHomeScreen() {
         if (payload.payload.id_asignacion === idAsignacion) {
           console.log('🧹 Limpiando estado de recorrido finalizado');
           setChoferEnCamino(false);
+          setHoraInicioRecorrido(null);
           setPolylineCoordinates([]); // Limpiar polyline
           setUbicacionBus(null); // Limpiar ubicación del bus
         }
@@ -287,7 +303,8 @@ export default function ParentHomeScreen() {
       nombre: estudianteSeleccionado.parada.nombre || 'Mi parada',
       latitud,
       longitud,
-      direccion: estudianteSeleccionado.parada.direccion,
+      direccion: estudianteSeleccionado.parada.direccion ?? null,
+      hora_aprox: null,
       orden: estudianteSeleccionado.parada.orden || 0,
       id_ruta: estudianteSeleccionado.parada.ruta?.id || '',
     };
@@ -398,6 +415,7 @@ export default function ParentHomeScreen() {
       const recorridoActivo = estado?.activo || false;
       setChoferEnCamino(recorridoActivo);
       setIdAsignacion(estado?.id_asignacion || null);
+      setHoraInicioRecorrido(estado?.hora_inicio || null);
 
       // Cargar polyline si hay asignación activa usando RPC (evita recursión RLS)
       if (estado?.activo && estado?.id_asignacion) {
@@ -418,6 +436,7 @@ export default function ParentHomeScreen() {
         }
       } else {
         console.log('⚠️ No hay recorrido activo, limpiando estado');
+        setHoraInicioRecorrido(null);
         setPolylineCoordinates([]);
         setUbicacionBus(null);
       }
@@ -601,14 +620,52 @@ export default function ParentHomeScreen() {
           icon={Heart}
         />
 
-        {/* Recorrido Status Badge - Below Header */}
-        <RecorridoStatusBadge isActive={choferEnCamino} />
-
-        {/* Estimated Arrival Badge - Below Status Badge */}
-        <EstimatedArrivalBadge
-          minutes={estimatedMinutes}
-          onSchedule={choferEnCamino}
-        />
+        {/* Badges: ausencia vs recorrido */}
+        {!isAttending ? (
+          <View
+            style={{
+              marginLeft: 16,
+              marginTop: 8,
+              alignSelf: "flex-start",
+              backgroundColor: "#FEF2F2",
+              borderRadius: 12,
+              paddingVertical: 10,
+              paddingHorizontal: 14,
+              flexDirection: "row",
+              alignItems: "center",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 4,
+            }}
+          >
+            <UserX size={18} color="#DC2626" strokeWidth={2.5} />
+            <View style={{ marginLeft: 10 }}>
+              <Text
+                className="font-bold"
+                style={{ fontSize: 14, color: "#991B1B" }}
+              >
+                No sera recogido hoy
+              </Text>
+              <Text style={{ fontSize: 11, color: "#DC2626", marginTop: 2 }}>
+                {marcadoPorChofer
+                  ? "Marcado ausente por el chofer"
+                  : "Marcado ausente por ti"}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <>
+            <RecorridoStatusBadge isActive={choferEnCamino} />
+            {choferEnCamino && estimatedMinutes !== null && (
+              <EstimatedArrivalBadge
+                minutes={estimatedMinutes}
+                onSchedule={choferEnCamino}
+              />
+            )}
+          </>
+        )}
 
         {/* Student Selector Chip - Solo si hay más de 1 estudiante */}
         {estudiantes.length > 1 && (
@@ -687,8 +744,59 @@ export default function ParentHomeScreen() {
             onNotifyAbsencePress={handleToggleAttendance}
           />
 
-          {/* Timeline */}
-          <TodayTimeline events={timelineEvents} isLive={choferEnCamino} />
+          {/* Timeline o estado de ausencia */}
+          {isAttending ? (
+            <TodayTimeline events={timelineEvents} isLive={choferEnCamino} />
+          ) : (
+            <View
+              style={{
+                backgroundColor: "#ffffff",
+                borderRadius: 20,
+                padding: 24,
+                marginHorizontal: 16,
+                marginBottom: 20,
+                alignItems: "center",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.06,
+                shadowRadius: 12,
+                elevation: 4,
+              }}
+            >
+              <View
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 32,
+                  backgroundColor: "#FEF2F2",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <UserX size={32} color="#DC2626" strokeWidth={1.5} />
+              </View>
+              <Text
+                className="font-bold"
+                style={{ fontSize: 17, color: "#1F2937" }}
+              >
+                Estudiante ausente hoy
+              </Text>
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: "#6B7280",
+                  textAlign: "center",
+                  marginTop: 8,
+                  lineHeight: 18,
+                }}
+              >
+                {estudianteSeleccionado?.nombre || "El estudiante"} no sera
+                recogido por la buseta hoy.{"\n"}Si cambias de opinion, puedes
+                reactivar la asistencia arriba.
+              </Text>
+            </View>
+          )}
         </ScrollView>
       </DraggableBottomSheet>
 

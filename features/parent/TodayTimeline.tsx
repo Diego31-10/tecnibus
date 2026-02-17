@@ -66,7 +66,7 @@ export function TodayTimeline({ events, isLive = false }: TodayTimelineProps) {
           className="font-bold font-calsans"
           style={{ fontSize: 18, color: Colors.tecnibus[800] }}
         >
-          Today's Timeline
+          Recorrido de Hoy
         </Text>
         {isLive && (
           <View
