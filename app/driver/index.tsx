@@ -3,11 +3,13 @@ import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DriverQuickStats,
+  EstudianteActualPanel,
   MapCard,
   NextStudentHero,
   RecorridoSelector,
 } from "@/features/driver";
 import { Colors } from "@/lib/constants/colors";
+import { useGeofencing } from "@/lib/hooks/useGeofencing";
 import { useGPSTracking } from "@/lib/hooks/useGPSTracking";
 import {
   getRecorridosHoy,
@@ -24,14 +26,21 @@ import {
   guardarPolylineRuta,
   iniciarRecorrido,
 } from "@/lib/services/recorridos.service";
+import {
+  calcularDistancia,
+  calcularETA,
+  inicializarEstadosGeocercas,
+  marcarEstudianteCompletado,
+} from "@/lib/services/geocercas.service";
+import { sendPushToParents } from "@/lib/services/notifications.service";
 import { getParadasByRuta, calcularRutaOptimizada, type Parada } from "@/lib/services/rutas.service";
 import { getUbicacionColegio } from "@/lib/services/configuracion.service";
 import { supabase } from "@/lib/services/supabase";
 import type { UbicacionActual } from "@/lib/services/ubicaciones.service";
 import { haptic } from "@/lib/utils/haptics";
 import { useRouter } from "expo-router";
-import { Bus, Play, Square } from "lucide-react-native";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Bus, CheckCircle2, MapPinOff, Play, Square } from "lucide-react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Location from "expo-location";
 import {
   ActivityIndicator,
@@ -76,6 +85,7 @@ export default function DriverHomeScreen() {
   const [ubicacionChofer, setUbicacionChofer] = useState<{
     latitude: number;
     longitude: number;
+    speed: number | null;
   } | null>(null);
 
   // GPS tracking
@@ -85,6 +95,23 @@ export default function DriverHomeScreen() {
     recorridoActivo: routeActive,
     intervaloSegundos: 10,
   });
+
+  // Geofencing
+  const {
+    estudianteActual: estudianteGeocerca,
+    dentroDeZona,
+    distanciaMetros,
+    marcarCompletadoManual,
+  } = useGeofencing({
+    idAsignacion: recorridoActual?.id ?? null,
+    idChofer: profile?.id || "",
+    recorridoActivo: routeActive,
+    ubicacionActual: ubicacionChofer,
+    radioMetros: 100,
+  });
+
+  // Ref para evitar notificaciones push duplicadas por el mismo estudiante
+  const lastPushStudentRef = useRef<string | null>(null);
 
   // Derived stats
   const stats = useMemo(() => {
@@ -105,6 +132,97 @@ export default function DriverHomeScreen() {
     return pending[0] || null;
   }, [estudiantes]);
 
+  // IDs de paradas donde TODOS los estudiantes están ausentes
+  const paradasAusentesIds = useMemo(() => {
+    if (estudiantes.length === 0) return new Set<string>();
+
+    // Para cada parada: contar activos vs ausentes
+    const activos = new Map<string, number>();
+    const totales = new Map<string, number>();
+
+    for (const e of estudiantes) {
+      if (!e.parada?.id) continue;
+      totales.set(e.parada.id, (totales.get(e.parada.id) || 0) + 1);
+      if (e.estado !== "ausente") {
+        activos.set(e.parada.id, (activos.get(e.parada.id) || 0) + 1);
+      }
+    }
+
+    const ausentes = new Set<string>();
+    for (const [paradaId, total] of totales) {
+      if ((activos.get(paradaId) || 0) === 0 && total > 0) {
+        ausentes.add(paradaId);
+      }
+    }
+    return ausentes;
+  }, [estudiantes]);
+
+  // Paradas filtradas: sin paradas donde todos los estudiantes están ausentes
+  const paradasVisibles = useMemo(() => {
+    if (paradasAusentesIds.size === 0) return paradas;
+    return paradas.filter((p) => !paradasAusentesIds.has(p.id));
+  }, [paradas, paradasAusentesIds]);
+
+  // Parada más cercana por GPS (para el card "en camino")
+  const paradaMasCercana = useMemo(() => {
+    if (!ubicacionChofer || paradasVisibles.length === 0 || !routeActive) return null;
+
+    // Solo considerar paradas que tienen estudiantes pendientes
+    const paradasPendientes = paradasVisibles.filter((p) => {
+      // Verificar que al menos un estudiante de esta parada no está ausente/completado
+      return estudiantes.some(
+        (e) =>
+          e.parada?.id === p.id &&
+          e.estado !== "ausente" &&
+          e.estado !== "completado",
+      );
+    });
+
+    if (paradasPendientes.length === 0) return null;
+
+    let menor = Infinity;
+    let cercana: (typeof paradasPendientes)[0] | null = null;
+
+    for (const p of paradasPendientes) {
+      const dist = calcularDistancia(
+        ubicacionChofer.latitude,
+        ubicacionChofer.longitude,
+        p.latitud,
+        p.longitud,
+      );
+      if (dist < menor) {
+        menor = dist;
+        cercana = p;
+      }
+    }
+
+    return cercana ? { parada: cercana, distanciaMetros: menor } : null;
+  }, [ubicacionChofer, paradasVisibles, estudiantes, routeActive]);
+
+  // ETA a próxima parada
+  const etaProximaParada = useMemo(() => {
+    if (!ubicacionChofer || !paradaMasCercana) return null;
+    return calcularETA(
+      ubicacionChofer.latitude,
+      ubicacionChofer.longitude,
+      paradaMasCercana.parada.latitud,
+      paradaMasCercana.parada.longitud,
+      ubicacionChofer.speed,
+    );
+  }, [ubicacionChofer, paradaMasCercana]);
+
+  // ETA al fin de ruta (colegio)
+  const etaFinRuta = useMemo(() => {
+    if (!ubicacionChofer || !ubicacionColegio) return null;
+    return calcularETA(
+      ubicacionChofer.latitude,
+      ubicacionChofer.longitude,
+      ubicacionColegio.latitud,
+      ubicacionColegio.longitud,
+      ubicacionChofer.speed,
+    );
+  }, [ubicacionChofer, ubicacionColegio]);
+
   // Cargar ubicación del colegio
   useEffect(() => {
     const cargarUbicacionColegio = async () => {
@@ -119,41 +237,52 @@ export default function DriverHomeScreen() {
     cargarUbicacionColegio();
   }, []);
 
-  // Obtener ubicación del chofer para mostrar en mapa (siempre)
+  // Obtener ubicación del chofer para mostrar en mapa
+  // 5s cuando routeActive (geocerca necesita precisión), 30s cuando inactivo
   useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+
     const obtenerUbicacionChofer = async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") return;
 
         const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
+          accuracy: routeActive ? Location.Accuracy.High : Location.Accuracy.Balanced,
         });
 
         setUbicacionChofer({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
+          speed: location.coords.speed != null ? location.coords.speed * 3.6 : null,
         });
 
-        // Actualizar cada 30 segundos
-        const interval = setInterval(async () => {
-          const loc = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          });
-          setUbicacionChofer({
-            latitude: loc.coords.latitude,
-            longitude: loc.coords.longitude,
-          });
-        }, 30000);
-
-        return () => clearInterval(interval);
+        const intervalo = routeActive ? 5000 : 30000;
+        interval = setInterval(async () => {
+          try {
+            const loc = await Location.getCurrentPositionAsync({
+              accuracy: routeActive ? Location.Accuracy.High : Location.Accuracy.Balanced,
+            });
+            setUbicacionChofer({
+              latitude: loc.coords.latitude,
+              longitude: loc.coords.longitude,
+              speed: loc.coords.speed != null ? loc.coords.speed * 3.6 : null,
+            });
+          } catch (err) {
+            console.error("Error actualizando ubicación:", err);
+          }
+        }, intervalo);
       } catch (error) {
         console.error("Error obteniendo ubicación del chofer:", error);
       }
     };
 
     obtenerUbicacionChofer();
-  }, []);
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [routeActive]);
 
   // Load recorridos
   const cargarRecorridos = useCallback(async () => {
@@ -246,6 +375,16 @@ export default function DriverHomeScreen() {
     };
   }, [recorridoActual, cargarEstudiantes]);
 
+  // Polling fallback: recargar estudiantes cada 15s cuando ruta activa
+  // (por si realtime no captura cambios del padre)
+  useEffect(() => {
+    if (!routeActive || !recorridoActual) return;
+    const interval = setInterval(() => {
+      cargarEstudiantes();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [routeActive, recorridoActual, cargarEstudiantes]);
+
   // Realtime: route state changes
   useEffect(() => {
     if (!recorridoActual) return;
@@ -267,6 +406,31 @@ export default function DriverHomeScreen() {
     };
   }, [recorridoActual, cargarEstadoRecorrido]);
 
+  // Notificación push al padre cuando entramos a geocerca
+  useEffect(() => {
+    if (
+      !dentroDeZona ||
+      !estudianteGeocerca ||
+      !recorridoActual
+    ) return;
+
+    // Evitar duplicados por el mismo estudiante
+    if (lastPushStudentRef.current === estudianteGeocerca.id_estudiante) return;
+    lastPushStudentRef.current = estudianteGeocerca.id_estudiante;
+
+    sendPushToParents(
+      recorridoActual.id,
+      "La buseta esta cerca",
+      `La buseta se acerca a ${estudianteGeocerca.parada_nombre || "la parada"}. ${estudianteGeocerca.nombreCompleto} sera recogido pronto.`,
+      {
+        tipo: "geocerca_entrada",
+        id_estudiante: estudianteGeocerca.id_estudiante,
+      }
+    ).catch((err) => {
+      console.warn("Error enviando push de geocerca:", err);
+    });
+  }, [dentroDeZona, estudianteGeocerca?.id_estudiante, recorridoActual?.id]);
+
   // Handlers
   const handleMarcarAusente = async () => {
     if (!profile?.id || !recorridoActual || !nextStudent) return;
@@ -287,6 +451,51 @@ export default function DriverHomeScreen() {
       }
     } catch (error) {
       console.error("Error marcando ausente:", error);
+      haptic.error();
+      Alert.alert("Error", "Ocurrio un error");
+    } finally {
+      setProcessingStudent(null);
+    }
+  };
+
+  const handleMarcarAusenteGeocerca = async () => {
+    if (!profile?.id || !recorridoActual || !estudianteGeocerca) return;
+    try {
+      setProcessingStudent(estudianteGeocerca.id_estudiante);
+      haptic.medium();
+
+      // 1. Marcar asistencia como ausente
+      const result = await marcarAusente(
+        estudianteGeocerca.id_estudiante,
+        recorridoActual.id_ruta,
+        profile.id,
+      );
+
+      if (result) {
+        // 2. Actualizar estado de geocerca a completado
+        await marcarEstudianteCompletado(
+          recorridoActual.id,
+          estudianteGeocerca.id_estudiante,
+          profile.id,
+          "ausente",
+        );
+
+        // 3. Cargar siguiente estudiante en el hook
+        await marcarCompletadoManual();
+
+        // 4. Recargar lista de estudiantes para actualizar stats
+        await cargarEstudiantes();
+
+        // Reset ref para permitir push al siguiente estudiante
+        lastPushStudentRef.current = null;
+
+        haptic.success();
+      } else {
+        haptic.error();
+        Alert.alert("Error", "No se pudo marcar como ausente");
+      }
+    } catch (error) {
+      console.error("Error marcando ausente (geocerca):", error);
       haptic.error();
       Alert.alert("Error", "Ocurrio un error");
     } finally {
@@ -333,13 +542,14 @@ export default function DriverHomeScreen() {
       // 2. Obtener ubicación del colegio
       const ubicacionColegio = await getUbicacionColegio();
 
-      // 3. Calcular ruta optimizada si hay paradas
-      if (paradas.length > 0) {
+      // 3. Calcular ruta optimizada (solo paradas con estudiantes activos)
+      const paradasParaOptimizar = paradasVisibles;
+      if (paradasParaOptimizar.length > 0) {
 
         try {
           const resultado = await calcularRutaOptimizada(
             ubicacionChofer,
-            paradas,
+            paradasParaOptimizar,
             recorridoActual.tipo_ruta,
             {
               lat: ubicacionColegio.latitud,
@@ -378,6 +588,19 @@ export default function DriverHomeScreen() {
       if (success) {
         setRouteActive(true);
         haptic.success();
+
+        // 5. Inicializar estados de geocercas para tracking de paradas
+        inicializarEstadosGeocercas(recorridoActual.id, profile?.id || "")
+          .then((ok) => {
+            if (ok) {
+              console.log("✅ Estados de geocercas inicializados");
+            } else {
+              console.warn("⚠️ No se pudieron inicializar geocercas");
+            }
+          })
+          .catch((err) => {
+            console.warn("Error inicializando geocercas:", err);
+          });
       } else {
         haptic.error();
         Alert.alert("Error", "No se pudo iniciar el recorrido");
@@ -461,28 +684,21 @@ export default function DriverHomeScreen() {
               Contacta al administrador
             </Text>
           </View>
-        ) : routeActive && nextStudent ? (
+        ) : routeActive && dentroDeZona && estudianteGeocerca ? (
           <>
-            {/* Hero: next student */}
+            {/* Hero: student nearby via geocerca */}
             <NextStudentHero
-              studentName={`${nextStudent.nombre} ${nextStudent.apellido}`}
-              address={
-                nextStudent.parada
-                  ? paradas.find((p) => p.id === nextStudent.parada?.id)
-                      ?.direccion ||
-                    nextStudent.parada.nombre ||
-                    "Sin direccion"
-                  : "Sin parada asignada"
-              }
+              studentName={estudianteGeocerca.nombreCompleto}
+              address={estudianteGeocerca.parada_nombre || "Sin direccion"}
               parentName={undefined}
               parentPhone={undefined}
-              estimatedMinutes={
-                stats.remaining > 0 ? stats.remaining * 4 : undefined
-              }
-              isApproaching={false}
+              estimatedMinutes={etaProximaParada ?? undefined}
+              isApproaching={true}
               onNavigate={handleNavigate}
-              onMarkAbsent={handleMarcarAusente}
-              isProcessing={processingStudent === nextStudent.id}
+              onMarkAbsent={handleMarcarAusenteGeocerca}
+              isProcessing={
+                processingStudent === estudianteGeocerca.id_estudiante
+              }
             />
 
             {/* Quick stats */}
@@ -490,12 +706,12 @@ export default function DriverHomeScreen() {
               pickedUp={stats.completed}
               total={stats.total}
               remaining={stats.remaining}
-              estimatedMinutes={stats.remaining > 0 ? stats.remaining * 4 : 0}
+              estimatedMinutes={etaFinRuta ?? undefined}
             />
 
             {/* Map card */}
             <MapCard
-              paradas={paradas}
+              paradas={paradasVisibles}
               ubicacionBus={ubicacionBus}
               recorridoActivo={routeActive}
               polylineCoordinates={polylineCoordinates}
@@ -537,7 +753,148 @@ export default function DriverHomeScreen() {
               </TouchableOpacity>
             </View>
           </>
-        ) : routeActive && !nextStudent ? (
+        ) : routeActive && (nextStudent || estudianteGeocerca) ? (
+          <>
+            {/* Route active but not near any stop - waiting state */}
+            <View
+              style={{
+                backgroundColor: "#ffffff",
+                borderRadius: 20,
+                padding: 24,
+                marginHorizontal: 16,
+                marginTop: -20,
+                alignItems: "center",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 16,
+                elevation: 8,
+              }}
+            >
+              <View
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 32,
+                  backgroundColor: Colors.tecnibus[50],
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <MapPinOff size={32} color={Colors.tecnibus[400]} strokeWidth={1.5} />
+              </View>
+              <Text
+                className="font-bold"
+                style={{ fontSize: 18, color: "#1F2937" }}
+              >
+                En camino a siguiente parada
+              </Text>
+              {paradaMasCercana ? (
+                <>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: "#6B7280",
+                      textAlign: "center",
+                      marginTop: 8,
+                    }}
+                  >
+                    Proxima parada: {paradaMasCercana.parada.nombre || paradaMasCercana.parada.direccion || "Sin nombre"}
+                  </Text>
+                  <Text
+                    className="font-semibold"
+                    style={{
+                      fontSize: 13,
+                      color: Colors.tecnibus[600],
+                      marginTop: 8,
+                    }}
+                  >
+                    {paradaMasCercana.distanciaMetros > 1000
+                      ? `${(paradaMasCercana.distanciaMetros / 1000).toFixed(1)} km`
+                      : `${Math.round(paradaMasCercana.distanciaMetros)}m`}
+                    {" de distancia"}
+                    {etaProximaParada !== null ? ` · ~${etaProximaParada} min` : ""}
+                  </Text>
+                  {etaFinRuta !== null && (
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: "#9CA3AF",
+                        marginTop: 4,
+                      }}
+                    >
+                      ETA fin de ruta: ~{etaFinRuta} min
+                    </Text>
+                  )}
+                </>
+              ) : (
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: "#6B7280",
+                    textAlign: "center",
+                    marginTop: 8,
+                  }}
+                >
+                  Dirigete a la siguiente parada
+                </Text>
+              )}
+            </View>
+
+            {/* Quick stats */}
+            <DriverQuickStats
+              pickedUp={stats.completed}
+              total={stats.total}
+              remaining={stats.remaining}
+              estimatedMinutes={etaFinRuta ?? undefined}
+            />
+
+            {/* Map card */}
+            <MapCard
+              paradas={paradasVisibles}
+              ubicacionBus={ubicacionBus}
+              recorridoActivo={routeActive}
+              polylineCoordinates={polylineCoordinates}
+              ubicacionColegio={ubicacionColegio}
+              mostrarUbicacionChofer={true}
+              ubicacionChofer={ubicacionChofer}
+            />
+
+            {/* Finalize button */}
+            <View style={{ marginHorizontal: 16, marginTop: 16 }}>
+              <TouchableOpacity
+                onPress={handleFinalizarRecorrido}
+                activeOpacity={0.8}
+                style={{
+                  backgroundColor: "#EF4444",
+                  borderRadius: 16,
+                  paddingVertical: 16,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  shadowColor: "#EF4444",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 6,
+                  elevation: 4,
+                }}
+              >
+                <Square size={18} color="#ffffff" strokeWidth={2.5} />
+                <Text
+                  className="font-bold"
+                  style={{
+                    fontSize: 15,
+                    color: "#ffffff",
+                    marginLeft: 8,
+                  }}
+                >
+                  Finalizar Recorrido
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : routeActive && !nextStudent && !estudianteGeocerca ? (
           <>
             {/* Route active but all students done */}
             <View
@@ -555,7 +912,19 @@ export default function DriverHomeScreen() {
                 elevation: 8,
               }}
             >
-              <Text style={{ fontSize: 48, marginBottom: 12 }}>{"\u2705"}</Text>
+              <View
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 32,
+                  backgroundColor: "#ECFDF5",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <CheckCircle2 size={36} color="#10B981" strokeWidth={2} />
+              </View>
               <Text
                 className="font-bold"
                 style={{ fontSize: 18, color: "#1F2937" }}
@@ -582,7 +951,7 @@ export default function DriverHomeScreen() {
             />
 
             <MapCard
-              paradas={paradas}
+              paradas={paradasVisibles}
               ubicacionBus={ubicacionBus}
               recorridoActivo={routeActive}
               polylineCoordinates={polylineCoordinates}
@@ -738,10 +1107,10 @@ export default function DriverHomeScreen() {
             </View>
 
             {/* Map preview when inactive */}
-            {paradas.length > 0 && (
+            {paradasVisibles.length > 0 && (
               <View style={{ marginTop: 16 }}>
                 <MapCard
-                  paradas={paradas}
+                  paradas={paradasVisibles}
                   ubicacionBus={null}
                   recorridoActivo={false}
                   ubicacionColegio={ubicacionColegio}
@@ -772,6 +1141,17 @@ export default function DriverHomeScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Panel de estudiante actual (geocerca overlay - solo cuando dentro de zona) */}
+      {routeActive && estudianteGeocerca && dentroDeZona && (
+        <EstudianteActualPanel
+          estudiante={estudianteGeocerca}
+          dentroDeZona={dentroDeZona}
+          distanciaMetros={distanciaMetros}
+          onMarcarAusente={handleMarcarAusenteGeocerca}
+          onCerrar={() => {}}
+        />
+      )}
 
       {/* Recorrido selector modal */}
       <RecorridoSelector
