@@ -121,7 +121,7 @@ BEGIN
   ON CONFLICT (id_asignacion, fecha)
   DO UPDATE SET
     activo = true,
-    hora_inicio = COALESCE(estados_recorrido.hora_inicio, NOW()),
+    hora_inicio = NOW(),
     hora_fin = NULL,
     updated_at = NOW();
 
