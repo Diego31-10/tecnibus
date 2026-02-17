@@ -1,7 +1,13 @@
 import { Colors } from "@/lib/constants/colors";
 import { haptic } from "@/lib/utils/haptics";
 import { useRouter } from "expo-router";
-import { ChevronRight, LogOut, MapPin, Settings, User } from "lucide-react-native";
+import {
+  ChevronRight,
+  LogOut,
+  MapPin,
+  Settings,
+  User,
+} from "lucide-react-native";
 import {
   ScrollView,
   StatusBar,
@@ -35,7 +41,10 @@ export default function AdminSettingsScreen() {
 
   return (
     <View className="flex-1" style={{ backgroundColor: "#F8FAFB" }}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.tecnibus[600]} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={Colors.tecnibus[600]}
+      />
 
       <DashboardHeader
         icon={Settings}
@@ -63,7 +72,11 @@ export default function AdminSettingsScreen() {
                 className="p-2 rounded-lg"
                 style={{ backgroundColor: Colors.tecnibus[100] }}
               >
-                <User size={24} color={Colors.tecnibus[600]} strokeWidth={2.5} />
+                <User
+                  size={24}
+                  color={Colors.tecnibus[600]}
+                  strokeWidth={2.5}
+                />
               </View>
               <View className="ml-3 flex-1">
                 <Text className="text-gray-800 font-bold text-base">
@@ -80,9 +93,7 @@ export default function AdminSettingsScreen() {
 
         {/* Sección Sistema */}
         <AnimatedCard delay={50} className="mb-4">
-          <Text className="text-lg font-bold text-gray-800 mb-4">
-            Sistema
-          </Text>
+          <Text className="text-lg font-bold text-gray-800 mb-4">Sistema</Text>
 
           <TouchableOpacity
             className="bg-gray-50 rounded-xl p-4 flex-row items-center justify-between"
@@ -94,7 +105,11 @@ export default function AdminSettingsScreen() {
                 className="p-2 rounded-lg"
                 style={{ backgroundColor: Colors.tecnibus[100] }}
               >
-                <MapPin size={24} color={Colors.tecnibus[600]} strokeWidth={2.5} />
+                <MapPin
+                  size={24}
+                  color={Colors.tecnibus[600]}
+                  strokeWidth={2.5}
+                />
               </View>
               <View className="ml-3 flex-1">
                 <Text className="text-gray-800 font-bold text-base">
@@ -141,8 +156,9 @@ export default function AdminSettingsScreen() {
 
       <BottomNavigation
         activeTab="settings"
+        middleTab="tracking"
         onHomePress={() => router.back()}
-        onTrackingPress={() => {}}
+        onMiddlePress={() => {}}
         onSettingsPress={() => {}}
       />
     </View>

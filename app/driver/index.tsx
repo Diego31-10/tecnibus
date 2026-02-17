@@ -87,6 +87,7 @@ export default function DriverHomeScreen() {
     longitude: number;
     speed: number | null;
   } | null>(null);
+  const [horaInicioRecorrido, setHoraInicioRecorrido] = useState<string | null>(null);
 
   // GPS tracking
   const { error: errorGPS, tracking } = useGPSTracking({
@@ -337,6 +338,7 @@ export default function DriverHomeScreen() {
     try {
       const estado = await getEstadoRecorrido(recorridoActual.id);
       setRouteActive(estado?.activo || false);
+      setHoraInicioRecorrido(estado?.hora_inicio || null);
     } catch (error) {
       console.error("Error cargando estado del recorrido:", error);
     }
@@ -638,7 +640,19 @@ export default function DriverHomeScreen() {
     );
   };
 
-  const headerSubtitle = recorridoActual?.nombre_ruta || "Sin recorrido";
+  const formatHoraEC = (isoString: string) => {
+    const date = new Date(isoString);
+    return date.toLocaleTimeString('es-EC', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'America/Guayaquil',
+    });
+  };
+
+  const headerSubtitle = routeActive && horaInicioRecorrido
+    ? `${recorridoActual?.nombre_ruta || "Recorrido"} · Salió ${formatHoraEC(horaInicioRecorrido)}`
+    : recorridoActual?.nombre_ruta || "Sin recorrido";
 
   return (
     <View className="flex-1" style={{ backgroundColor: "#F8FAFB" }}>
@@ -790,6 +804,17 @@ export default function DriverHomeScreen() {
               >
                 En camino a siguiente parada
               </Text>
+              {horaInicioRecorrido && (
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: "#9CA3AF",
+                    marginTop: 2,
+                  }}
+                >
+                  Inicio: {formatHoraEC(horaInicioRecorrido)}
+                </Text>
+              )}
               {paradaMasCercana ? (
                 <>
                   <Text
@@ -1249,13 +1274,8 @@ export default function DriverHomeScreen() {
       <BottomNavigation
         activeTab="home"
         onHomePress={() => {}}
-        onTrackingPress={() => {
-          if (recorridos.length > 1) {
-            setShowRecorridoSelector(true);
-          }
-        }}
+        onMiddlePress={() => {}}
         onSettingsPress={() => router.push("/driver/settings")}
-        trackingLabel="Ruta"
       />
     </View>
   );

@@ -106,9 +106,8 @@ export default function DriverSettingsScreen() {
       <BottomNavigation
         activeTab="settings"
         onHomePress={() => router.back()}
-        onTrackingPress={() => {}}
+        onMiddlePress={() => {}}
         onSettingsPress={() => {}}
-        trackingLabel="Ruta"
       />
     </View>
   );

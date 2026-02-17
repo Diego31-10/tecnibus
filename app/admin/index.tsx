@@ -204,8 +204,9 @@ export default function AdminHomeScreen() {
       {/* Barra de navegación inferior flotante */}
       <BottomNavigation
         activeTab="home"
+        middleTab="tracking"
         onHomePress={() => {}}
-        onTrackingPress={handleTrackingPress}
+        onMiddlePress={handleTrackingPress}
         onSettingsPress={handleSettings}
       />
     </View>

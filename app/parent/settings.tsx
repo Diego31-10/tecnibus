@@ -106,7 +106,7 @@ export default function ParentSettingsScreen() {
       <BottomNavigation
         activeTab="settings"
         onHomePress={() => router.back()}
-        onTrackingPress={() => {}}
+        onMiddlePress={() => {}}
         onSettingsPress={() => {}}
       />
     </View>
