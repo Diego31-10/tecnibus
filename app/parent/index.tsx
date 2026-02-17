@@ -69,6 +69,7 @@ export default function ParentHomeScreen() {
     { latitude: number; longitude: number }[]
   >([]);
   const [horaInicioRecorrido, setHoraInicioRecorrido] = useState<string | null>(null);
+  const [nombreChofer, setNombreChofer] = useState<string | null>(null);
 
   // ETA dinámico: bus → parada del hijo
   const estimatedMinutes = useMemo(() => {
@@ -312,6 +313,20 @@ export default function ParentHomeScreen() {
     console.log('✅ Mostrando solo la parada del hijo:', paradaDelHijo.nombre, 'en', latitud, longitud);
     setParadasRuta([paradaDelHijo]);
   }, [estudianteSeleccionado?.parada]);
+
+  // Cargar nombre del chofer de la ruta del estudiante
+  useEffect(() => {
+    const idRuta = estudianteSeleccionado?.parada?.ruta?.id;
+    if (!idRuta) {
+      setNombreChofer(null);
+      return;
+    }
+    supabase
+      .rpc('get_nombre_chofer_de_ruta', { p_id_ruta: idRuta })
+      .then(({ data }) => {
+        setNombreChofer(data || null);
+      });
+  }, [estudianteSeleccionado?.parada?.ruta?.id]);
 
   // Cargar ubicación inicial del bus
   useEffect(() => {
@@ -736,8 +751,7 @@ export default function ParentHomeScreen() {
           {/* Hero Card */}
           <ParentTrackingHero
             studentName={estudianteSeleccionado?.nombreCompleto || "Estudiante"}
-            busNumber={`Bus ${estudianteSeleccionado?.parada?.ruta?.nombre || "N/A"}`}
-            driverName="Michael Scott"
+            driverName={nombreChofer || "—"}
             isOnline={choferEnCamino}
             isAttending={isAttending}
             onChatPress={handleChatDriver}
@@ -814,7 +828,7 @@ export default function ParentHomeScreen() {
         activeTab="home"
         activeColor={Colors.tecnibus[600]}
         onHomePress={() => {}}
-        onTrackingPress={handleTracking}
+        onMiddlePress={handleTracking}
         onSettingsPress={handleSettings}
       />
     </View>

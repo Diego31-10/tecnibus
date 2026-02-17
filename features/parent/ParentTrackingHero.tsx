@@ -1,17 +1,10 @@
 import { Colors } from "@/lib/constants/colors";
-import {
-  BellOff,
-  CheckCircle2,
-  MessageCircle,
-  User,
-} from "lucide-react-native";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { BellOff, CheckCircle2, MessageCircle } from "lucide-react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 
 interface ParentTrackingHeroProps {
   studentName: string;
-  busNumber: string;
   driverName: string;
-  driverPhotoUrl?: string;
   isOnline?: boolean;
   isAttending?: boolean;
   onChatPress: () => void;
@@ -20,10 +13,8 @@ interface ParentTrackingHeroProps {
 
 export function ParentTrackingHero({
   studentName,
-  busNumber,
   driverName,
-  driverPhotoUrl,
-  isOnline = true,
+  isOnline = false,
   isAttending = true,
   onChatPress,
   onNotifyAbsencePress,
@@ -44,71 +35,37 @@ export function ParentTrackingHero({
         elevation: 8,
       }}
     >
-      {/* Header: Student name + driver photo */}
-      <View className="flex-row items-center justify-between mb-4">
-        <View className="flex-1">
+      {/* Header: Student name + ruta + indicador online */}
+      <View className="mb-4">
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
           <Text
             className="font-bold font-calsans"
             style={{
               fontSize: 20,
               color: Colors.tecnibus[800],
-              marginBottom: 4,
+              flex: 1,
             }}
           >
             {studentName}
           </Text>
-          <Text style={{ fontSize: 13, color: "#6B7280" }}>
-            {busNumber} • Driver: {driverName}
-          </Text>
-        </View>
-
-        {/* Driver photo */}
-        <View style={{ position: "relative" }}>
-          {driverPhotoUrl ? (
-            <Image
-              source={{ uri: driverPhotoUrl }}
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                borderWidth: 2,
-                borderColor: Colors.tecnibus[200],
-              }}
-            />
-          ) : (
+          {/* Indicador online */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
             <View
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                backgroundColor: Colors.tecnibus[100],
-                alignItems: "center",
-                justifyContent: "center",
-                borderWidth: 2,
-                borderColor: Colors.tecnibus[200],
-              }}
-            >
-              <User size={24} color={Colors.tecnibus[600]} strokeWidth={2} />
-            </View>
-          )}
-
-          {/* Online indicator */}
-          {isOnline && (
-            <View
-              style={{
-                position: "absolute",
-                bottom: -2,
-                right: -2,
-                width: 16,
-                height: 16,
-                borderRadius: 8,
-                backgroundColor: "#10B981",
-                borderWidth: 2,
-                borderColor: "#ffffff",
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: isOnline ? "#22C55E" : "#D1D5DB",
               }}
             />
-          )}
+            <Text style={{ fontSize: 11, color: isOnline ? "#16A34A" : "#9CA3AF" }}>
+              {isOnline ? "En camino" : "Inactivo"}
+            </Text>
+          </View>
         </View>
+        <Text style={{ fontSize: 13, color: "#6B7280" }}>
+          Conductor: {driverName}
+        </Text>
       </View>
 
       {/* Action buttons */}
