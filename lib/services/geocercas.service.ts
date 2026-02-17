@@ -19,14 +19,14 @@ export type EstudianteGeocerca = {
  * Inicializar estados de geocercas al iniciar recorrido
  */
 export async function inicializarEstadosGeocercas(
-  idRecorrido: string,
+  idAsignacion: string,
   idChofer: string
 ): Promise<boolean> {
   try {
-    console.log('🔄 Inicializando estados de geocercas...', { idRecorrido, idChofer });
+    console.log('🔄 Inicializando estados de geocercas...', { idAsignacion, idChofer });
 
     const { error } = await supabase.rpc('inicializar_estados_geocercas', {
-      p_id_recorrido: idRecorrido,
+      p_id_asignacion: idAsignacion,
       p_id_chofer: idChofer,
     });
 
@@ -44,10 +44,10 @@ export async function inicializarEstadosGeocercas(
 }
 
 /**
- * Marcar entrada a geocerca (notifica al padre)
+ * Marcar entrada a geocerca
  */
 export async function marcarEntradaGeocerca(
-  idRecorrido: string,
+  idAsignacion: string,
   idEstudiante: string,
   idChofer: string
 ): Promise<{
@@ -60,10 +60,10 @@ export async function marcarEntradaGeocerca(
   };
 }> {
   try {
-    console.log('📍 Entrada a geocerca:', { idRecorrido, idEstudiante });
+    console.log('📍 Entrada a geocerca:', { idAsignacion, idEstudiante });
 
     const { data, error } = await supabase.rpc('entrada_geocerca', {
-      p_id_recorrido: idRecorrido,
+      p_id_asignacion: idAsignacion,
       p_id_estudiante: idEstudiante,
       p_id_chofer: idChofer,
     });
@@ -85,15 +85,15 @@ export async function marcarEntradaGeocerca(
  * Marcar salida de geocerca (auto-presente si no marcó ausente)
  */
 export async function marcarSalidaGeocerca(
-  idRecorrido: string,
+  idAsignacion: string,
   idEstudiante: string,
   idChofer: string
 ): Promise<boolean> {
   try {
-    console.log('🚶 Salida de geocerca:', { idRecorrido, idEstudiante });
+    console.log('🚶 Salida de geocerca:', { idAsignacion, idEstudiante });
 
     const { error } = await supabase.rpc('salida_geocerca', {
-      p_id_recorrido: idRecorrido,
+      p_id_asignacion: idAsignacion,
       p_id_estudiante: idEstudiante,
       p_id_chofer: idChofer,
     });
@@ -115,7 +115,7 @@ export async function marcarSalidaGeocerca(
  * Marcar estudiante como completado (cuando el chofer marca ausente manualmente)
  */
 export async function marcarEstudianteCompletado(
-  idRecorrido: string,
+  idAsignacion: string,
   idEstudiante: string,
   idChofer: string,
   estadoAsistencia: 'presente' | 'ausente'
@@ -127,7 +127,7 @@ export async function marcarEstudianteCompletado(
     });
 
     const { error } = await supabase.rpc('marcar_estudiante_completado', {
-      p_id_recorrido: idRecorrido,
+      p_id_asignacion: idAsignacion,
       p_id_estudiante: idEstudiante,
       p_id_chofer: idChofer,
       p_estado_asistencia: estadoAsistencia,
@@ -150,11 +150,11 @@ export async function marcarEstudianteCompletado(
  * Obtener el siguiente estudiante pendiente o en zona
  */
 export async function getSiguienteEstudianteGeocerca(
-  idRecorrido: string
+  idAsignacion: string
 ): Promise<EstudianteGeocerca | null> {
   try {
     const { data, error } = await supabase.rpc('get_siguiente_estudiante_geocerca', {
-      p_id_recorrido: idRecorrido,
+      p_id_asignacion: idAsignacion,
     });
 
     if (error) {
@@ -201,6 +201,30 @@ export function calcularDistancia(
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return R * c; // Distancia en metros
+}
+
+/**
+ * Calcular ETA (tiempo estimado de llegada) en minutos
+ * Usa distancia Haversine con factor vial para compensar calles
+ */
+export function calcularETA(
+  latBus: number,
+  lonBus: number,
+  latDestino: number,
+  lonDestino: number,
+  velocidadKmH?: number | null,
+): number {
+  const distanciaMetros = calcularDistancia(latBus, lonBus, latDestino, lonDestino);
+  if (distanciaMetros < 10) return 1; // Ya prácticamente en el destino
+
+  const FACTOR_VIAL = 1.4; // Compensar que Haversine es línea recta
+  const VELOCIDAD_DEFAULT_KMH = 25; // Velocidad urbana típica Ecuador
+
+  const velocidad = velocidadKmH && velocidadKmH > 0 ? velocidadKmH : VELOCIDAD_DEFAULT_KMH;
+  const distanciaKm = (distanciaMetros * FACTOR_VIAL) / 1000;
+  const minutos = (distanciaKm / velocidad) * 60;
+
+  return Math.max(1, Math.round(minutos));
 }
 
 /**

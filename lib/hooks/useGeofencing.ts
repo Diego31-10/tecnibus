@@ -9,18 +9,19 @@ import {
 } from '@/lib/services/geocercas.service';
 
 type GeofencingOptions = {
-  idRecorrido: string | null;
+  idAsignacion: string | null;
   idChofer: string;
   recorridoActivo: boolean;
   ubicacionActual: { latitude: number; longitude: number } | null;
   radioMetros?: number;
 };
 
-type GeofencingState = {
+type GeofencingResult = {
   estudianteActual: EstudianteGeocerca | null;
   dentroDeZona: boolean;
   distanciaMetros: number | null;
   loading: boolean;
+  marcarCompletadoManual: () => Promise<void>;
 };
 
 /**
@@ -31,12 +32,12 @@ type GeofencingState = {
  * 2. Salida → Si no marcó ausente, marca presente automático
  */
 export function useGeofencing({
-  idRecorrido,
+  idAsignacion,
   idChofer,
   recorridoActivo,
   ubicacionActual,
   radioMetros = 100,
-}: GeofencingOptions): GeofencingState {
+}: GeofencingOptions): GeofencingResult {
   const [estudianteActual, setEstudianteActual] = useState<EstudianteGeocerca | null>(null);
   const [dentroDeZona, setDentroDeZona] = useState(false);
   const [distanciaMetros, setDistanciaMetros] = useState<number | null>(null);
@@ -53,20 +54,20 @@ export function useGeofencing({
 
   // Cargar estudiante actual al iniciar o cuando cambia el recorrido
   useEffect(() => {
-    if (recorridoActivo && idRecorrido) {
+    if (recorridoActivo && idAsignacion) {
       cargarSiguienteEstudiante();
     } else {
       setEstudianteActual(null);
       setDentroDeZona(false);
       setDistanciaMetros(null);
     }
-  }, [recorridoActivo, idRecorrido]);
+  }, [recorridoActivo, idAsignacion]);
 
   // Monitorear ubicación y detectar entrada/salida de geocercas
   useEffect(() => {
     if (
       !recorridoActivo ||
-      !idRecorrido ||
+      !idAsignacion ||
       !ubicacionActual ||
       !estudianteActual
     ) {
@@ -123,17 +124,17 @@ export function useGeofencing({
     };
 
     setDentroDeZona(dentroAhora);
-  }, [ubicacionActual, estudianteActual, recorridoActivo, idRecorrido, radioMetros]);
+  }, [ubicacionActual, estudianteActual, recorridoActivo, idAsignacion, radioMetros]);
 
   /**
    * Cargar el siguiente estudiante pendiente
    */
   const cargarSiguienteEstudiante = async () => {
-    if (!idRecorrido) return;
+    if (!idAsignacion) return;
 
     setLoading(true);
     try {
-      const siguiente = await getSiguienteEstudianteGeocerca(idRecorrido);
+      const siguiente = await getSiguienteEstudianteGeocerca(idAsignacion);
       setEstudianteActual(siguiente);
 
       if (siguiente) {
@@ -156,7 +157,7 @@ export function useGeofencing({
    * Manejar entrada a geocerca
    */
   const handleEntradaGeocerca = async () => {
-    if (!idRecorrido || !estudianteActual || !idChofer) return;
+    if (!idAsignacion || !estudianteActual || !idChofer) return;
 
     // Solo marcar entrada si está en estado 'pendiente'
     if (estudianteActual.estado !== 'pendiente') {
@@ -166,7 +167,7 @@ export function useGeofencing({
 
     try {
       const result = await marcarEntradaGeocerca(
-        idRecorrido,
+        idAsignacion,
         estudianteActual.id_estudiante,
         idChofer
       );
@@ -187,7 +188,7 @@ export function useGeofencing({
    * Manejar salida de geocerca (auto-presente si no marcó ausente)
    */
   const handleSalidaGeocerca = async () => {
-    if (!idRecorrido || !estudianteActual || !idChofer) return;
+    if (!idAsignacion || !estudianteActual || !idChofer) return;
 
     // Solo marcar salida si está 'en_zona'
     if (estudianteActual.estado !== 'en_zona') {
@@ -197,7 +198,7 @@ export function useGeofencing({
 
     try {
       const success = await marcarSalidaGeocerca(
-        idRecorrido,
+        idAsignacion,
         estudianteActual.id_estudiante,
         idChofer
       );
@@ -216,7 +217,7 @@ export function useGeofencing({
    * Llamar cuando el chofer marca ausente manualmente
    */
   const marcarCompletadoManual = async () => {
-    if (!idRecorrido || !estudianteActual) return;
+    if (!idAsignacion || !estudianteActual) return;
 
     console.log('✅ Estudiante marcado manualmente, pasando al siguiente');
     // Cargar siguiente estudiante
@@ -228,5 +229,6 @@ export function useGeofencing({
     dentroDeZona,
     distanciaMetros,
     loading,
+    marcarCompletadoManual,
   };
 }
