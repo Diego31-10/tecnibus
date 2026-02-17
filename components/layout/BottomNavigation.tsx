@@ -1,31 +1,34 @@
 import { Colors } from "@/lib/constants/colors";
 import { LinearGradient } from "expo-linear-gradient";
-import { Home, MapPin, Settings } from "lucide-react-native";
+import { Home, MapPin, MessageCircle, Settings } from "lucide-react-native";
 import { ReactNode } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface BottomNavigationProps {
-  activeTab: "home" | "tracking" | "settings";
+  activeTab: "home" | "chat" | "tracking" | "settings";
+  middleTab?: "chat" | "tracking";
   onHomePress: () => void;
-  onTrackingPress: () => void;
+  onMiddlePress: () => void;
   onSettingsPress: () => void;
   activeColor?: string;
-  trackingLabel?: string;
 }
 
 const INACTIVE_COLOR = "#9CA3AF";
 
 export function BottomNavigation({
   activeTab,
+  middleTab = "chat",
   onHomePress,
-  onTrackingPress,
+  onMiddlePress,
   onSettingsPress,
   activeColor = Colors.tecnibus[600],
-  trackingLabel = "Tracking",
 }: BottomNavigationProps) {
   const insets = useSafeAreaInsets();
   const paddingBottom = Math.max(insets.bottom, 8);
+
+  const isTracking = middleTab === "tracking";
+  const middleIsActive = isTracking ? activeTab === "tracking" : activeTab === "chat";
 
   return (
     <View
@@ -64,7 +67,7 @@ export function BottomNavigation({
             borderColor: "rgba(209, 235, 247, 0.6)",
           }}
         >
-          {/* Inner highlight (simulates glass refraction) */}
+          {/* Inner highlight */}
           <View
             style={{
               position: "absolute",
@@ -83,23 +86,49 @@ export function BottomNavigation({
           >
             <TabItem
               label="Inicio"
-              icon={<Home size={21} color={activeTab === "home" ? "#ffffff" : INACTIVE_COLOR} strokeWidth={2} />}
+              icon={
+                <Home
+                  size={21}
+                  color={activeTab === "home" ? "#ffffff" : INACTIVE_COLOR}
+                  strokeWidth={2}
+                />
+              }
               active={activeTab === "home"}
               onPress={onHomePress}
               activeColor={activeColor}
             />
 
             <TabItem
-              label={trackingLabel}
-              icon={<MapPin size={21} color={activeTab === "tracking" ? "#ffffff" : INACTIVE_COLOR} strokeWidth={2} />}
-              active={activeTab === "tracking"}
-              onPress={onTrackingPress}
+              label={isTracking ? "Tracking" : "Chat"}
+              icon={
+                isTracking ? (
+                  <MapPin
+                    size={21}
+                    color={middleIsActive ? "#ffffff" : INACTIVE_COLOR}
+                    strokeWidth={2}
+                  />
+                ) : (
+                  <MessageCircle
+                    size={21}
+                    color={middleIsActive ? "#ffffff" : INACTIVE_COLOR}
+                    strokeWidth={2}
+                  />
+                )
+              }
+              active={middleIsActive}
+              onPress={onMiddlePress}
               activeColor={activeColor}
             />
 
             <TabItem
               label="Ajustes"
-              icon={<Settings size={21} color={activeTab === "settings" ? "#ffffff" : INACTIVE_COLOR} strokeWidth={2} />}
+              icon={
+                <Settings
+                  size={21}
+                  color={activeTab === "settings" ? "#ffffff" : INACTIVE_COLOR}
+                  strokeWidth={2}
+                />
+              }
               active={activeTab === "settings"}
               onPress={onSettingsPress}
               activeColor={activeColor}
