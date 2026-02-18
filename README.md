@@ -1,8 +1,10 @@
 <div align="center">
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=48&pause=10000&color=F70A8D&center=true&vCenter=true&width=500&height=70&lines=TECNIBUS" alt="TecniBus" />
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=45&pause=5000&color=F70A8D&center=true&vCenter=true&width=500&height=60&lines=TECNIBUS" alt="TecniBus" />
+  
+  <br />
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&pause=10000&color=AAAAAA&center=true&vCenter=true&width=600&height=40&lines=Sistema+de+Gestión+de+Transporte+Escolar" alt="Subtítulo" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=25&pause=5000&color=FFFFFF&center=true&vCenter=true&width=500&height=40&lines=Proyecto+Integrador+UETS" alt="Proyecto" />
 
 <br/>
 
@@ -251,29 +253,11 @@ tecnibus/
 
 ---
 
-## ⚙️ Configuración local
+## ⚖️ Licencia
 
-```bash
-# 1. Clonar el repositorio
-git clone https://github.com/Diego31-10/tecnibus.git
-cd tecnibus
+Este proyecto está bajo la Licencia MIT - mira el archivo [LICENSE](LICENSE) para detalles.
 
-# 2. Instalar dependencias
-npm install
-
-# 3. Configurar variables de entorno
-cp .env.example .env
-# Completar con tus credenciales de Supabase
-
-# 4. Iniciar servidor de desarrollo
-npm start
-```
-
-**Variables de entorno requeridas:**
-```env
-EXPO_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=tu-anon-key
-```
+Copyright (c) 2026 - Diego Torres - TecniBus
 
 ---
 
