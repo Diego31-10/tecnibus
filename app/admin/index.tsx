@@ -5,8 +5,8 @@ import {
   getDashboardStats,
 } from "@/lib/services/stats.service";
 import { haptic } from "@/lib/utils/haptics";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -31,34 +31,24 @@ export default function AdminHomeScreen() {
   const router = useRouter();
   const { profile } = useAuth();
 
-  const [stats, setStats] = useState<DashboardStats>({
+  const DEFAULT_STATS: DashboardStats = {
     totalStudents: 0,
     totalDrivers: 0,
     totalParents: 0,
     totalRoutes: 0,
     activeBuses: 0,
     totalBuses: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {
-    loadStats();
-  }, []);
-
-  const loadStats = async () => {
-    setLoading(true);
-    const data = await getDashboardStats();
-    setStats(data);
-    setLoading(false);
   };
 
-  const handleRefresh = async () => {
-    if (refreshing) return;
+  const { data: stats = DEFAULT_STATS, isLoading: loading, refetch, isRefetching } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: getDashboardStats,
+  });
+
+  const handleRefresh = () => {
+    if (isRefetching) return;
     haptic.light();
-    setRefreshing(true);
-    await loadStats();
-    setRefreshing(false);
+    refetch();
   };
 
   const handleSettings = () => {
@@ -130,7 +120,7 @@ export default function AdminHomeScreen() {
         overScrollMode="never"
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={isRefetching}
             onRefresh={handleRefresh}
             colors={[Colors.tecnibus[600]]}
             tintColor={Colors.tecnibus[600]}

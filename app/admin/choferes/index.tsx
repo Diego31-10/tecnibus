@@ -7,6 +7,7 @@ import {
   SubScreenHeader,
 } from "@/features/admin";
 import { haptic } from "@/lib/utils/haptics";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Bus, Mail, Plus, UserCircle, Users } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
@@ -28,9 +29,7 @@ import {
 
 export default function ListaChoferesScreen() {
   const router = useRouter();
-  const [choferes, setChoferes] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -40,22 +39,15 @@ export default function ListaChoferesScreen() {
     type: "success" | "error" | "warning" | "info";
   }>({ visible: false, message: "", type: "success" });
 
-  const cargarChoferes = useCallback(async () => {
-    try {
-      const data = await obtenerChoferes();
-      setChoferes(data);
-    } catch {
-      showToast("Error al cargar conductores", "error");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  const { data: choferes = [], isLoading: loading, refetch, isRefetching: refreshing } = useQuery({
+    queryKey: ['choferes'],
+    queryFn: obtenerChoferes,
+  });
 
   useFocusEffect(
     useCallback(() => {
-      cargarChoferes();
-    }, [cargarChoferes])
+      refetch();
+    }, [refetch])
   );
 
   const showToast = (
@@ -96,7 +88,7 @@ export default function ListaChoferesScreen() {
     setDeletingId(userId);
     const result = await eliminarUsuario(userId);
     if (result.success) {
-      setChoferes((prev) => prev.filter((c) => c.id !== userId));
+      queryClient.invalidateQueries({ queryKey: ['choferes'] });
       showToast("Conductor eliminado correctamente", "success");
     } else {
       showToast(result.error || "Error al eliminar", "error");
@@ -150,10 +142,7 @@ export default function ListaChoferesScreen() {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                cargarChoferes();
-              }}
+              onRefresh={() => refetch()}
               colors={[Colors.tecnibus[600]]}
               tintColor={Colors.tecnibus[600]}
             />
@@ -202,7 +191,7 @@ export default function ListaChoferesScreen() {
         visible={showModal}
         onClose={() => setShowModal(false)}
         userType="chofer"
-        onSuccess={cargarChoferes}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['choferes'] })}
         onToast={showToast}
       />
 

@@ -6,6 +6,7 @@ import {
   SubScreenHeader,
 } from "@/features/admin";
 import { haptic } from "@/lib/utils/haptics";
+import { useQuery } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
   GraduationCap,
@@ -30,27 +31,17 @@ import {
 
 export default function EstudiantesListScreen() {
   const router = useRouter();
-  const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
 
-  const loadEstudiantes = useCallback(async () => {
-    try {
-      const data = await getEstudiantes();
-      setEstudiantes(data);
-    } catch {
-      setEstudiantes([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  const { data: estudiantes = [], isLoading: loading, refetch, isRefetching: refreshing } = useQuery({
+    queryKey: ['estudiantes'],
+    queryFn: getEstudiantes,
+  });
 
   useFocusEffect(
     useCallback(() => {
-      loadEstudiantes();
-    }, [loadEstudiantes])
+      refetch();
+    }, [refetch])
   );
 
   const filtered = useMemo(() => {
@@ -125,10 +116,7 @@ export default function EstudiantesListScreen() {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                loadEstudiantes();
-              }}
+              onRefresh={() => refetch()}
               colors={[Colors.tecnibus[600]]}
               tintColor={Colors.tecnibus[600]}
             />

@@ -6,6 +6,7 @@ import {
   SubScreenHeader,
 } from "@/features/admin";
 import { haptic } from "@/lib/utils/haptics";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Bus, Hash, Plus, Users } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
@@ -27,9 +28,7 @@ import {
 
 export default function BusetasListScreen() {
   const router = useRouter();
-  const [busetas, setBusetas] = useState<Buseta[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editBuseta, setEditBuseta] = useState<Buseta | null>(null);
@@ -40,22 +39,15 @@ export default function BusetasListScreen() {
     type: "success" | "error" | "warning" | "info";
   }>({ visible: false, message: "", type: "success" });
 
-  const loadBusetas = useCallback(async () => {
-    try {
-      const data = await getBusetas();
-      setBusetas(data);
-    } catch {
-      showToast("Error al cargar busetas", "error");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  const { data: busetas = [], isLoading: loading, refetch, isRefetching: refreshing } = useQuery({
+    queryKey: ['busetas'],
+    queryFn: getBusetas,
+  });
 
   useFocusEffect(
     useCallback(() => {
-      loadBusetas();
-    }, [loadBusetas])
+      refetch();
+    }, [refetch])
   );
 
   const showToast = (
@@ -103,7 +95,7 @@ export default function BusetasListScreen() {
     setDeletingId(buseta.id);
     const result = await deleteBuseta(buseta.id);
     if (result.success) {
-      setBusetas((prev) => prev.filter((b) => b.id !== buseta.id));
+      queryClient.invalidateQueries({ queryKey: ['busetas'] });
       showToast("Buseta eliminada correctamente", "success");
     } else {
       showToast(result.error || "Error al eliminar", "error");
@@ -152,10 +144,7 @@ export default function BusetasListScreen() {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                loadBusetas();
-              }}
+              onRefresh={() => refetch()}
               colors={[Colors.tecnibus[600]]}
               tintColor={Colors.tecnibus[600]}
             />
@@ -209,7 +198,7 @@ export default function BusetasListScreen() {
           setEditBuseta(null);
         }}
         buseta={editBuseta}
-        onSuccess={loadBusetas}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['busetas'] })}
         onToast={showToast}
       />
 

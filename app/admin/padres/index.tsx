@@ -7,6 +7,7 @@ import {
   SubScreenHeader,
 } from "@/features/admin";
 import { haptic } from "@/lib/utils/haptics";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Mail, Plus, Users } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
@@ -28,9 +29,7 @@ import {
 
 export default function ListaPadresScreen() {
   const router = useRouter();
-  const [padres, setPadres] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -40,22 +39,15 @@ export default function ListaPadresScreen() {
     type: "success" | "error" | "warning" | "info";
   }>({ visible: false, message: "", type: "success" });
 
-  const cargarPadres = useCallback(async () => {
-    try {
-      const data = await obtenerPadres();
-      setPadres(data);
-    } catch {
-      showToast("Error al cargar representantes", "error");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  const { data: padres = [], isLoading: loading, refetch, isRefetching: refreshing } = useQuery({
+    queryKey: ['padres'],
+    queryFn: obtenerPadres,
+  });
 
   useFocusEffect(
     useCallback(() => {
-      cargarPadres();
-    }, [cargarPadres])
+      refetch();
+    }, [refetch])
   );
 
   const showToast = (
@@ -96,7 +88,7 @@ export default function ListaPadresScreen() {
     setDeletingId(userId);
     const result = await eliminarUsuario(userId);
     if (result.success) {
-      setPadres((prev) => prev.filter((p) => p.id !== userId));
+      queryClient.invalidateQueries({ queryKey: ['padres'] });
       showToast("Representante eliminado correctamente", "success");
     } else {
       showToast(result.error || "Error al eliminar", "error");
@@ -148,10 +140,7 @@ export default function ListaPadresScreen() {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                cargarPadres();
-              }}
+              onRefresh={() => refetch()}
               colors={[Colors.tecnibus[600]]}
               tintColor={Colors.tecnibus[600]}
             />
@@ -200,7 +189,7 @@ export default function ListaPadresScreen() {
         visible={showModal}
         onClose={() => setShowModal(false)}
         userType="padre"
-        onSuccess={cargarPadres}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['padres'] })}
         onToast={showToast}
       />
 

@@ -1,4 +1,5 @@
 import SplashScreen from "@/components/SplashScreen";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { useState } from "react";
@@ -8,6 +9,14 @@ import { AuthGuard } from "../components/AuthGuard";
 import { AuthProvider } from "../contexts/AuthContext";
 import "../global.css";
 import { useNotificationNavigation } from "../lib/hooks/useNotificationNavigation";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutos
+    },
+  },
+});
 
 /**
  * Componente interno que contiene el Stack y maneja las notificaciones
@@ -106,10 +115,12 @@ export default function RootLayout() {
 
   // Luego montar la app con AuthProvider
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </SafeAreaProvider>
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </SafeAreaProvider>
+    </QueryClientProvider>
   );
 }

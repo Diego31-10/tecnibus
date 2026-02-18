@@ -6,6 +6,7 @@ import {
   SubScreenHeader,
 } from "@/features/admin";
 import { haptic } from "@/lib/utils/haptics";
+import { useQuery } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Clock, MapPin, Plus } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
@@ -21,27 +22,17 @@ import { Ruta, getRutas } from "@/lib/services/rutas.service";
 
 export default function RutasListScreen() {
   const router = useRouter();
-  const [rutas, setRutas] = useState<Ruta[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
 
-  const loadRutas = useCallback(async () => {
-    try {
-      const data = await getRutas();
-      setRutas(data);
-    } catch {
-      setRutas([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  const { data: rutas = [], isLoading: loading, refetch, isRefetching: refreshing } = useQuery({
+    queryKey: ['rutas'],
+    queryFn: getRutas,
+  });
 
   useFocusEffect(
     useCallback(() => {
-      loadRutas();
-    }, [loadRutas])
+      refetch();
+    }, [refetch])
   );
 
   const filtered = useMemo(() => {
@@ -113,10 +104,7 @@ export default function RutasListScreen() {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                loadRutas();
-              }}
+              onRefresh={() => refetch()}
               colors={[Colors.tecnibus[600]]}
               tintColor={Colors.tecnibus[600]}
             />
