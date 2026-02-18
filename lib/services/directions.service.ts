@@ -11,6 +11,7 @@ export interface DirectionsResult {
   duration: number; // Duration in seconds
   decodedCoordinates: { latitude: number; longitude: number }[];
   waypointOrder?: number[]; // Orden optimizado de waypoints (si optimize:true)
+  legs?: Array<{ distance: number; duration: number }>; // Duración/distancia por segmento
 }
 
 /**
@@ -83,6 +84,7 @@ export async function getDirections(
       distance: leg.distance.value, // meters
       duration: leg.duration.value, // seconds
       decodedCoordinates: decodePolyline(polyline),
+      legs: [{ distance: leg.distance.value, duration: leg.duration.value }],
     };
   } catch (error) {
     console.error("Error fetching directions:", error);
@@ -154,12 +156,14 @@ export async function getRouteForWaypoints(
     const route = data.routes[0];
     const polyline = route.overview_polyline.points;
 
-    // Calculate total distance and duration
+    // Calculate total distance and duration per leg
     let totalDistance = 0;
     let totalDuration = 0;
+    const legs: Array<{ distance: number; duration: number }> = [];
     route.legs.forEach((leg: any) => {
       totalDistance += leg.distance.value;
       totalDuration += leg.duration.value;
+      legs.push({ distance: leg.distance.value, duration: leg.duration.value });
     });
 
     // Capturar orden optimizado si optimize=true
@@ -171,6 +175,7 @@ export async function getRouteForWaypoints(
       duration: totalDuration,
       decodedCoordinates: decodePolyline(polyline),
       waypointOrder,
+      legs,
     };
   } catch (error) {
     console.error("Error fetching route for waypoints:", error);
