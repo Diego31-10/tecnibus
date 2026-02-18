@@ -25,11 +25,10 @@ import {
   suscribirseAUbicaciones,
   type UbicacionActual,
 } from "@/lib/services/ubicaciones.service";
-import { calcularETA } from "@/lib/services/geocercas.service";
 import { haptic } from "@/lib/utils/haptics";
 import { useRouter } from "expo-router";
 import { ChevronDown, GraduationCap, Heart, UserX } from "lucide-react-native";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -71,21 +70,11 @@ export default function ParentHomeScreen() {
   const [horaInicioRecorrido, setHoraInicioRecorrido] = useState<string | null>(null);
   const [nombreChofer, setNombreChofer] = useState<string | null>(null);
 
-  // ETA dinámico: bus → parada del hijo
-  const estimatedMinutes = useMemo(() => {
-    if (!ubicacionBus || !estudianteSeleccionado?.parada) return null;
-    const parada = estudianteSeleccionado.parada;
-    const latParada = typeof parada.latitud === 'string' ? parseFloat(parada.latitud) : parada.latitud;
-    const lonParada = typeof parada.longitud === 'string' ? parseFloat(parada.longitud) : parada.longitud;
-    if (isNaN(latParada) || isNaN(lonParada)) return null;
-    return calcularETA(ubicacionBus.latitud, ubicacionBus.longitud, latParada, lonParada, ubicacionBus.velocidad);
-  }, [ubicacionBus, estudianteSeleccionado?.parada]);
-
-  // ETA dinámico: bus → colegio
-  const etaColegio = useMemo(() => {
-    if (!ubicacionBus || !ubicacionColegio) return null;
-    return calcularETA(ubicacionBus.latitud, ubicacionBus.longitud, ubicacionColegio.latitud, ubicacionColegio.longitud, ubicacionBus.velocidad);
-  }, [ubicacionBus, ubicacionColegio]);
+  // ETAs publicados por el chofer (Google Directions, acumulados y precisos).
+  // El chofer los calcula y los guarda en estados_recorrido.eta_paradas.
+  // El padre los lee desde DB: carga inicial + polling 5s + Realtime como refuerzo.
+  const [estimatedMinutes, setEstimatedMinutes] = useState<number | null>(null);
+  const [etaColegio, setEtaColegio] = useState<number | null>(null);
 
   // Timeline dinámico con datos reales
   const timelineEvents = useMemo(() => {
@@ -160,19 +149,19 @@ export default function ParentHomeScreen() {
 
   useEffect(() => {
     if (estudianteSeleccionado?.id) {
+      // Resetear estado de ruta SIEMPRE al cambiar estudiante para evitar datos viejos
+      setChoferEnCamino(false);
+      setIdAsignacion(null);
+      setHoraInicioRecorrido(null);
+      setPolylineCoordinates([]);
+      setUbicacionBus(null);
+      setEstimatedMinutes(null);
+      setEtaColegio(null);
+
       cargarEstadoAsistencia();
 
-      // Solo cargar recorrido si el estudiante tiene ruta asignada
       if (estudianteSeleccionado?.parada?.ruta?.id) {
         cargarEstadoRecorrido();
-      } else {
-        // Si no tiene ruta, limpiar todo
-        console.log('⚠️ Estudiante sin ruta asignada, limpiando estado');
-        setChoferEnCamino(false);
-        setIdAsignacion(null);
-        setHoraInicioRecorrido(null);
-        setPolylineCoordinates([]);
-        setUbicacionBus(null);
       }
     }
   }, [estudianteSeleccionado?.id]);
@@ -328,6 +317,32 @@ export default function ParentHomeScreen() {
       });
   }, [estudianteSeleccionado?.parada?.ruta?.id]);
 
+
+
+  // Leer ETAs vía RPC (SECURITY DEFINER, sin problema de RLS ni segunda query)
+  const refreshETAs = useCallback(async () => {
+    const rutaId = estudianteSeleccionado?.parada?.ruta?.id;
+    if (!rutaId || !choferEnCamino) return;
+    const paradaId = estudianteSeleccionado?.parada?.id;
+    const estado = await getEstadoRecorridoPorRuta(rutaId);
+    if (estado?.eta_paradas) {
+      const etaData = estado.eta_paradas;
+      setEstimatedMinutes(paradaId != null && etaData[paradaId] != null ? etaData[paradaId] : null);
+      setEtaColegio(etaData['colegio'] ?? null);
+      console.log('📡 ETAs leídos vía RPC:', { parada: paradaId && etaData[paradaId], colegio: etaData['colegio'] });
+    } else {
+      console.log('ℹ️ refreshETAs: RPC no devolvió ETAs aún');
+    }
+  }, [choferEnCamino, estudianteSeleccionado?.parada?.ruta?.id, estudianteSeleccionado?.parada?.id]);
+
+  // Polling cada 10s cuando el chofer está en camino
+  useEffect(() => {
+    if (!choferEnCamino || !estudianteSeleccionado?.parada?.ruta?.id) return;
+    refreshETAs(); // lectura inmediata al activar
+    const interval = setInterval(refreshETAs, 10000);
+    return () => clearInterval(interval);
+  }, [choferEnCamino, estudianteSeleccionado?.parada?.ruta?.id, refreshETAs]);
+
   // Cargar ubicación inicial del bus
   useEffect(() => {
     const cargarUbicacionInicial = async () => {
@@ -356,41 +371,18 @@ export default function ParentHomeScreen() {
     cargarUbicacionInicial();
   }, [idAsignacion, choferEnCamino]);
 
-  // Polling de ubicaciones (más confiable que Realtime con RLS)
+  // Suscripción Realtime a ubicaciones del bus (reemplaza polling de 5s)
   useEffect(() => {
-    console.log('🔍 Configurando polling de ubicaciones:', {
-      tieneAsignacion: !!idAsignacion,
-      choferEnCamino,
-      idAsignacion,
-    });
-
     if (!idAsignacion || !choferEnCamino) {
-      console.log('⚠️ No se hace polling: falta asignación o chofer no está en camino');
       return;
     }
 
-    console.log(`📡 Iniciando polling de ubicaciones cada 5s para asignación: ${idAsignacion}`);
+    console.log(`📡 Suscribiéndose a ubicaciones Realtime para asignación: ${idAsignacion}`);
+    const cleanup = suscribirseAUbicaciones(idAsignacion, (ubicacion) => {
+      setUbicacionBus(ubicacion);
+    });
 
-    // Polling cada 5 segundos
-    const intervalo = setInterval(async () => {
-      try {
-        console.log('🔄 Polling: obteniendo ubicación actualizada...');
-        const ubicacion = await getUltimaUbicacion(idAsignacion);
-        if (ubicacion) {
-          console.log('✅ Polling: ubicación obtenida:', ubicacion);
-          setUbicacionBus(ubicacion);
-        } else {
-          console.log('⚠️ Polling: no se obtuvo ubicación');
-        }
-      } catch (error) {
-        console.error('❌ Error en polling de ubicación:', error);
-      }
-    }, 5000); // 5 segundos
-
-    return () => {
-      console.log('🔕 Deteniendo polling de ubicaciones');
-      clearInterval(intervalo);
-    };
+    return cleanup;
   }, [idAsignacion, choferEnCamino]);
 
   const cargarEstadoAsistencia = async () => {
@@ -432,9 +424,11 @@ export default function ParentHomeScreen() {
       setIdAsignacion(estado?.id_asignacion || null);
       setHoraInicioRecorrido(estado?.hora_inicio || null);
 
-      // Cargar polyline si hay asignación activa usando RPC (evita recursión RLS)
+      // Cargar polyline y ETAs si hay asignación activa
       if (estado?.activo && estado?.id_asignacion) {
-        console.log('🔍 Cargando polyline para asignación:', estado.id_asignacion);
+        console.log('🔍 Cargando polyline y ETAs para asignación:', estado.id_asignacion);
+
+        // Polyline para el mapa
         const { data: polyline, error: polylineError } = await supabase
           .rpc('get_polyline_asignacion', {
             p_id_asignacion: estado.id_asignacion,
@@ -449,11 +443,24 @@ export default function ParentHomeScreen() {
           console.log('⚠️ No hay polyline guardado para esta asignación');
           setPolylineCoordinates([]);
         }
+
+        // ETAs vienen directamente del RPC (SECURITY DEFINER, sin segunda query)
+        if (estado.eta_paradas) {
+          const paradaId = estudianteSeleccionado?.parada?.id;
+          const etaData = estado.eta_paradas;
+          setEstimatedMinutes(paradaId != null && etaData[paradaId] != null ? etaData[paradaId] : null);
+          setEtaColegio(etaData['colegio'] ?? null);
+          console.log('✅ ETAs del chofer cargados:', { parada: paradaId && etaData[paradaId], colegio: etaData['colegio'] });
+        } else {
+          console.log('ℹ️ No hay ETAs publicados aún por el chofer');
+        }
       } else {
         console.log('⚠️ No hay recorrido activo, limpiando estado');
         setHoraInicioRecorrido(null);
         setPolylineCoordinates([]);
         setUbicacionBus(null);
+        setEstimatedMinutes(null);
+        setEtaColegio(null);
       }
     } catch (error) {
       console.error("Error cargando estado del recorrido:", error);

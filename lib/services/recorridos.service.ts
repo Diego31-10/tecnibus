@@ -9,6 +9,7 @@ export type EstadoRecorrido = {
 
 export type EstadoRecorridoConAsignacion = EstadoRecorrido & {
   id_asignacion: string | null;
+  eta_paradas: Record<string, number> | null;
 };
 
 async function sendBroadcast(event: string, payload: Record<string, unknown>): Promise<void> {
@@ -165,8 +166,9 @@ export async function getEstadoRecorridoPorRuta(
           hora_inicio: estado.hora_inicio,
           hora_fin: estado.hora_fin,
           id_asignacion: estado.id_asignacion,
+          eta_paradas: estado.eta_paradas ?? null,
         }
-      : { activo: false, hora_inicio: null, hora_fin: null, id_asignacion: null };
+      : { activo: false, hora_inicio: null, hora_fin: null, id_asignacion: null, eta_paradas: null };
   } catch (error) {
     console.error('❌ Error obteniendo estado de recorrido por ruta:', error);
     return null;
