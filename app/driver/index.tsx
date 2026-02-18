@@ -28,7 +28,7 @@ import {
 } from "@/lib/services/recorridos.service";
 import {
   calcularDistancia,
-  calcularETA,
+  calcularETAsRuta,
   inicializarEstadosGeocercas,
   marcarEstudianteCompletado,
 } from "@/lib/services/geocercas.service";
@@ -200,29 +200,87 @@ export default function DriverHomeScreen() {
     return cercana ? { parada: cercana, distanciaMetros: menor } : null;
   }, [ubicacionChofer, paradasVisibles, estudiantes, routeActive]);
 
-  // ETA a próxima parada
-  const etaProximaParada = useMemo(() => {
-    if (!ubicacionChofer || !paradaMasCercana) return null;
-    return calcularETA(
-      ubicacionChofer.latitude,
-      ubicacionChofer.longitude,
-      paradaMasCercana.parada.latitud,
-      paradaMasCercana.parada.longitud,
-      ubicacionChofer.speed,
-    );
-  }, [ubicacionChofer, paradaMasCercana]);
+  // ETAs acumulados por parada + fin de ruta (una sola llamada, consistentes entre sí)
+  // Ruta: chofer → parada1 → parada2 → ... → colegio
+  const [etasPorParada, setEtasPorParada] = useState<Record<string, number>>({});
+  const [etaFinRuta, setEtaFinRuta] = useState<number | null>(null);
 
-  // ETA al fin de ruta (colegio)
-  const etaFinRuta = useMemo(() => {
-    if (!ubicacionChofer || !ubicacionColegio) return null;
-    return calcularETA(
+  useEffect(() => {
+    if (!ubicacionChofer || !routeActive) {
+      setEtasPorParada({});
+      setEtaFinRuta(null);
+      return;
+    }
+    // Paradas pendientes ordenadas por distancia desde el chofer (más cercana primero).
+    // No usar `orden` de DB porque refleja el orden de ingreso, no la ruta optimizada.
+    const paradasPendientes = paradasVisibles.filter((p) =>
+      estudiantes.some(
+        (e) => e.parada?.id === p.id && e.estado !== 'ausente' && e.estado !== 'completado',
+      ),
+    ).sort((a, b) => {
+      const distA = calcularDistancia(
+        ubicacionChofer.latitude, ubicacionChofer.longitude,
+        Number(a.latitud), Number(a.longitud),
+      );
+      const distB = calcularDistancia(
+        ubicacionChofer.latitude, ubicacionChofer.longitude,
+        Number(b.latitud), Number(b.longitud),
+      );
+      return distA - distB;
+    });
+
+    if (paradasPendientes.length === 0 && !ubicacionColegio) {
+      setEtasPorParada({});
+      setEtaFinRuta(null);
+      return;
+    }
+
+    // Cache key basado en IDs de paradas pendientes para detectar cambios
+    const cacheKey = `chofer-${paradasPendientes.map(p => p.id).join(',')}`;
+
+    calcularETAsRuta(
       ubicacionChofer.latitude,
       ubicacionChofer.longitude,
-      ubicacionColegio.latitud,
-      ubicacionColegio.longitud,
-      ubicacionChofer.speed,
-    );
-  }, [ubicacionChofer, ubicacionColegio]);
+      paradasPendientes,
+      ubicacionColegio ? { latitud: ubicacionColegio.latitud, longitud: ubicacionColegio.longitud } : null,
+      cacheKey,
+    ).then(({ porParada, destinoFinal }) => {
+      setEtasPorParada(porParada);
+      setEtaFinRuta(destinoFinal);
+
+      // Publicar ETAs en DB para que los padres los lean directamente
+      // Formato: { "parada_uuid": minutos, ..., "colegio": minutos }
+      if (recorridoActual?.id) {
+        supabase
+          .from('estados_recorrido')
+          .update({ eta_paradas: { ...porParada, colegio: destinoFinal } })
+          .eq('id_asignacion', recorridoActual.id)
+          .then(({ error }) => {
+            if (error) {
+              console.error('❌ Error publicando ETAs en DB:', error.message);
+            } else {
+              console.log('✅ ETAs publicados en DB:', { paradas: Object.keys(porParada).length, colegio: destinoFinal });
+            }
+          });
+      }
+    });
+  }, [
+    ubicacionChofer?.latitude,
+    ubicacionChofer?.longitude,
+    routeActive,
+    // Recalcular cuando cambia el conjunto de paradas pendientes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    paradasVisibles.map(p => p.id).join(','),
+    estudiantes.map(e => e.estado).join(','),
+    ubicacionColegio?.latitud,
+    ubicacionColegio?.longitud,
+    recorridoActual?.id,
+  ]);
+
+  // ETA a la próxima parada (derivado de etasPorParada, sin llamada extra)
+  const etaProximaParada = paradaMasCercana
+    ? (etasPorParada[paradaMasCercana.parada.id] ?? null)
+    : null;
 
   // Cargar ubicación del colegio
   useEffect(() => {
