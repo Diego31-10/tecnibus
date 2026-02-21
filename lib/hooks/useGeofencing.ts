@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   calcularDistancia,
-  estaDentroDeGeocerca,
   marcarEntradaGeocerca,
   marcarSalidaGeocerca,
-  getSiguienteEstudianteGeocerca,
   type EstudianteGeocerca,
 } from '@/lib/services/geocercas.service';
+import type { EstudianteConAsistencia } from '@/lib/services/asistencias.service';
+import type { Parada } from '@/lib/services/rutas.service';
 
 type GeofencingOptions = {
   idAsignacion: string | null;
@@ -14,6 +14,8 @@ type GeofencingOptions = {
   recorridoActivo: boolean;
   ubicacionActual: { latitude: number; longitude: number } | null;
   radioMetros?: number;
+  estudiantes: EstudianteConAsistencia[];
+  paradas: Parada[];
 };
 
 type GeofencingResult = {
@@ -25,11 +27,14 @@ type GeofencingResult = {
 };
 
 /**
- * Hook para monitorear geocercas durante el recorrido
+ * Hook para monitorear geocercas durante el recorrido.
  *
- * Detecta entrada/salida de zonas de paradas y gestiona el flujo:
- * 1. Entrada → Notifica padre, muestra panel estudiante
- * 2. Salida → Si no marcó ausente, marca presente automático
+ * Enfoque location-driven: en cada actualización de ubicación busca el
+ * estudiante pendiente más cercano. Si está dentro del radio, activa
+ * el panel de geocerca sin depender de DB para la selección.
+ *
+ * Efectos secundarios en DB (entrada/salida) se siguen registrando
+ * mediante los RPCs existentes.
  */
 export function useGeofencing({
   idAsignacion,
@@ -37,198 +42,166 @@ export function useGeofencing({
   recorridoActivo,
   ubicacionActual,
   radioMetros = 100,
+  estudiantes,
+  paradas,
 }: GeofencingOptions): GeofencingResult {
   const [estudianteActual, setEstudianteActual] = useState<EstudianteGeocerca | null>(null);
   const [dentroDeZona, setDentroDeZona] = useState(false);
   const [distanciaMetros, setDistanciaMetros] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  // Refs para tracking de estados anteriores
-  const estadoAnteriorRef = useRef<{
-    dentroDeZona: boolean;
-    idEstudiante: string | null;
-  }>({
-    dentroDeZona: false,
-    idEstudiante: null,
-  });
+  // ID del estudiante cuya entrada ya fue registrada (evita duplicar el evento)
+  const estudianteEnZonaRef = useRef<string | null>(null);
 
-  // Cargar estudiante actual al iniciar o cuando cambia el recorrido
+  // Set de estudiantes ya procesados en este recorrido (evita re-entrada al mismo geocerca)
+  const estudiantesProcesadosRef = useRef<Set<string>>(new Set());
+
+  // Reset al detener recorrido
   useEffect(() => {
-    if (recorridoActivo && idAsignacion) {
-      cargarSiguienteEstudiante();
-    } else {
+    if (!recorridoActivo) {
       setEstudianteActual(null);
       setDentroDeZona(false);
       setDistanciaMetros(null);
+      estudianteEnZonaRef.current = null;
+      estudiantesProcesadosRef.current = new Set();
     }
-  }, [recorridoActivo, idAsignacion]);
+  }, [recorridoActivo]);
 
-  // Monitorear ubicación y detectar entrada/salida de geocercas
+  // Evaluación en cada cambio de ubicación o lista de estudiantes
   useEffect(() => {
-    if (
-      !recorridoActivo ||
-      !idAsignacion ||
-      !ubicacionActual ||
-      !estudianteActual
-    ) {
-      return;
-    }
+    if (!recorridoActivo || !idAsignacion || !ubicacionActual) return;
 
     const { latitude: latBus, longitude: lonBus } = ubicacionActual;
-    const {
-      parada_latitud: latParada,
-      parada_longitud: lonParada,
-      id_estudiante: idEstudiante,
-    } = estudianteActual;
 
-    // Calcular distancia
-    const distancia = calcularDistancia(latBus, lonBus, latParada, lonParada);
+    // Construir lista de estudiantes pendientes con coordenadas de su parada
+    const pendientes: Array<{
+      estudiante: EstudianteConAsistencia;
+      parada: Parada;
+      distancia: number;
+    }> = [];
+
+    for (const est of estudiantes) {
+      if (est.estado === 'ausente' || est.estado === 'completado') continue;
+      // Excluir estudiantes ya procesados en este recorrido (evita re-entrada al mismo geocerca)
+      if (estudiantesProcesadosRef.current.has(est.id)) continue;
+      if (!est.parada?.id) continue;
+
+      const parada = paradas.find((p) => p.id === est.parada!.id);
+      if (!parada) continue;
+
+      const distancia = calcularDistancia(latBus, lonBus, parada.latitud, parada.longitud);
+      pendientes.push({ estudiante: est, parada, distancia });
+    }
+
+    // Sin estudiantes pendientes → limpiar estado
+    if (pendientes.length === 0) {
+      if (estudianteEnZonaRef.current) {
+        estudianteEnZonaRef.current = null;
+        setDentroDeZona(false);
+        setEstudianteActual(null);
+      }
+      setDistanciaMetros(null);
+      return;
+    }
+
+    // El más cercano determina el estado
+    pendientes.sort((a, b) => a.distancia - b.distancia);
+    const { estudiante, parada, distancia } = pendientes[0];
+    const idEst = estudiante.id;
+
     setDistanciaMetros(distancia);
 
-    // Verificar si está dentro del geocerca
-    const dentroAhora = estaDentroDeGeocerca(
-      latBus,
-      lonBus,
-      latParada,
-      lonParada,
-      radioMetros
-    );
+    const estaEnZona = distancia <= radioMetros;
+    const yaEnZona = estudianteEnZonaRef.current === idEst;
 
-    const estadoAnterior = estadoAnteriorRef.current;
+    if (estaEnZona) {
+      // Construir objeto compatible con EstudianteGeocerca
+      const geoEst: EstudianteGeocerca = {
+        id_estudiante: idEst,
+        nombre: estudiante.nombre,
+        apellido: estudiante.apellido,
+        nombreCompleto: `${estudiante.nombre} ${estudiante.apellido}`,
+        id_parada: parada.id,
+        parada_nombre: parada.nombre || parada.direccion,
+        parada_latitud: parada.latitud,
+        parada_longitud: parada.longitud,
+        orden_parada: parada.orden ?? 0,
+        estado: 'en_zona',
+      };
 
-    // EVENTO: Entrada a geocerca
-    if (dentroAhora && !estadoAnterior.dentroDeZona) {
-      console.log('🔔 ENTRADA A GEOCERCA:', {
-        estudiante: `${estudianteActual.nombre} ${estudianteActual.apellido}`,
-        parada: estudianteActual.parada_nombre,
-        distancia: Math.round(distancia),
-      });
+      setEstudianteActual(geoEst);
+      setDentroDeZona(true);
 
-      handleEntradaGeocerca();
-    }
-
-    // EVENTO: Salida de geocerca
-    if (!dentroAhora && estadoAnterior.dentroDeZona) {
-      console.log('🚶 SALIDA DE GEOCERCA:', {
-        estudiante: `${estudianteActual.nombre} ${estudianteActual.apellido}`,
-        distancia: Math.round(distancia),
-      });
-
-      handleSalidaGeocerca();
-    }
-
-    // Actualizar estado anterior
-    estadoAnteriorRef.current = {
-      dentroDeZona: dentroAhora,
-      idEstudiante,
-    };
-
-    setDentroDeZona(dentroAhora);
-  }, [ubicacionActual, estudianteActual, recorridoActivo, idAsignacion, radioMetros]);
-
-  /**
-   * Cargar el siguiente estudiante pendiente
-   */
-  const cargarSiguienteEstudiante = async () => {
-    if (!idAsignacion) return;
-
-    setLoading(true);
-    try {
-      const siguiente = await getSiguienteEstudianteGeocerca(idAsignacion);
-      setEstudianteActual(siguiente);
-
-      if (siguiente) {
-        console.log('👤 Siguiente estudiante cargado:', {
-          nombre: siguiente.nombreCompleto,
-          parada: siguiente.parada_nombre,
-          estado: siguiente.estado,
+      // Primera vez que entramos a esta parada → registrar en DB
+      if (!yaEnZona) {
+        console.log('🔔 ENTRADA A GEOCERCA:', {
+          estudiante: geoEst.nombreCompleto,
+          parada: geoEst.parada_nombre,
+          distancia: Math.round(distancia),
         });
-      } else {
-        console.log('✅ No hay más estudiantes pendientes');
-      }
-    } catch (error) {
-      console.error('❌ Error cargando siguiente estudiante:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /**
-   * Manejar entrada a geocerca
-   */
-  const handleEntradaGeocerca = async () => {
-    if (!idAsignacion || !estudianteActual || !idChofer) return;
-
-    // Solo marcar entrada si está en estado 'pendiente'
-    if (estudianteActual.estado !== 'pendiente') {
-      console.log('⚠️ Estudiante no está en estado pendiente, ignorando entrada');
-      return;
-    }
-
-    try {
-      const result = await marcarEntradaGeocerca(
-        idAsignacion,
-        estudianteActual.id_estudiante,
-        idChofer
-      );
-
-      if (result.success) {
-        console.log('✅ Entrada registrada, notificación enviada al padre');
-        // Actualizar estado del estudiante
-        setEstudianteActual((prev) =>
-          prev ? { ...prev, estado: 'en_zona' } : null
+        estudianteEnZonaRef.current = idEst;
+        marcarEntradaGeocerca(idAsignacion, idEst, idChofer).catch((err) =>
+          console.warn('Error marcando entrada geocerca:', err),
         );
       }
-    } catch (error) {
-      console.error('❌ Error marcando entrada:', error);
-    }
-  };
-
-  /**
-   * Manejar salida de geocerca (auto-presente si no marcó ausente)
-   */
-  const handleSalidaGeocerca = async () => {
-    if (!idAsignacion || !estudianteActual || !idChofer) return;
-
-    // Solo marcar salida si está 'en_zona'
-    if (estudianteActual.estado !== 'en_zona') {
-      console.log('⚠️ Estudiante no está en zona, ignorando salida');
-      return;
-    }
-
-    try {
-      const success = await marcarSalidaGeocerca(
-        idAsignacion,
-        estudianteActual.id_estudiante,
-        idChofer
-      );
-
-      if (success) {
-        console.log('✅ Salida registrada, marcado como presente automáticamente');
-        // Cargar siguiente estudiante
-        await cargarSiguienteEstudiante();
+    } else {
+      // Fuera del radio
+      if (yaEnZona) {
+        // Salida: el bus se alejó del estudiante que estaba en zona
+        console.log('🚶 SALIDA DE GEOCERCA:', {
+          estudiante: `${estudiante.nombre} ${estudiante.apellido}`,
+          distancia: Math.round(distancia),
+        });
+        estudianteEnZonaRef.current = null;
+        estudiantesProcesadosRef.current.add(idEst); // No volver a entrar en este recorrido
+        setDentroDeZona(false);
+        setEstudianteActual(null);
+        marcarSalidaGeocerca(idAsignacion, idEst, idChofer).catch((err) =>
+          console.warn('Error marcando salida geocerca:', err),
+        );
+      } else if (estudianteEnZonaRef.current && estudianteEnZonaRef.current !== idEst) {
+        // Estábamos en zona de otro estudiante (ya no está en pendientes → fue marcado)
+        const prevId = estudianteEnZonaRef.current;
+        estudianteEnZonaRef.current = null;
+        setDentroDeZona(false);
+        setEstudianteActual(null);
+        marcarSalidaGeocerca(idAsignacion, prevId, idChofer).catch((err) =>
+          console.warn('Error marcando salida geocerca (cambio):', err),
+        );
+      } else {
+        // Simple: no estamos en zona de nadie
+        setDentroDeZona(false);
+        setEstudianteActual(null);
       }
-    } catch (error) {
-      console.error('❌ Error marcando salida:', error);
     }
-  };
+  }, [
+    ubicacionActual,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    estudiantes.map((e) => `${e.id}:${e.estado}`).join(','),
+    recorridoActivo,
+    idAsignacion,
+    idChofer,
+    radioMetros,
+  ]);
 
   /**
-   * Llamar cuando el chofer marca ausente manualmente
+   * Llamar cuando el chofer marca ausente manualmente.
+   * Limpia el estado local para permitir avanzar al siguiente.
    */
   const marcarCompletadoManual = async () => {
-    if (!idAsignacion || !estudianteActual) return;
-
-    console.log('✅ Estudiante marcado manualmente, pasando al siguiente');
-    // Cargar siguiente estudiante
-    await cargarSiguienteEstudiante();
+    console.log('✅ Geocerca: estudiante marcado manualmente, limpiando estado');
+    if (estudianteEnZonaRef.current) {
+      estudiantesProcesadosRef.current.add(estudianteEnZonaRef.current);
+    }
+    estudianteEnZonaRef.current = null;
+    setEstudianteActual(null);
+    setDentroDeZona(false);
   };
 
   return {
     estudianteActual,
     dentroDeZona,
     distanciaMetros,
-    loading,
+    loading: false,
     marcarCompletadoManual,
   };
 }
