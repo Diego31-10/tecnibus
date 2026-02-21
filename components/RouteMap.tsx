@@ -41,6 +41,7 @@ type RouteMapProps = {
   ubicacionBus: UbicacionActual | null;
   recorridoActivo: boolean;
   polylineCoordinates?: { latitude: number; longitude: number }[];
+  polylineRecorrido?: { latitude: number; longitude: number }[];
   ubicacionColegio?: {
     latitud: number;
     longitud: number;
@@ -56,6 +57,7 @@ export default function RouteMap({
   ubicacionBus,
   recorridoActivo,
   polylineCoordinates,
+  polylineRecorrido,
   ubicacionColegio,
   mostrarUbicacionChofer = false,
   ubicacionChofer = null,
@@ -166,12 +168,23 @@ export default function RouteMap({
         showsCompass={true}
         showsScale={true}
       >
-        {/* Polyline de la ruta optimizada */}
+        {/* Polyline gris: ruta planificada por Google Directions */}
         {polylineCoordinates && polylineCoordinates.length > 0 && (
           <Polyline
             coordinates={polylineCoordinates}
-            strokeColor={Colors.tecnibus[600]}
+            strokeColor="#9CA3AF"
             strokeWidth={4}
+            lineCap="round"
+            lineJoin="round"
+          />
+        )}
+
+        {/* Polyline verde: recorrido real del chofer (trail dinámico) */}
+        {polylineRecorrido && polylineRecorrido.length > 1 && (
+          <Polyline
+            coordinates={polylineRecorrido}
+            strokeColor="#10B981"
+            strokeWidth={5}
             lineCap="round"
             lineJoin="round"
           />

@@ -3,7 +3,6 @@ import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DriverQuickStats,
-  EstudianteActualPanel,
   MapCard,
   NextStudentHero,
   RecorridoSelector,
@@ -73,6 +72,9 @@ export default function DriverHomeScreen() {
   const [polylineCoordinates, setPolylineCoordinates] = useState<
     { latitude: number; longitude: number }[]
   >([]);
+  const [polylineRecorrido, setPolylineRecorrido] = useState<
+    { latitude: number; longitude: number }[]
+  >([]);
   const [ubicacionBus, setUbicacionBus] = useState<UbicacionActual | null>(
     null,
   );
@@ -109,10 +111,18 @@ export default function DriverHomeScreen() {
     recorridoActivo: routeActive,
     ubicacionActual: ubicacionChofer,
     radioMetros: 100,
+    estudiantes,
+    paradas,
   });
 
   // Ref para evitar notificaciones push duplicadas por el mismo estudiante
   const lastPushStudentRef = useRef<string | null>(null);
+
+  // Ref para evitar que la geocerca del colegio dispare múltiples veces
+  const colegioGeofenceActivadoRef = useRef(false);
+
+  // Fase "en camino al colegio": todos los estudiantes procesados, ruta aún activa
+  const enCaminoAlColegio = routeActive && !nextStudent && !estudianteGeocerca;
 
   // Derived stats
   const stats = useMemo(() => {
@@ -133,18 +143,18 @@ export default function DriverHomeScreen() {
     return pending[0] || null;
   }, [estudiantes]);
 
-  // IDs de paradas donde TODOS los estudiantes están ausentes
+  // IDs de paradas donde TODOS los estudiantes están procesados (ausente o completado)
   const paradasAusentesIds = useMemo(() => {
     if (estudiantes.length === 0) return new Set<string>();
 
-    // Para cada parada: contar activos vs ausentes
+    // Para cada parada: contar pendientes (ni ausente ni completado)
     const activos = new Map<string, number>();
     const totales = new Map<string, number>();
 
     for (const e of estudiantes) {
       if (!e.parada?.id) continue;
       totales.set(e.parada.id, (totales.get(e.parada.id) || 0) + 1);
-      if (e.estado !== "ausente") {
+      if (e.estado !== "ausente" && e.estado !== "completado") {
         activos.set(e.parada.id, (activos.get(e.parada.id) || 0) + 1);
       }
     }
@@ -276,6 +286,30 @@ export default function DriverHomeScreen() {
     ubicacionColegio?.longitud,
     recorridoActual?.id,
   ]);
+
+  // Acumular trail verde con las posiciones GPS del chofer durante el recorrido
+  useEffect(() => {
+    if (!routeActive || !ubicacionChofer) return;
+    setPolylineRecorrido((prev) => {
+      const last = prev[prev.length - 1];
+      if (last) {
+        const dist = calcularDistancia(
+          last.latitude, last.longitude,
+          ubicacionChofer.latitude, ubicacionChofer.longitude,
+        );
+        if (dist < 10) return prev; // Ignorar si no se movió 10m
+      }
+      return [...prev, { latitude: ubicacionChofer.latitude, longitude: ubicacionChofer.longitude }];
+    });
+  }, [ubicacionChofer, routeActive]);
+
+  // Limpiar trail y resetear geocerca del colegio al detener el recorrido
+  useEffect(() => {
+    if (!routeActive) {
+      setPolylineRecorrido([]);
+      colegioGeofenceActivadoRef.current = false;
+    }
+  }, [routeActive]);
 
   // ETA a la próxima parada (derivado de etasPorParada, sin llamada extra)
   const etaProximaParada = paradaMasCercana
@@ -468,11 +502,7 @@ export default function DriverHomeScreen() {
 
   // Notificación push al padre cuando entramos a geocerca
   useEffect(() => {
-    if (
-      !dentroDeZona ||
-      !estudianteGeocerca ||
-      !recorridoActual
-    ) return;
+    if (!dentroDeZona || !estudianteGeocerca || !recorridoActual) return;
 
     // Evitar duplicados por el mismo estudiante
     if (lastPushStudentRef.current === estudianteGeocerca.id_estudiante) return;
@@ -480,16 +510,93 @@ export default function DriverHomeScreen() {
 
     sendPushToParents(
       recorridoActual.id,
-      "La buseta esta cerca",
-      `La buseta se acerca a ${estudianteGeocerca.parada_nombre || "la parada"}. ${estudianteGeocerca.nombreCompleto} sera recogido pronto.`,
+      "🚌 La buseta esta cerca",
+      `La buseta se acerca a la parada de ${estudianteGeocerca.nombreCompleto}. Prepárense para abordaje.`,
       {
         tipo: "geocerca_entrada",
         id_estudiante: estudianteGeocerca.id_estudiante,
       }
     ).catch((err) => {
-      console.warn("Error enviando push de geocerca:", err);
+      console.warn("Error enviando push de geocerca entrada:", err);
     });
   }, [dentroDeZona, estudianteGeocerca?.id_estudiante, recorridoActual?.id]);
+
+  // Notificación push al padre cuando el chofer sale del geocerca (estudiante recogido)
+  const prevDentroDeZonaRef = useRef(false);
+  const prevEstudianteGeocercaRef = useRef<typeof estudianteGeocerca>(null);
+
+  useEffect(() => {
+    const estabaDentro = prevDentroDeZonaRef.current;
+    const prevEst = prevEstudianteGeocercaRef.current;
+
+    // Transición: estaba dentro → ahora fuera = estudiante recogido
+    if (estabaDentro && !dentroDeZona && prevEst && recorridoActual) {
+      sendPushToParents(
+        recorridoActual.id,
+        "✅ Recogido correctamente",
+        `${prevEst.nombreCompleto} fue recogido por la buseta y ya va camino al colegio.`,
+        {
+          tipo: "geocerca_salida",
+          id_estudiante: prevEst.id_estudiante,
+        }
+      ).catch((err) => {
+        console.warn("Error enviando push de geocerca salida:", err);
+      });
+    }
+
+    prevDentroDeZonaRef.current = dentroDeZona;
+    prevEstudianteGeocercaRef.current = estudianteGeocerca;
+  }, [dentroDeZona, estudianteGeocerca?.id_estudiante, recorridoActual?.id]);
+
+  // Geocerca del colegio: radio 75m, se activa cuando ya no hay estudiantes pendientes
+  useEffect(() => {
+    if (!enCaminoAlColegio || !ubicacionColegio || !ubicacionChofer) return;
+    if (colegioGeofenceActivadoRef.current) return;
+
+    const distancia = calcularDistancia(
+      ubicacionChofer.latitude,
+      ubicacionChofer.longitude,
+      ubicacionColegio.latitud,
+      ubicacionColegio.longitud,
+    );
+
+    if (distancia > 75) return;
+
+    // Dentro del radio del colegio → finalizar ruta automáticamente
+    colegioGeofenceActivadoRef.current = true;
+    console.log('🏫 GEOCERCA COLEGIO:', { distancia: Math.round(distancia) });
+
+    const horaLlegada = new Date().toLocaleTimeString('es-EC', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'America/Guayaquil',
+    });
+
+    if (recorridoActual?.id) {
+      sendPushToParents(
+        recorridoActual.id,
+        '🏫 Llegaron al colegio',
+        `Tus hijos llegaron al colegio a las ${horaLlegada}. ¡Buen día escolar!`,
+        { tipo: 'llegada_colegio', hora: horaLlegada },
+      ).catch((err) => console.warn('Error push colegio:', err));
+
+      finalizarRecorrido(recorridoActual.id)
+        .then((success) => {
+          if (success) {
+            setRouteActive(false);
+            haptic.success();
+          }
+        })
+        .catch((err) => console.error('Error finalizando recorrido (colegio):', err));
+    }
+  }, [
+    enCaminoAlColegio,
+    ubicacionChofer?.latitude,
+    ubicacionChofer?.longitude,
+    ubicacionColegio,
+    recorridoActual?.id,
+  ]);
 
   // Handlers
   const handleMarcarAusente = async () => {
@@ -787,6 +894,7 @@ export default function DriverHomeScreen() {
               ubicacionBus={ubicacionBus}
               recorridoActivo={routeActive}
               polylineCoordinates={polylineCoordinates}
+              polylineRecorrido={polylineRecorrido}
               ubicacionColegio={ubicacionColegio}
               mostrarUbicacionChofer={true}
               ubicacionChofer={ubicacionChofer}
@@ -939,6 +1047,7 @@ export default function DriverHomeScreen() {
               ubicacionBus={ubicacionBus}
               recorridoActivo={routeActive}
               polylineCoordinates={polylineCoordinates}
+              polylineRecorrido={polylineRecorrido}
               ubicacionColegio={ubicacionColegio}
               mostrarUbicacionChofer={true}
               ubicacionChofer={ubicacionChofer}
@@ -979,7 +1088,7 @@ export default function DriverHomeScreen() {
           </>
         ) : routeActive && !nextStudent && !estudianteGeocerca ? (
           <>
-            {/* Route active but all students done */}
+            {/* Todos los estudiantes recogidos → en camino al colegio */}
             <View
               style={{
                 backgroundColor: "#ffffff",
@@ -1000,19 +1109,19 @@ export default function DriverHomeScreen() {
                   width: 64,
                   height: 64,
                   borderRadius: 32,
-                  backgroundColor: "#ECFDF5",
+                  backgroundColor: Colors.tecnibus[50],
                   alignItems: "center",
                   justifyContent: "center",
                   marginBottom: 12,
                 }}
               >
-                <CheckCircle2 size={36} color="#10B981" strokeWidth={2} />
+                <Bus size={36} color={Colors.tecnibus[500]} strokeWidth={1.5} />
               </View>
               <Text
                 className="font-bold"
                 style={{ fontSize: 18, color: "#1F2937" }}
               >
-                Recorrido completado
+                En camino al colegio
               </Text>
               <Text
                 style={{
@@ -1022,7 +1131,46 @@ export default function DriverHomeScreen() {
                   marginTop: 8,
                 }}
               >
-                Todos los estudiantes han sido procesados
+                Todos los estudiantes han sido recogidos
+              </Text>
+              {ubicacionColegio && (
+                <Text
+                  style={{ fontSize: 13, color: Colors.tecnibus[600], marginTop: 4, fontWeight: "600" }}
+                >
+                  Destino: {ubicacionColegio.nombre}
+                </Text>
+              )}
+              {etaFinRuta !== null && (
+                <View
+                  style={{
+                    marginTop: 16,
+                    backgroundColor: Colors.tecnibus[50],
+                    borderRadius: 12,
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    className="font-bold"
+                    style={{ fontSize: 24, color: Colors.tecnibus[700] }}
+                  >
+                    ~{etaFinRuta} min
+                  </Text>
+                  <Text style={{ fontSize: 11, color: Colors.tecnibus[500], marginTop: 2 }}>
+                    al colegio
+                  </Text>
+                </View>
+              )}
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: "#9CA3AF",
+                  marginTop: 12,
+                  textAlign: "center",
+                }}
+              >
+                La ruta se finalizará automáticamente al llegar al colegio
               </Text>
             </View>
 
@@ -1030,7 +1178,7 @@ export default function DriverHomeScreen() {
               pickedUp={stats.completed}
               total={stats.total}
               remaining={0}
-              estimatedMinutes={0}
+              estimatedMinutes={etaFinRuta ?? 0}
             />
 
             <MapCard
@@ -1038,6 +1186,7 @@ export default function DriverHomeScreen() {
               ubicacionBus={ubicacionBus}
               recorridoActivo={routeActive}
               polylineCoordinates={polylineCoordinates}
+              polylineRecorrido={polylineRecorrido}
               ubicacionColegio={ubicacionColegio}
               mostrarUbicacionChofer={true}
               ubicacionChofer={ubicacionChofer}
@@ -1224,17 +1373,6 @@ export default function DriverHomeScreen() {
           </View>
         )}
       </ScrollView>
-
-      {/* Panel de estudiante actual (geocerca overlay - solo cuando dentro de zona) */}
-      {routeActive && estudianteGeocerca && dentroDeZona && (
-        <EstudianteActualPanel
-          estudiante={estudianteGeocerca}
-          dentroDeZona={dentroDeZona}
-          distanciaMetros={distanciaMetros}
-          onMarcarAusente={handleMarcarAusenteGeocerca}
-          onCerrar={() => {}}
-        />
-      )}
 
       {/* Recorrido selector modal */}
       <RecorridoSelector
