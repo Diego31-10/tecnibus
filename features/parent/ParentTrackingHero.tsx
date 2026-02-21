@@ -7,6 +7,7 @@ interface ParentTrackingHeroProps {
   driverName: string;
   isOnline?: boolean;
   isAttending?: boolean;
+  isRecogido?: boolean;
   onChatPress: () => void;
   onNotifyAbsencePress: () => void;
 }
@@ -16,6 +17,7 @@ export function ParentTrackingHero({
   driverName,
   isOnline = false,
   isAttending = true,
+  isRecogido = false,
   onChatPress,
   onNotifyAbsencePress,
 }: ParentTrackingHeroProps) {
@@ -98,41 +100,43 @@ export function ParentTrackingHero({
           </Text>
         </TouchableOpacity>
 
-        {/* Notify Absence / Mark Present - Outlined */}
-        <TouchableOpacity
-          onPress={onNotifyAbsencePress}
-          activeOpacity={0.8}
-          style={{
-            flex: 1,
-            backgroundColor: isAttending ? "#ffffff" : Colors.tecnibus[50],
-            borderRadius: 12,
-            paddingVertical: 14,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            borderWidth: 1.5,
-            borderColor: isAttending ? "#E5E7EB" : Colors.tecnibus[300],
-          }}
-        >
-          {isAttending ? (
-            <BellOff size={18} color="#6B7280" strokeWidth={2.5} />
-          ) : (
-            <CheckCircle2
-              size={18}
-              color={Colors.tecnibus[600]}
-              strokeWidth={2.5}
-            />
-          )}
-          <Text
-            className="font-semibold ml-2"
+        {/* Notify Absence / Mark Present - oculto cuando ya fue recogido */}
+        {!isRecogido && (
+          <TouchableOpacity
+            onPress={onNotifyAbsencePress}
+            activeOpacity={0.8}
             style={{
-              fontSize: 14,
-              color: isAttending ? "#374151" : Colors.tecnibus[700],
+              flex: 1,
+              backgroundColor: isAttending ? "#ffffff" : Colors.tecnibus[50],
+              borderRadius: 12,
+              paddingVertical: 14,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1.5,
+              borderColor: isAttending ? "#E5E7EB" : Colors.tecnibus[300],
             }}
           >
-            {isAttending ? "Marcar falta" : "Marcar presente"}
-          </Text>
-        </TouchableOpacity>
+            {isAttending ? (
+              <BellOff size={18} color="#6B7280" strokeWidth={2.5} />
+            ) : (
+              <CheckCircle2
+                size={18}
+                color={Colors.tecnibus[600]}
+                strokeWidth={2.5}
+              />
+            )}
+            <Text
+              className="font-semibold ml-2"
+              style={{
+                fontSize: 14,
+                color: isAttending ? "#374151" : Colors.tecnibus[700],
+              }}
+            >
+              {isAttending ? "Marcar falta" : "Marcar presente"}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

@@ -5,11 +5,13 @@ import { Text, View } from "react-native";
 interface EstimatedArrivalBadgeProps {
   minutes: number | null;
   onSchedule?: boolean;
+  label?: string;
 }
 
 export function EstimatedArrivalBadge({
   minutes,
   onSchedule = true,
+  label = "a tu parada",
 }: EstimatedArrivalBadgeProps) {
   return (
     <View
@@ -51,7 +53,7 @@ export function EstimatedArrivalBadge({
         <Text
           style={{ fontSize: 10, color: "#9CA3AF", marginTop: 2 }}
         >
-          a tu parada
+          {label}
         </Text>
       </View>
     </View>
