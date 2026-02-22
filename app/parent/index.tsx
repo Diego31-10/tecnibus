@@ -275,21 +275,26 @@ export default function ParentHomeScreen() {
     };
   }, [estudianteSeleccionado?.parada?.ruta?.id]);
 
-  // DEBUG: Monitorear cambios en polylineCoordinates
-  useEffect(() => {
-    console.log('🔄 Polyline actualizado:', {
-      cantidad: polylineCoordinates.length,
-      primeros3: polylineCoordinates.slice(0, 3),
-    });
-  }, [polylineCoordinates]);
+  // Polyline dinámica: solo los puntos desde la posición actual del bus hacia adelante
+  const polylineRestante = useMemo(() => {
+    if (!polylineCoordinates.length || !ubicacionBus) return polylineCoordinates;
+    let minDist = Infinity;
+    let closestIdx = 0;
+    for (let i = 0; i < polylineCoordinates.length; i++) {
+      const dlat = ubicacionBus.latitud - polylineCoordinates[i].latitude;
+      const dlng = ubicacionBus.longitud - polylineCoordinates[i].longitude;
+      const dist = dlat * dlat + dlng * dlng;
+      if (dist < minDist) {
+        minDist = dist;
+        closestIdx = i;
+      }
+    }
+    return polylineCoordinates.slice(closestIdx);
+  }, [polylineCoordinates, ubicacionBus?.latitud, ubicacionBus?.longitud]);
 
   // Cargar paradas cuando cambia la ruta del estudiante
   // SOLO mostramos la parada del hijo, no todas las paradas (privacidad)
   useEffect(() => {
-    console.log('🔍 Configurando parada del estudiante:', {
-      tieneEstudiante: !!estudianteSeleccionado,
-      tieneParada: !!estudianteSeleccionado?.parada,
-    });
 
     if (!estudianteSeleccionado?.parada) {
       console.log('⚠️ No hay parada para mostrar');
@@ -684,7 +689,7 @@ export default function ParentHomeScreen() {
             recorridoActivo={choferEnCamino}
             ubicacionColegio={ubicacionColegio}
             showsUserLocation={false}
-            polylineCoordinates={polylineCoordinates}
+            polylineCoordinates={polylineRestante}
           />
         </View>
       </View>

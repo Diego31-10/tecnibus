@@ -6,11 +6,16 @@ type UseGPSTrackingProps = {
   idAsignacion: string | null;
   idChofer: string;
   recorridoActivo: boolean;
-  intervaloSegundos?: number;
   distanciaMinimaMetros?: number;
 };
 
-/** Distancia en metros entre dos coordenadas (fórmula Haversine simplificada) */
+export type UbicacionLocal = {
+  latitude: number;
+  longitude: number;
+  speed: number | null;
+  heading: number | null;
+};
+
 function distanciaMetros(
   lat1: number, lon1: number,
   lat2: number, lon2: number,
@@ -26,21 +31,31 @@ function distanciaMetros(
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+/**
+ * Hook GPS con watchPositionAsync para tracking continuo y suave.
+ *
+ * - Usa watchPositionAsync (event-driven) en lugar de setInterval+getCurrentPositionAsync
+ * - En recorrido activo: BestForNavigation, cada 3s / 5m
+ * - En inactivo: Balanced, cada 10s / 20m (para mostrar posición en mapa)
+ * - Guarda en DB solo cuando el bus se movió ≥ distanciaMinimaMetros
+ * - Expone `ubicacionActual` con latitude, longitude, speed y heading
+ */
 export function useGPSTracking({
   idAsignacion,
   idChofer,
   recorridoActivo,
-  intervaloSegundos = 15,
   distanciaMinimaMetros = 10,
 }: UseGPSTrackingProps) {
   const [permisoConcedido, setPermisoConcedido] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const ultimaUbicacionRef = useRef<{ lat: number; lng: number } | null>(null);
+  const [ubicacionActual, setUbicacionActual] = useState<UbicacionLocal | null>(null);
+
+  const ultimaGuardadaRef = useRef<{ lat: number; lng: number } | null>(null);
+  const suscripcionRef = useRef<Location.LocationSubscription | null>(null);
 
   // Solicitar permisos al montar
   useEffect(() => {
-    const solicitarPermisos = async () => {
+    (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
@@ -48,87 +63,97 @@ export function useGPSTracking({
           return;
         }
         setPermisoConcedido(true);
-      } catch (err) {
-        console.error('Error solicitando permisos GPS:', err);
+      } catch {
         setError('Error al solicitar permisos de ubicación');
       }
-    };
-    solicitarPermisos();
+    })();
   }, []);
 
-  // Iniciar/detener tracking según estado del recorrido
+  // Iniciar watchPositionAsync cuando hay permiso
   useEffect(() => {
-    if (!permisoConcedido || !recorridoActivo || !idAsignacion) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-        console.log('⏹️ GPS tracking detenido');
+    if (!permisoConcedido) return;
+
+    let cancelled = false;
+
+    const iniciarWatch = async () => {
+      // Limpiar suscripción anterior
+      if (suscripcionRef.current) {
+        suscripcionRef.current.remove();
+        suscripcionRef.current = null;
       }
-      return;
-    }
 
-    console.log('▶️ GPS tracking iniciado');
-    // Reset última ubicación al iniciar recorrido
-    ultimaUbicacionRef.current = null;
+      const sub = await Location.watchPositionAsync(
+        {
+          accuracy: recorridoActivo
+            ? Location.Accuracy.BestForNavigation
+            : Location.Accuracy.Balanced,
+          timeInterval: recorridoActivo ? 3000 : 10000,
+          distanceInterval: recorridoActivo ? 5 : 20,
+        },
+        (location) => {
+          if (cancelled) return;
 
-    const enviarUbicacion = async () => {
-      try {
-        console.log('🔍 Solicitando ubicación GPS...');
-        const ubicacion = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Low, // Cambio temporal: Low es más rápido que Balanced
-          maximumAge: 10000, // Aceptar ubicación de hasta 10 segundos de antigüedad
-          timeout: 15000, // Timeout de 15 segundos
-        });
+          const { latitude, longitude, speed, heading, accuracy } = location.coords;
 
-        const { latitude, longitude, speed, accuracy, heading } = ubicacion.coords;
+          setUbicacionActual({
+            latitude,
+            longitude,
+            speed: speed != null ? speed * 3.6 : null,
+            heading: heading ?? null,
+          });
 
-        console.log('📡 GPS obtenido:', {
-          lat: latitude.toFixed(6),
-          lng: longitude.toFixed(6),
-          speed: speed ? `${(speed * 3.6).toFixed(1)} km/h` : 'null',
-        });
+          // Guardar en DB solo cuando el recorrido está activo y se movió lo suficiente
+          if (!recorridoActivo || !idAsignacion) return;
 
-        // Filtro de distancia: no enviar si el bus no se movió lo suficiente
-        const ultima = ultimaUbicacionRef.current;
-        if (ultima) {
-          const dist = distanciaMetros(ultima.lat, ultima.lng, latitude, longitude);
-          console.log(`📏 Distancia desde última ubicación: ${dist.toFixed(1)}m (mínimo: ${distanciaMinimaMetros}m)`);
-          if (dist < distanciaMinimaMetros) {
-            console.log('⏭️ Ubicación ignorada (distancia mínima no alcanzada)');
-            return; // Bus detenido o movimiento mínimo, no gastar datos
+          const ultima = ultimaGuardadaRef.current;
+          if (ultima) {
+            const dist = distanciaMetros(ultima.lat, ultima.lng, latitude, longitude);
+            if (dist < distanciaMinimaMetros) return;
           }
-        }
 
-        await guardarUbicacion(
-          idAsignacion,
-          idChofer,
-          latitude,
-          longitude,
-          speed ? speed * 3.6 : undefined,
-          accuracy || undefined,
-          heading || undefined
-        );
+          guardarUbicacion(
+            idAsignacion,
+            idChofer,
+            latitude,
+            longitude,
+            speed ? speed * 3.6 : undefined,
+            accuracy || undefined,
+            heading ?? undefined,
+          ).then(() => {
+            ultimaGuardadaRef.current = { lat: latitude, lng: longitude };
+          }).catch(console.error);
+        },
+      );
 
-        ultimaUbicacionRef.current = { lat: latitude, lng: longitude };
-      } catch (err) {
-        console.error('❌ Error obteniendo ubicación GPS:', err);
+      if (!cancelled) {
+        suscripcionRef.current = sub;
+      } else {
+        sub.remove();
       }
     };
 
-    // Enviar inmediatamente
-    enviarUbicacion();
+    iniciarWatch();
 
-    // Configurar intervalo
-    intervalRef.current = setInterval(enviarUbicacion, intervaloSegundos * 1000);
-
-    // Cleanup
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+      cancelled = true;
+      if (suscripcionRef.current) {
+        suscripcionRef.current.remove();
+        suscripcionRef.current = null;
       }
     };
-  }, [permisoConcedido, recorridoActivo, idAsignacion, idChofer, intervaloSegundos, distanciaMinimaMetros]);
+  }, [permisoConcedido, recorridoActivo, idAsignacion, idChofer, distanciaMinimaMetros]);
 
-  return { permisoConcedido, error, tracking: recorridoActivo && permisoConcedido };
+  // Resetear última posición guardada al detener recorrido
+  useEffect(() => {
+    if (!recorridoActivo) {
+      ultimaGuardadaRef.current = null;
+    }
+  }, [recorridoActivo]);
+
+  return {
+    permisoConcedido,
+    error,
+    tracking: recorridoActivo && permisoConcedido,
+    ubicacionActual,
+  };
 }

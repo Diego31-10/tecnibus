@@ -36,6 +36,7 @@ import { getParadasByRuta, calcularRutaOptimizada, type Parada } from "@/lib/ser
 import { getUbicacionColegio } from "@/lib/services/configuracion.service";
 import { supabase } from "@/lib/services/supabase";
 import type { UbicacionActual } from "@/lib/services/ubicaciones.service";
+import type { UbicacionLocal } from "@/lib/hooks/useGPSTracking";
 import { haptic } from "@/lib/utils/haptics";
 import { useRouter } from "expo-router";
 import { Bus, CheckCircle2, MapPinOff, Play, Square } from "lucide-react-native";
@@ -72,9 +73,6 @@ export default function DriverHomeScreen() {
   const [polylineCoordinates, setPolylineCoordinates] = useState<
     { latitude: number; longitude: number }[]
   >([]);
-  const [polylineRecorrido, setPolylineRecorrido] = useState<
-    { latitude: number; longitude: number }[]
-  >([]);
   const [ubicacionBus, setUbicacionBus] = useState<UbicacionActual | null>(
     null,
   );
@@ -84,20 +82,20 @@ export default function DriverHomeScreen() {
     longitud: number;
     nombre: string;
   } | null>(null);
-  const [ubicacionChofer, setUbicacionChofer] = useState<{
-    latitude: number;
-    longitude: number;
-    speed: number | null;
-  } | null>(null);
+  // ubicacionChofer se obtiene del hook GPS (watchPositionAsync, incluye heading)
   const [horaInicioRecorrido, setHoraInicioRecorrido] = useState<string | null>(null);
+  const [rutaCompletada, setRutaCompletada] = useState(false);
+  const [horaLlegadaColegio, setHoraLlegadaColegio] = useState<string | null>(null);
 
-  // GPS tracking
-  const { error: errorGPS, tracking } = useGPSTracking({
+  // GPS tracking con watchPositionAsync: fluido, con heading, sin polling
+  const { error: errorGPS, tracking, ubicacionActual } = useGPSTracking({
     idAsignacion: recorridoActual?.id || null,
     idChofer: profile?.id || "",
     recorridoActivo: routeActive,
-    intervaloSegundos: 10,
   });
+
+  // Alias tipado para usar en geofencing, ETAs y mapa
+  const ubicacionChofer: UbicacionLocal | null = ubicacionActual;
 
   // Geofencing
   const {
@@ -110,7 +108,7 @@ export default function DriverHomeScreen() {
     idChofer: profile?.id || "",
     recorridoActivo: routeActive,
     ubicacionActual: ubicacionChofer,
-    radioMetros: 100,
+    radioMetros: 150,
     estudiantes,
     paradas,
   });
@@ -120,9 +118,6 @@ export default function DriverHomeScreen() {
 
   // Ref para evitar que la geocerca del colegio dispare múltiples veces
   const colegioGeofenceActivadoRef = useRef(false);
-
-  // Fase "en camino al colegio": todos los estudiantes procesados, ruta aún activa
-  const enCaminoAlColegio = routeActive && !nextStudent && !estudianteGeocerca;
 
   // Derived stats
   const stats = useMemo(() => {
@@ -142,6 +137,9 @@ export default function DriverHomeScreen() {
       .sort((a, b) => (a.parada?.orden ?? 99) - (b.parada?.orden ?? 99));
     return pending[0] || null;
   }, [estudiantes]);
+
+  // Fase "en camino al colegio": todos los estudiantes procesados, ruta aún activa
+  const enCaminoAlColegio = routeActive && !nextStudent && !estudianteGeocerca;
 
   // IDs de paradas donde TODOS los estudiantes están procesados (ausente o completado)
   const paradasAusentesIds = useMemo(() => {
@@ -287,26 +285,9 @@ export default function DriverHomeScreen() {
     recorridoActual?.id,
   ]);
 
-  // Acumular trail verde con las posiciones GPS del chofer durante el recorrido
-  useEffect(() => {
-    if (!routeActive || !ubicacionChofer) return;
-    setPolylineRecorrido((prev) => {
-      const last = prev[prev.length - 1];
-      if (last) {
-        const dist = calcularDistancia(
-          last.latitude, last.longitude,
-          ubicacionChofer.latitude, ubicacionChofer.longitude,
-        );
-        if (dist < 10) return prev; // Ignorar si no se movió 10m
-      }
-      return [...prev, { latitude: ubicacionChofer.latitude, longitude: ubicacionChofer.longitude }];
-    });
-  }, [ubicacionChofer, routeActive]);
-
-  // Limpiar trail y resetear geocerca del colegio al detener el recorrido
+  // Resetear geocerca del colegio al detener el recorrido
   useEffect(() => {
     if (!routeActive) {
-      setPolylineRecorrido([]);
       colegioGeofenceActivadoRef.current = false;
     }
   }, [routeActive]);
@@ -315,6 +296,23 @@ export default function DriverHomeScreen() {
   const etaProximaParada = paradaMasCercana
     ? (etasPorParada[paradaMasCercana.parada.id] ?? null)
     : null;
+
+  // Polyline dinámica: solo los puntos desde la posición actual del chofer hacia adelante
+  const polylineRestante = useMemo(() => {
+    if (!polylineCoordinates.length || !ubicacionChofer) return polylineCoordinates;
+    let minDist = Infinity;
+    let closestIdx = 0;
+    for (let i = 0; i < polylineCoordinates.length; i++) {
+      const dlat = ubicacionChofer.latitude - polylineCoordinates[i].latitude;
+      const dlng = ubicacionChofer.longitude - polylineCoordinates[i].longitude;
+      const dist = dlat * dlat + dlng * dlng;
+      if (dist < minDist) {
+        minDist = dist;
+        closestIdx = i;
+      }
+    }
+    return polylineCoordinates.slice(closestIdx);
+  }, [polylineCoordinates, ubicacionChofer?.latitude, ubicacionChofer?.longitude]);
 
   // Cargar ubicación del colegio
   useEffect(() => {
@@ -330,52 +328,6 @@ export default function DriverHomeScreen() {
     cargarUbicacionColegio();
   }, []);
 
-  // Obtener ubicación del chofer para mostrar en mapa
-  // 5s cuando routeActive (geocerca necesita precisión), 30s cuando inactivo
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-
-    const obtenerUbicacionChofer = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") return;
-
-        const location = await Location.getCurrentPositionAsync({
-          accuracy: routeActive ? Location.Accuracy.High : Location.Accuracy.Balanced,
-        });
-
-        setUbicacionChofer({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          speed: location.coords.speed != null ? location.coords.speed * 3.6 : null,
-        });
-
-        const intervalo = routeActive ? 5000 : 30000;
-        interval = setInterval(async () => {
-          try {
-            const loc = await Location.getCurrentPositionAsync({
-              accuracy: routeActive ? Location.Accuracy.High : Location.Accuracy.Balanced,
-            });
-            setUbicacionChofer({
-              latitude: loc.coords.latitude,
-              longitude: loc.coords.longitude,
-              speed: loc.coords.speed != null ? loc.coords.speed * 3.6 : null,
-            });
-          } catch (err) {
-            console.error("Error actualizando ubicación:", err);
-          }
-        }, intervalo);
-      } catch (error) {
-        console.error("Error obteniendo ubicación del chofer:", error);
-      }
-    };
-
-    obtenerUbicacionChofer();
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [routeActive]);
 
   // Load recorridos
   const cargarRecorridos = useCallback(async () => {
@@ -560,7 +512,7 @@ export default function DriverHomeScreen() {
       ubicacionColegio.longitud,
     );
 
-    if (distancia > 75) return;
+    if (distancia > 100) return;
 
     // Dentro del radio del colegio → finalizar ruta automáticamente
     colegioGeofenceActivadoRef.current = true;
@@ -585,6 +537,8 @@ export default function DriverHomeScreen() {
         .then((success) => {
           if (success) {
             setRouteActive(false);
+            setHoraLlegadaColegio(horaLlegada);
+            setRutaCompletada(true);
             haptic.success();
           }
         })
@@ -843,7 +797,112 @@ export default function DriverHomeScreen() {
           }
         />
 
-        {loadingRecorridos ? (
+        {rutaCompletada ? (
+          <View
+            style={{
+              backgroundColor: "#ffffff",
+              borderRadius: 24,
+              padding: 32,
+              marginHorizontal: 16,
+              marginTop: -20,
+              alignItems: "center",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 16,
+              elevation: 8,
+            }}
+          >
+            {/* Icono de check grande */}
+            <View
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: "#D1FAE5",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 16,
+              }}
+            >
+              <CheckCircle2 size={44} color="#10B981" strokeWidth={2} />
+            </View>
+
+            <Text
+              className="font-bold"
+              style={{ fontSize: 22, color: "#1F2937", textAlign: "center" }}
+            >
+              ¡Ruta Completada!
+            </Text>
+
+            <Text
+              style={{
+                fontSize: 15,
+                color: "#6B7280",
+                textAlign: "center",
+                marginTop: 8,
+              }}
+            >
+              Todos los estudiantes llegaron{"\n"}al colegio exitosamente.
+            </Text>
+
+            {horaLlegadaColegio && (
+              <View
+                style={{
+                  marginTop: 20,
+                  backgroundColor: "#D1FAE5",
+                  borderRadius: 14,
+                  paddingVertical: 12,
+                  paddingHorizontal: 24,
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ fontSize: 12, color: "#059669" }}>Llegada al colegio</Text>
+                <Text
+                  className="font-bold"
+                  style={{ fontSize: 26, color: "#065F46", marginTop: 2 }}
+                >
+                  {horaLlegadaColegio}
+                </Text>
+              </View>
+            )}
+
+            <DriverQuickStats
+              pickedUp={stats.completed}
+              total={stats.total}
+              remaining={0}
+              estimatedMinutes={0}
+            />
+
+            <TouchableOpacity
+              onPress={() => {
+                setRutaCompletada(false);
+                setHoraLlegadaColegio(null);
+                setPolylineCoordinates([]);
+              }}
+              activeOpacity={0.8}
+              style={{
+                marginTop: 8,
+                backgroundColor: Colors.tecnibus[600],
+                borderRadius: 14,
+                paddingVertical: 14,
+                paddingHorizontal: 32,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "100%",
+              }}
+            >
+              <Bus size={18} color="#ffffff" strokeWidth={2.5} />
+              <Text
+                className="font-bold"
+                style={{ fontSize: 15, color: "#ffffff", marginLeft: 8 }}
+              >
+                Volver al inicio
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : loadingRecorridos ? (
           <View className="items-center" style={{ paddingTop: 60 }}>
             <ActivityIndicator size="large" color={Colors.tecnibus[600]} />
             <Text style={{ color: "#6B7280", marginTop: 12, fontSize: 14 }}>
@@ -893,8 +952,7 @@ export default function DriverHomeScreen() {
               paradas={paradasVisibles}
               ubicacionBus={ubicacionBus}
               recorridoActivo={routeActive}
-              polylineCoordinates={polylineCoordinates}
-              polylineRecorrido={polylineRecorrido}
+              polylineCoordinates={polylineRestante}
               ubicacionColegio={ubicacionColegio}
               mostrarUbicacionChofer={true}
               ubicacionChofer={ubicacionChofer}
@@ -1046,8 +1104,7 @@ export default function DriverHomeScreen() {
               paradas={paradasVisibles}
               ubicacionBus={ubicacionBus}
               recorridoActivo={routeActive}
-              polylineCoordinates={polylineCoordinates}
-              polylineRecorrido={polylineRecorrido}
+              polylineCoordinates={polylineRestante}
               ubicacionColegio={ubicacionColegio}
               mostrarUbicacionChofer={true}
               ubicacionChofer={ubicacionChofer}
@@ -1185,8 +1242,7 @@ export default function DriverHomeScreen() {
               paradas={paradasVisibles}
               ubicacionBus={ubicacionBus}
               recorridoActivo={routeActive}
-              polylineCoordinates={polylineCoordinates}
-              polylineRecorrido={polylineRecorrido}
+              polylineCoordinates={polylineRestante}
               ubicacionColegio={ubicacionColegio}
               mostrarUbicacionChofer={true}
               ubicacionChofer={ubicacionChofer}

@@ -8,14 +8,13 @@ interface MapCardProps {
   ubicacionBus: UbicacionActual | null;
   recorridoActivo: boolean;
   polylineCoordinates?: { latitude: number; longitude: number }[];
-  polylineRecorrido?: { latitude: number; longitude: number }[];
   ubicacionColegio?: {
     latitud: number;
     longitud: number;
     nombre: string;
   } | null;
   mostrarUbicacionChofer?: boolean;
-  ubicacionChofer?: { latitude: number; longitude: number } | null;
+  ubicacionChofer?: { latitude: number; longitude: number; heading?: number | null } | null;
 }
 
 export function MapCard({
@@ -23,7 +22,6 @@ export function MapCard({
   ubicacionBus,
   recorridoActivo,
   polylineCoordinates,
-  polylineRecorrido,
   ubicacionColegio,
   mostrarUbicacionChofer,
   ubicacionChofer,
@@ -43,13 +41,11 @@ export function MapCard({
         elevation: 3,
       }}
     >
-      {/* Map */}
       <RouteMap
         paradas={paradas}
         ubicacionBus={ubicacionBus}
         recorridoActivo={recorridoActivo}
         polylineCoordinates={polylineCoordinates}
-        polylineRecorrido={polylineRecorrido}
         ubicacionColegio={ubicacionColegio}
         mostrarUbicacionChofer={mostrarUbicacionChofer}
         ubicacionChofer={ubicacionChofer}
