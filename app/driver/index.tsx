@@ -1,12 +1,7 @@
 import { BottomNavigation } from "@/components/layout/BottomNavigation";
-import { DashboardHeader } from "@/components/layout/DashboardHeader";
+import RouteMap from "@/components/RouteMap";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  DriverQuickStats,
-  MapCard,
-  NextStudentHero,
-  RecorridoSelector,
-} from "@/features/driver";
+import { RecorridoSelector } from "@/features/driver";
 import { Colors } from "@/lib/constants/colors";
 import { useGeofencing } from "@/lib/hooks/useGeofencing";
 import type { UbicacionLocal } from "@/lib/hooks/useGPSTracking";
@@ -43,39 +38,39 @@ import { supabase } from "@/lib/services/supabase";
 import type { UbicacionActual } from "@/lib/services/ubicaciones.service";
 import { haptic } from "@/lib/utils/haptics";
 import * as Location from "expo-location";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
   Bus,
   CheckCircle2,
-  MapPinOff,
+  Clock,
+  MapPin,
   Play,
-  Square,
+  UserX,
 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Linking,
-  ScrollView,
   StatusBar,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function DriverHomeScreen() {
   const router = useRouter();
   const { profile } = useAuth();
+  const insets = useSafeAreaInsets();
 
-  // State
+  // ── State ──────────────────────────────────────────────────────────────────
   const [routeActive, setRouteActive] = useState(false);
   const [recorridos, setRecorridos] = useState<RecorridoChofer[]>([]);
-  const [recorridoActual, setRecorridoActual] =
-    useState<RecorridoChofer | null>(null);
+  const [recorridoActual, setRecorridoActual] = useState<RecorridoChofer | null>(null);
   const [estudiantes, setEstudiantes] = useState<EstudianteConAsistencia[]>([]);
-  const [processingStudent, setProcessingStudent] = useState<string | null>(
-    null,
-  );
+  const [processingStudent, setProcessingStudent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingRecorridos, setLoadingRecorridos] = useState(true);
   const [showRecorridoSelector, setShowRecorridoSelector] = useState(false);
@@ -83,39 +78,26 @@ export default function DriverHomeScreen() {
   const [polylineCoordinates, setPolylineCoordinates] = useState<
     { latitude: number; longitude: number }[]
   >([]);
-  const [ubicacionBus, setUbicacionBus] = useState<UbicacionActual | null>(
-    null,
-  );
+  const [ubicacionBus, setUbicacionBus] = useState<UbicacionActual | null>(null);
   const [optimizandoRuta, setOptimizandoRuta] = useState(false);
   const [ubicacionColegio, setUbicacionColegio] = useState<{
     latitud: number;
     longitud: number;
     nombre: string;
   } | null>(null);
-  // ubicacionChofer se obtiene del hook GPS (watchPositionAsync, incluye heading)
-  const [horaInicioRecorrido, setHoraInicioRecorrido] = useState<string | null>(
-    null,
-  );
+  const [horaInicioRecorrido, setHoraInicioRecorrido] = useState<string | null>(null);
   const [rutaCompletada, setRutaCompletada] = useState(false);
-  const [horaLlegadaColegio, setHoraLlegadaColegio] = useState<string | null>(
-    null,
-  );
+  const [horaLlegadaColegio, setHoraLlegadaColegio] = useState<string | null>(null);
 
-  // GPS tracking con watchPositionAsync: fluido, con heading, sin polling
-  const {
-    error: errorGPS,
-    tracking,
-    ubicacionActual,
-  } = useGPSTracking({
+  // ── GPS ────────────────────────────────────────────────────────────────────
+  const { error: errorGPS, tracking, ubicacionActual } = useGPSTracking({
     idAsignacion: recorridoActual?.id || null,
     idChofer: profile?.id || "",
     recorridoActivo: routeActive,
   });
-
-  // Alias tipado para usar en geofencing, ETAs y mapa
   const ubicacionChofer: UbicacionLocal | null = ubicacionActual;
 
-  // Geofencing
+  // ── Geofencing ─────────────────────────────────────────────────────────────
   const {
     estudianteActual: estudianteGeocerca,
     dentroDeZona,
@@ -131,13 +113,10 @@ export default function DriverHomeScreen() {
     paradas,
   });
 
-  // Ref para evitar notificaciones push duplicadas por el mismo estudiante
   const lastPushStudentRef = useRef<string | null>(null);
-
-  // Ref para evitar que la geocerca del colegio dispare múltiples veces
   const colegioGeofenceActivadoRef = useRef(false);
 
-  // Derived stats
+  // ── Derived stats ──────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     const completed = estudiantes.filter(
       (e) => e.estado === "presente" || e.estado === "completado",
@@ -148,7 +127,6 @@ export default function DriverHomeScreen() {
     return { completed, absent, total, remaining };
   }, [estudiantes]);
 
-  // Next student: first student not absent/completado, ordered by parada.orden
   const nextStudent = useMemo(() => {
     const pending = estudiantes
       .filter((e) => e.estado !== "ausente" && e.estado !== "completado")
@@ -156,17 +134,12 @@ export default function DriverHomeScreen() {
     return pending[0] || null;
   }, [estudiantes]);
 
-  // Fase "en camino al colegio": todos los estudiantes procesados, ruta aún activa
   const enCaminoAlColegio = routeActive && !nextStudent && !estudianteGeocerca;
 
-  // IDs de paradas donde TODOS los estudiantes están procesados (ausente o completado)
   const paradasAusentesIds = useMemo(() => {
     if (estudiantes.length === 0) return new Set<string>();
-
-    // Para cada parada: contar pendientes (ni ausente ni completado)
     const activos = new Map<string, number>();
     const totales = new Map<string, number>();
-
     for (const e of estudiantes) {
       if (!e.parada?.id) continue;
       totales.set(e.parada.id, (totales.get(e.parada.id) || 0) + 1);
@@ -174,7 +147,6 @@ export default function DriverHomeScreen() {
         activos.set(e.parada.id, (activos.get(e.parada.id) || 0) + 1);
       }
     }
-
     const ausentes = new Set<string>();
     for (const [paradaId, total] of totales) {
       if ((activos.get(paradaId) || 0) === 0 && total > 0) {
@@ -184,33 +156,24 @@ export default function DriverHomeScreen() {
     return ausentes;
   }, [estudiantes]);
 
-  // Paradas filtradas: sin paradas donde todos los estudiantes están ausentes
   const paradasVisibles = useMemo(() => {
     if (paradasAusentesIds.size === 0) return paradas;
     return paradas.filter((p) => !paradasAusentesIds.has(p.id));
   }, [paradas, paradasAusentesIds]);
 
-  // Parada más cercana por GPS (para el card "en camino")
   const paradaMasCercana = useMemo(() => {
-    if (!ubicacionChofer || paradasVisibles.length === 0 || !routeActive)
-      return null;
-
-    // Solo considerar paradas que tienen estudiantes pendientes
-    const paradasPendientes = paradasVisibles.filter((p) => {
-      // Verificar que al menos un estudiante de esta parada no está ausente/completado
-      return estudiantes.some(
+    if (!ubicacionChofer || paradasVisibles.length === 0 || !routeActive) return null;
+    const paradasPendientes = paradasVisibles.filter((p) =>
+      estudiantes.some(
         (e) =>
           e.parada?.id === p.id &&
           e.estado !== "ausente" &&
           e.estado !== "completado",
-      );
-    });
-
+      ),
+    );
     if (paradasPendientes.length === 0) return null;
-
     let menor = Infinity;
     let cercana: (typeof paradasPendientes)[0] | null = null;
-
     for (const p of paradasPendientes) {
       const dist = calcularDistancia(
         ubicacionChofer.latitude,
@@ -218,20 +181,12 @@ export default function DriverHomeScreen() {
         p.latitud,
         p.longitud,
       );
-      if (dist < menor) {
-        menor = dist;
-        cercana = p;
-      }
+      if (dist < menor) { menor = dist; cercana = p; }
     }
-
     return cercana ? { parada: cercana, distanciaMetros: menor } : null;
   }, [ubicacionChofer, paradasVisibles, estudiantes, routeActive]);
 
-  // ETAs acumulados por parada + fin de ruta (una sola llamada, consistentes entre sí)
-  // Ruta: chofer → parada1 → parada2 → ... → colegio
-  const [etasPorParada, setEtasPorParada] = useState<Record<string, number>>(
-    {},
-  );
+  const [etasPorParada, setEtasPorParada] = useState<Record<string, number>>({});
   const [etaFinRuta, setEtaFinRuta] = useState<number | null>(null);
 
   useEffect(() => {
@@ -240,8 +195,6 @@ export default function DriverHomeScreen() {
       setEtaFinRuta(null);
       return;
     }
-    // Paradas pendientes ordenadas por distancia desde el chofer (más cercana primero).
-    // No usar `orden` de DB porque refleja el orden de ingreso, no la ruta optimizada.
     const paradasPendientes = paradasVisibles
       .filter((p) =>
         estudiantes.some(
@@ -252,18 +205,8 @@ export default function DriverHomeScreen() {
         ),
       )
       .sort((a, b) => {
-        const distA = calcularDistancia(
-          ubicacionChofer.latitude,
-          ubicacionChofer.longitude,
-          Number(a.latitud),
-          Number(a.longitud),
-        );
-        const distB = calcularDistancia(
-          ubicacionChofer.latitude,
-          ubicacionChofer.longitude,
-          Number(b.latitud),
-          Number(b.longitud),
-        );
+        const distA = calcularDistancia(ubicacionChofer.latitude, ubicacionChofer.longitude, Number(a.latitud), Number(a.longitud));
+        const distB = calcularDistancia(ubicacionChofer.latitude, ubicacionChofer.longitude, Number(b.latitud), Number(b.longitud));
         return distA - distB;
       });
 
@@ -273,40 +216,23 @@ export default function DriverHomeScreen() {
       return;
     }
 
-    // Cache key basado en IDs de paradas pendientes para detectar cambios
     const cacheKey = `chofer-${paradasPendientes.map((p) => p.id).join(",")}`;
-
     calcularETAsRuta(
       ubicacionChofer.latitude,
       ubicacionChofer.longitude,
       paradasPendientes,
-      ubicacionColegio
-        ? {
-            latitud: ubicacionColegio.latitud,
-            longitud: ubicacionColegio.longitud,
-          }
-        : null,
+      ubicacionColegio ? { latitud: ubicacionColegio.latitud, longitud: ubicacionColegio.longitud } : null,
       cacheKey,
     ).then(({ porParada, destinoFinal }) => {
       setEtasPorParada(porParada);
       setEtaFinRuta(destinoFinal);
-
-      // Publicar ETAs en DB para que los padres los lean directamente
-      // Formato: { "parada_uuid": minutos, ..., "colegio": minutos }
       if (recorridoActual?.id) {
         supabase
           .from("estados_recorrido")
           .update({ eta_paradas: { ...porParada, colegio: destinoFinal } })
           .eq("id_asignacion", recorridoActual.id)
           .then(({ error }) => {
-            if (error) {
-              console.error("❌ Error publicando ETAs en DB:", error.message);
-            } else {
-              console.log("✅ ETAs publicados en DB:", {
-                paradas: Object.keys(porParada).length,
-                colegio: destinoFinal,
-              });
-            }
+            if (error) console.error("❌ Error publicando ETAs en DB:", error.message);
           });
       }
     });
@@ -314,7 +240,6 @@ export default function DriverHomeScreen() {
     ubicacionChofer?.latitude,
     ubicacionChofer?.longitude,
     routeActive,
-    // Recalcular cuando cambia el conjunto de paradas pendientes
     // eslint-disable-next-line react-hooks/exhaustive-deps
     paradasVisibles.map((p) => p.id).join(","),
     estudiantes.map((e) => e.estado).join(","),
@@ -323,91 +248,59 @@ export default function DriverHomeScreen() {
     recorridoActual?.id,
   ]);
 
-  // Resetear geocerca del colegio al detener el recorrido
   useEffect(() => {
-    if (!routeActive) {
-      colegioGeofenceActivadoRef.current = false;
-    }
+    if (!routeActive) colegioGeofenceActivadoRef.current = false;
   }, [routeActive]);
 
-  // ETA a la próxima parada (derivado de etasPorParada, sin llamada extra)
   const etaProximaParada = paradaMasCercana
     ? (etasPorParada[paradaMasCercana.parada.id] ?? null)
     : null;
 
-  // Polyline dinámica: solo los puntos desde la posición actual del chofer hacia adelante
   const polylineRestante = useMemo(() => {
-    if (!polylineCoordinates.length || !ubicacionChofer)
-      return polylineCoordinates;
+    if (!polylineCoordinates.length || !ubicacionChofer) return polylineCoordinates;
     let minDist = Infinity;
     let closestIdx = 0;
     for (let i = 0; i < polylineCoordinates.length; i++) {
       const dlat = ubicacionChofer.latitude - polylineCoordinates[i].latitude;
       const dlng = ubicacionChofer.longitude - polylineCoordinates[i].longitude;
       const dist = dlat * dlat + dlng * dlng;
-      if (dist < minDist) {
-        minDist = dist;
-        closestIdx = i;
-      }
+      if (dist < minDist) { minDist = dist; closestIdx = i; }
     }
     return polylineCoordinates.slice(closestIdx);
-  }, [
-    polylineCoordinates,
-    ubicacionChofer?.latitude,
-    ubicacionChofer?.longitude,
-  ]);
+  }, [polylineCoordinates, ubicacionChofer?.latitude, ubicacionChofer?.longitude]);
 
-  // Cargar ubicación del colegio
+  // ── Effects ────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const cargarUbicacionColegio = async () => {
-      try {
-        const ubicacion = await getUbicacionColegio();
-        setUbicacionColegio(ubicacion);
-      } catch (error) {
-        console.error("Error cargando ubicación del colegio:", error);
-      }
-    };
-
-    cargarUbicacionColegio();
+    getUbicacionColegio().then(setUbicacionColegio).catch(console.error);
   }, []);
 
-  // Load recorridos
   const cargarRecorridos = useCallback(async () => {
     if (!profile?.id) return;
     try {
       setLoadingRecorridos(true);
       const data = await getRecorridosHoy(profile.id);
       setRecorridos(data);
-      if (data.length > 0 && !recorridoActual) {
-        setRecorridoActual(data[0]);
-      }
-    } catch (error) {
-      console.error("Error cargando recorridos:", error);
+      if (data.length > 0 && !recorridoActual) setRecorridoActual(data[0]);
+    } catch {
       Alert.alert("Error", "No se pudieron cargar los recorridos");
     } finally {
       setLoadingRecorridos(false);
     }
   }, [profile?.id]);
 
-  // Load students
   const cargarEstudiantes = useCallback(async () => {
     if (!profile?.id || !recorridoActual) return;
     try {
       setLoading(true);
-      const data = await getEstudiantesConAsistencia(
-        recorridoActual.id_ruta,
-        profile.id,
-      );
+      const data = await getEstudiantesConAsistencia(recorridoActual.id_ruta, profile.id);
       setEstudiantes(data);
-    } catch (error) {
-      console.error("Error cargando estudiantes:", error);
+    } catch {
       Alert.alert("Error", "No se pudieron cargar los estudiantes");
     } finally {
       setLoading(false);
     }
   }, [profile?.id, recorridoActual]);
 
-  // Load paradas
   const cargarParadas = useCallback(async () => {
     if (!recorridoActual) return;
     try {
@@ -418,7 +311,6 @@ export default function DriverHomeScreen() {
     }
   }, [recorridoActual]);
 
-  // Load route state
   const cargarEstadoRecorrido = useCallback(async () => {
     if (!recorridoActual) return;
     try {
@@ -430,9 +322,7 @@ export default function DriverHomeScreen() {
     }
   }, [recorridoActual]);
 
-  useEffect(() => {
-    cargarRecorridos();
-  }, [cargarRecorridos]);
+  useEffect(() => { cargarRecorridos(); }, [cargarRecorridos]);
 
   useEffect(() => {
     if (recorridoActual) {
@@ -440,182 +330,102 @@ export default function DriverHomeScreen() {
       cargarEstadoRecorrido();
       cargarParadas();
     }
-  }, [
-    recorridoActual,
-    cargarEstudiantes,
-    cargarEstadoRecorrido,
-    cargarParadas,
-  ]);
+  }, [recorridoActual, cargarEstudiantes, cargarEstadoRecorrido, cargarParadas]);
 
-  // Realtime: attendance changes
+  // Realtime subscriptions
   useEffect(() => {
     if (!recorridoActual) return;
     const channel = supabase
       .channel("asistencias-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "asistencias" },
-        () => cargarEstudiantes(),
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "asistencias" }, () => cargarEstudiantes())
       .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [recorridoActual, cargarEstudiantes]);
 
-  // Polling fallback: recargar estudiantes cada 15s cuando ruta activa
-  // (por si realtime no captura cambios del padre)
   useEffect(() => {
     if (!routeActive || !recorridoActual) return;
-    const interval = setInterval(() => {
-      cargarEstudiantes();
-    }, 15000);
+    const interval = setInterval(() => cargarEstudiantes(), 15000);
     return () => clearInterval(interval);
   }, [routeActive, recorridoActual, cargarEstudiantes]);
 
-  // Realtime: route state changes
   useEffect(() => {
     if (!recorridoActual) return;
     const channel = supabase
       .channel("estados-recorrido-changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "estados_recorrido",
-          filter: `id_asignacion=eq.${recorridoActual.id}`,
-        },
-        () => cargarEstadoRecorrido(),
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "estados_recorrido", filter: `id_asignacion=eq.${recorridoActual.id}` }, () => cargarEstadoRecorrido())
       .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [recorridoActual, cargarEstadoRecorrido]);
 
-  // Notificación push al padre cuando entramos a geocerca
+  // Push notifications
   useEffect(() => {
     if (!dentroDeZona || !estudianteGeocerca || !recorridoActual) return;
-
-    // Evitar duplicados por el mismo estudiante
     if (lastPushStudentRef.current === estudianteGeocerca.id_estudiante) return;
     lastPushStudentRef.current = estudianteGeocerca.id_estudiante;
-
     sendPushToParents(
       recorridoActual.id,
       "🚌 La buseta esta cerca",
       `La buseta se acerca a la parada de ${estudianteGeocerca.nombreCompleto}. Prepárense para abordaje.`,
-      {
-        tipo: "geocerca_entrada",
-        id_estudiante: estudianteGeocerca.id_estudiante,
-      },
-    ).catch((err) => {
-      console.warn("Error enviando push de geocerca entrada:", err);
-    });
+      { tipo: "geocerca_entrada", id_estudiante: estudianteGeocerca.id_estudiante },
+    ).catch((err) => console.warn("Error enviando push de geocerca entrada:", err));
   }, [dentroDeZona, estudianteGeocerca?.id_estudiante, recorridoActual?.id]);
 
-  // Notificación push al padre cuando el chofer sale del geocerca (estudiante recogido)
   const prevDentroDeZonaRef = useRef(false);
   const prevEstudianteGeocercaRef = useRef<typeof estudianteGeocerca>(null);
-
   useEffect(() => {
     const estabaDentro = prevDentroDeZonaRef.current;
     const prevEst = prevEstudianteGeocercaRef.current;
-
-    // Transición: estaba dentro → ahora fuera = estudiante recogido
     if (estabaDentro && !dentroDeZona && prevEst && recorridoActual) {
       sendPushToParents(
         recorridoActual.id,
         "✅ Recogido correctamente",
         `${prevEst.nombreCompleto} fue recogido por la buseta y ya va camino al colegio.`,
-        {
-          tipo: "geocerca_salida",
-          id_estudiante: prevEst.id_estudiante,
-        },
-      ).catch((err) => {
-        console.warn("Error enviando push de geocerca salida:", err);
-      });
+        { tipo: "geocerca_salida", id_estudiante: prevEst.id_estudiante },
+      ).catch((err) => console.warn("Error enviando push de geocerca salida:", err));
     }
-
     prevDentroDeZonaRef.current = dentroDeZona;
     prevEstudianteGeocercaRef.current = estudianteGeocerca;
   }, [dentroDeZona, estudianteGeocerca?.id_estudiante, recorridoActual?.id]);
 
-  // Geocerca del colegio: radio 75m, se activa cuando ya no hay estudiantes pendientes
+  // Auto-finalizar al llegar al colegio
   useEffect(() => {
     if (!enCaminoAlColegio || !ubicacionColegio || !ubicacionChofer) return;
     if (colegioGeofenceActivadoRef.current) return;
-
     const distancia = calcularDistancia(
-      ubicacionChofer.latitude,
-      ubicacionChofer.longitude,
-      ubicacionColegio.latitud,
-      ubicacionColegio.longitud,
+      ubicacionChofer.latitude, ubicacionChofer.longitude,
+      ubicacionColegio.latitud, ubicacionColegio.longitud,
     );
-
     if (distancia > 50) return;
-
-    // Dentro del radio del colegio → finalizar ruta automáticamente
     colegioGeofenceActivadoRef.current = true;
-    console.log("🏫 GEOCERCA COLEGIO:", { distancia: Math.round(distancia) });
-
     const horaLlegada = new Date().toLocaleTimeString("es-EC", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "America/Guayaquil",
+      hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "America/Guayaquil",
     });
-
     if (recorridoActual?.id) {
-      sendPushToParents(
-        recorridoActual.id,
-        "🏫 Llegaron al colegio",
+      sendPushToParents(recorridoActual.id, "🏫 Llegaron al colegio",
         `Tus hijos llegaron al colegio a las ${horaLlegada}. ¡Buen día escolar!`,
         { tipo: "llegada_colegio", hora: horaLlegada },
       ).catch((err) => console.warn("Error push colegio:", err));
-
-      finalizarRecorrido(recorridoActual.id)
-        .then((success) => {
-          if (success) {
-            setRouteActive(false);
-            setHoraLlegadaColegio(horaLlegada);
-            setRutaCompletada(true);
-            haptic.success();
-          }
-        })
-        .catch((err) =>
-          console.error("Error finalizando recorrido (colegio):", err),
-        );
+      finalizarRecorrido(recorridoActual.id).then((success) => {
+        if (success) {
+          setRouteActive(false);
+          setHoraLlegadaColegio(horaLlegada);
+          setRutaCompletada(true);
+          haptic.success();
+        }
+      }).catch((err) => console.error("Error finalizando recorrido (colegio):", err));
     }
-  }, [
-    enCaminoAlColegio,
-    ubicacionChofer?.latitude,
-    ubicacionChofer?.longitude,
-    ubicacionColegio,
-    recorridoActual?.id,
-  ]);
+  }, [enCaminoAlColegio, ubicacionChofer?.latitude, ubicacionChofer?.longitude, ubicacionColegio, recorridoActual?.id]);
 
-  // Handlers
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handleMarcarAusente = async () => {
     if (!profile?.id || !recorridoActual || !nextStudent) return;
     try {
       setProcessingStudent(nextStudent.id);
       haptic.medium();
-      const result = await marcarAusente(
-        nextStudent.id,
-        recorridoActual.id_ruta,
-        profile.id,
-      );
-      if (result) {
-        await cargarEstudiantes();
-        haptic.success();
-      } else {
-        haptic.error();
-        Alert.alert("Error", "No se pudo marcar como ausente");
-      }
-    } catch (error) {
-      console.error("Error marcando ausente:", error);
+      const result = await marcarAusente(nextStudent.id, recorridoActual.id_ruta, profile.id);
+      if (result) { await cargarEstudiantes(); haptic.success(); }
+      else { haptic.error(); Alert.alert("Error", "No se pudo marcar como ausente"); }
+    } catch {
       haptic.error();
       Alert.alert("Error", "Ocurrio un error");
     } finally {
@@ -628,39 +438,18 @@ export default function DriverHomeScreen() {
     try {
       setProcessingStudent(estudianteGeocerca.id_estudiante);
       haptic.medium();
-
-      // 1. Marcar asistencia como ausente
-      const result = await marcarAusente(
-        estudianteGeocerca.id_estudiante,
-        recorridoActual.id_ruta,
-        profile.id,
-      );
-
+      const result = await marcarAusente(estudianteGeocerca.id_estudiante, recorridoActual.id_ruta, profile.id);
       if (result) {
-        // 2. Actualizar estado de geocerca a completado
-        await marcarEstudianteCompletado(
-          recorridoActual.id,
-          estudianteGeocerca.id_estudiante,
-          profile.id,
-          "ausente",
-        );
-
-        // 3. Cargar siguiente estudiante en el hook
+        await marcarEstudianteCompletado(recorridoActual.id, estudianteGeocerca.id_estudiante, profile.id, "ausente");
         await marcarCompletadoManual();
-
-        // 4. Recargar lista de estudiantes para actualizar stats
         await cargarEstudiantes();
-
-        // Reset ref para permitir push al siguiente estudiante
         lastPushStudentRef.current = null;
-
         haptic.success();
       } else {
         haptic.error();
         Alert.alert("Error", "No se pudo marcar como ausente");
       }
-    } catch (error) {
-      console.error("Error marcando ausente (geocerca):", error);
+    } catch {
       haptic.error();
       Alert.alert("Error", "Ocurrio un error");
     } finally {
@@ -679,73 +468,27 @@ export default function DriverHomeScreen() {
   const handleIniciarRecorrido = async () => {
     if (!recorridoActual) return;
     haptic.heavy();
-
-    // Mostrar loading INMEDIATAMENTE
     setOptimizandoRuta(true);
-
     try {
-      // 1. Obtener ubicación actual del chofer
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         setOptimizandoRuta(false);
-        Alert.alert(
-          "Permisos necesarios",
-          "Necesitas habilitar permisos de ubicación para iniciar el recorrido",
-        );
+        Alert.alert("Permisos necesarios", "Necesitas habilitar permisos de ubicación para iniciar el recorrido");
         return;
       }
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
-      const ubicacionChofer = {
-        lat: location.coords.latitude,
-        lng: location.coords.longitude,
-      };
-
-      // 2. Obtener ubicación del colegio
-      const ubicacionColegio = await getUbicacionColegio();
-
-      // 3. Calcular ruta optimizada (solo paradas con estudiantes activos)
-      const paradasParaOptimizar = paradasVisibles;
-      if (paradasParaOptimizar.length > 0) {
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const ubicacionChoferLocal = { lat: location.coords.latitude, lng: location.coords.longitude };
+      const ubicacionColegioLocal = await getUbicacionColegio();
+      if (paradasVisibles.length > 0) {
         try {
           const resultado = await calcularRutaOptimizada(
-            ubicacionChofer,
-            paradasParaOptimizar,
-            recorridoActual.tipo_ruta,
-            {
-              lat: ubicacionColegio.latitud,
-              lng: ubicacionColegio.longitud,
-            },
+            ubicacionChoferLocal, paradasVisibles, recorridoActual.tipo_ruta,
+            { lat: ubicacionColegioLocal.latitud, lng: ubicacionColegioLocal.longitud },
           );
-
           if (resultado) {
-            // Actualizar paradas con el orden optimizado y polyline
             setParadas(resultado.paradasOptimizadas);
             setPolylineCoordinates(resultado.polylineCoordinates);
-            console.log(
-              `✅ Ruta optimizada: ${resultado.paradasOptimizadas.length} paradas, ${(resultado.distanciaTotal / 1000).toFixed(1)} km, ${Math.round(resultado.duracionTotal / 60)} min`,
-            );
-
-            // Guardar polyline en la BD para que el padre pueda verlo
-            console.log("💾 Guardando polyline:", {
-              id_asignacion: recorridoActual.id,
-              cantidad_puntos: resultado.polylineCoordinates.length,
-              primeros_3: resultado.polylineCoordinates.slice(0, 3),
-            });
-            const guardado = await guardarPolylineRuta(
-              recorridoActual.id,
-              resultado.polylineCoordinates,
-            );
-            console.log(
-              guardado
-                ? "✅ Polyline guardado en BD"
-                : "❌ Error guardando polyline",
-            );
-          } else {
-            console.warn("⚠️ No se pudo optimizar ruta, usando orden actual");
+            await guardarPolylineRuta(recorridoActual.id, resultado.polylineCoordinates);
           }
         } catch (error) {
           console.error("Error optimizando ruta:", error);
@@ -753,31 +496,17 @@ export default function DriverHomeScreen() {
           setOptimizandoRuta(false);
         }
       }
-
-      // 4. Iniciar recorrido
       const success = await iniciarRecorrido(recorridoActual.id);
       if (success) {
         setRouteActive(true);
         haptic.success();
-
-        // 5. Inicializar estados de geocercas para tracking de paradas
         inicializarEstadosGeocercas(recorridoActual.id, profile?.id || "")
-          .then((ok) => {
-            if (ok) {
-              console.log("✅ Estados de geocercas inicializados");
-            } else {
-              console.warn("⚠️ No se pudieron inicializar geocercas");
-            }
-          })
-          .catch((err) => {
-            console.warn("Error inicializando geocercas:", err);
-          });
+          .catch((err) => console.warn("Error inicializando geocercas:", err));
       } else {
         haptic.error();
         Alert.alert("Error", "No se pudo iniciar el recorrido");
       }
-    } catch (error) {
-      console.error("Error en handleIniciarRecorrido:", error);
+    } catch {
       haptic.error();
       Alert.alert("Error", "Ocurrió un error al iniciar el recorrido");
     }
@@ -785,817 +514,419 @@ export default function DriverHomeScreen() {
 
   const handleFinalizarRecorrido = async () => {
     if (!recorridoActual) return;
-    Alert.alert(
-      "Finalizar Recorrido",
-      "Estas seguro de que deseas finalizar el recorrido?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Finalizar",
-          style: "destructive",
-          onPress: async () => {
-            haptic.heavy();
-            const success = await finalizarRecorrido(recorridoActual.id);
-            if (success) {
-              setRouteActive(false);
-              haptic.success();
-            } else {
-              haptic.error();
-              Alert.alert("Error", "No se pudo finalizar el recorrido");
-            }
-          },
+    Alert.alert("Finalizar Recorrido", "¿Estás seguro de que deseas finalizar el recorrido?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Finalizar", style: "destructive",
+        onPress: async () => {
+          haptic.heavy();
+          const success = await finalizarRecorrido(recorridoActual.id);
+          if (success) { setRouteActive(false); haptic.success(); }
+          else { haptic.error(); Alert.alert("Error", "No se pudo finalizar el recorrido"); }
         },
-      ],
-    );
+      },
+    ]);
   };
 
-  const formatHoraEC = (isoString: string) => {
-    const date = new Date(isoString);
-    return date.toLocaleTimeString("es-EC", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "America/Guayaquil",
+  const formatHoraEC = (isoString: string) =>
+    new Date(isoString).toLocaleTimeString("es-EC", {
+      hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "America/Guayaquil",
     });
-  };
 
-  const headerSubtitle =
-    routeActive && horaInicioRecorrido
-      ? `${recorridoActual?.nombre_ruta || "Recorrido"} · Salió ${formatHoraEC(horaInicioRecorrido)}`
-      : recorridoActual?.nombre_ruta || "Sin recorrido";
+  // ── Derived for bottom card ────────────────────────────────────────────────
+  const estaEnGeocerca = !!(routeActive && dentroDeZona && estudianteGeocerca);
+  const hayEstudianteActivo = routeActive && (estaEnGeocerca || !!nextStudent);
 
+  const estudianteActivoNombre = estaEnGeocerca
+    ? estudianteGeocerca?.nombreCompleto
+    : nextStudent ? `${nextStudent.nombre} ${nextStudent.apellido}` : undefined;
+  const estudianteActivoDireccion = estaEnGeocerca
+    ? estudianteGeocerca?.parada_nombre
+    : nextStudent?.parada
+      ? (paradas.find((p) => p.id === nextStudent.parada?.id)?.direccion || nextStudent.parada.nombre)
+      : undefined;
+  const estudianteActivoId = estaEnGeocerca
+    ? estudianteGeocerca?.id_estudiante
+    : nextStudent?.id;
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <View className="flex-1" style={{ backgroundColor: "#F8FAFB" }}>
+    <View style={{ flex: 1, backgroundColor: Colors.tecnibus[50] }}>
       <StatusBar barStyle="light-content" />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
+      {/* ── HEADER ── */}
+      <LinearGradient
+        colors={[Colors.tecnibus[400], Colors.tecnibus[700]]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.4, y: 1 }}
+        style={{ paddingTop: insets.top + 10, paddingBottom: 18, paddingHorizontal: 20 }}
       >
-        {/* Header */}
-        <DashboardHeader
-          title="PANEL DE CHOFER"
-          subtitle={headerSubtitle}
-          icon={Bus}
-          rightBadge={
-            routeActive
-              ? {
-                  text: "EN CURSO",
-                  bgColor: "rgba(255,255,255,0.25)",
-                  textColor: "#ffffff",
-                }
-              : null
-          }
-        />
-
-        {rutaCompletada ? (
-          <View
-            style={{
-              backgroundColor: "#ffffff",
-              borderRadius: 24,
-              padding: 32,
-              marginHorizontal: 16,
-              marginTop: -20,
-              alignItems: "center",
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 16,
-              elevation: 8,
-            }}
-          >
-            {/* Icono de check grande */}
-            <View
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: 40,
-                backgroundColor: "#D1FAE5",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 16,
-              }}
-            >
-              <CheckCircle2 size={44} color="#10B981" strokeWidth={2} />
+        {/* Row: icon + label | EN CURSO badge */}
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View style={{ backgroundColor: "rgba(255,255,255,0.22)", borderRadius: 10, padding: 8 }}>
+              <Bus size={18} color="#ffffff" strokeWidth={2.5} />
             </View>
-
-            <Text
-              className="font-bold"
-              style={{ fontSize: 22, color: "#1F2937", textAlign: "center" }}
-            >
-              ¡Ruta Completada!
+            <Text style={{ color: "#ffffff", fontWeight: "700", fontSize: 11, letterSpacing: 1.5, lineHeight: 16 }}>
+              {"PANEL DE\nCHOFER"}
             </Text>
+          </View>
+          {routeActive && (
+            <View style={{
+              backgroundColor: "rgba(255,255,255,0.18)",
+              borderRadius: 20,
+              paddingHorizontal: 14,
+              paddingVertical: 7,
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.35)",
+            }}>
+              <Text style={{ color: "#ffffff", fontWeight: "700", fontSize: 12, letterSpacing: 1 }}>
+                EN CURSO
+              </Text>
+            </View>
+          )}
+        </View>
 
-            <Text
-              style={{
-                fontSize: 15,
-                color: "#6B7280",
-                textAlign: "center",
-                marginTop: 8,
-              }}
-            >
-              Todos los estudiantes llegaron{"\n"}al colegio exitosamente.
-            </Text>
+        {/* Route name */}
+        <Text
+          style={{ color: "#ffffff", fontWeight: "800", fontSize: 26, marginTop: 14, lineHeight: 30 }}
+          numberOfLines={1}
+        >
+          {recorridoActual?.nombre_ruta || "Panel de Chofer"}
+        </Text>
 
-            {horaLlegadaColegio && (
-              <View
-                style={{
-                  marginTop: 20,
-                  backgroundColor: "#D1FAE5",
-                  borderRadius: 14,
-                  paddingVertical: 12,
-                  paddingHorizontal: 24,
-                  alignItems: "center",
-                }}
-              >
-                <Text style={{ fontSize: 12, color: "#059669" }}>
-                  Llegada al colegio
-                </Text>
-                <Text
-                  className="font-bold"
-                  style={{ fontSize: 26, color: "#065F46", marginTop: 2 }}
-                >
-                  {horaLlegadaColegio}
+        {/* "Salió X:XX a.m." */}
+        {routeActive && horaInicioRecorrido && (
+          <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, marginTop: 3 }}>
+            Salió {formatHoraEC(horaInicioRecorrido)}
+          </Text>
+        )}
+
+        {/* Stats pills */}
+        {routeActive && (
+          <View style={{ flexDirection: "row", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+            <View style={{
+              flexDirection: "row", alignItems: "center",
+              backgroundColor: "rgba(255,255,255,0.95)",
+              borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, gap: 6,
+            }}>
+              <CheckCircle2 size={14} color="#10B981" strokeWidth={2.5} />
+              <Text style={{ color: "#10B981", fontWeight: "700", fontSize: 12 }}>
+                {stats.completed}/{stats.total} RECOGIDOS
+              </Text>
+            </View>
+            {etaFinRuta !== null && (
+              <View style={{
+                flexDirection: "row", alignItems: "center",
+                backgroundColor: "rgba(255,255,255,0.95)",
+                borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, gap: 6,
+              }}>
+                <Clock size={14} color={Colors.tecnibus[600]} strokeWidth={2.5} />
+                <Text style={{ color: Colors.tecnibus[700], fontWeight: "700", fontSize: 12 }}>
+                  ETA FINAL: {etaFinRuta} MIN
                 </Text>
               </View>
             )}
+          </View>
+        )}
+      </LinearGradient>
 
-            <DriverQuickStats
-              pickedUp={stats.completed}
-              total={stats.total}
-              remaining={0}
-              estimatedMinutes={0}
-            />
+      {/* ── MAP HERO ── */}
+      <View style={{ flex: 1 }}>
+        <RouteMap
+          paradas={paradasVisibles}
+          ubicacionBus={ubicacionBus}
+          recorridoActivo={routeActive}
+          polylineCoordinates={routeActive ? polylineRestante : undefined}
+          ubicacionColegio={ubicacionColegio}
+          mostrarUbicacionChofer={true}
+          ubicacionChofer={ubicacionChofer}
+          showsUserLocation={false}
+        />
+        {/* GPS dot */}
+        {routeActive && tracking && (
+          <View style={{
+            position: "absolute", top: 12, right: 12,
+            flexDirection: "row", alignItems: "center",
+            backgroundColor: "rgba(255,255,255,0.92)",
+            borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5,
+            shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.1, shadowRadius: 4, elevation: 2,
+          }}>
+            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#10B981", marginRight: 5 }} />
+            <Text style={{ fontSize: 11, color: "#6B7280", fontWeight: "600" }}>GPS activo</Text>
+          </View>
+        )}
+      </View>
 
+      {/* ── BOTTOM CARD ── */}
+      <View style={{
+        backgroundColor: "#ffffff",
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: insets.bottom + 82,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 16,
+      }}>
+
+        {/* STATE: Ruta completada */}
+        {rutaCompletada && (
+          <View style={{ alignItems: "center" }}>
+            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: "#D1FAE5", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+              <CheckCircle2 size={30} color="#10B981" strokeWidth={2} />
+            </View>
+            <Text style={{ fontSize: 20, fontWeight: "800", color: "#1F2937" }}>¡Ruta Completada!</Text>
+            <Text style={{ fontSize: 13, color: "#6B7280", textAlign: "center", marginTop: 3 }}>
+              Todos los estudiantes llegaron al colegio.
+            </Text>
+            {horaLlegadaColegio && (
+              <View style={{ marginTop: 10, backgroundColor: "#D1FAE5", borderRadius: 12, paddingVertical: 8, paddingHorizontal: 20, alignItems: "center" }}>
+                <Text style={{ fontSize: 11, color: "#059669" }}>Llegada al colegio</Text>
+                <Text style={{ fontSize: 22, fontWeight: "800", color: "#065F46", marginTop: 1 }}>{horaLlegadaColegio}</Text>
+              </View>
+            )}
             <TouchableOpacity
-              onPress={() => {
-                setRutaCompletada(false);
-                setHoraLlegadaColegio(null);
-                setPolylineCoordinates([]);
-              }}
+              onPress={() => { setRutaCompletada(false); setHoraLlegadaColegio(null); setPolylineCoordinates([]); }}
+              activeOpacity={0.8}
+              style={{ marginTop: 14, backgroundColor: Colors.tecnibus[600], borderRadius: 14, paddingVertical: 14, width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}
+            >
+              <Bus size={16} color="#ffffff" strokeWidth={2.5} />
+              <Text style={{ color: "#ffffff", fontWeight: "700", fontSize: 14 }}>Volver al inicio</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* STATE: Loading recorridos */}
+        {!rutaCompletada && loadingRecorridos && (
+          <View style={{ alignItems: "center", paddingVertical: 8 }}>
+            <ActivityIndicator size="small" color={Colors.tecnibus[600]} />
+            <Text style={{ color: "#6B7280", marginTop: 8, fontSize: 14 }}>Cargando recorridos...</Text>
+          </View>
+        )}
+
+        {/* STATE: Sin recorridos */}
+        {!rutaCompletada && !loadingRecorridos && recorridos.length === 0 && (
+          <View style={{ alignItems: "center", paddingVertical: 8 }}>
+            <Bus size={32} color="#D1D5DB" strokeWidth={1.5} />
+            <Text style={{ color: "#6B7280", marginTop: 8, fontSize: 15, fontWeight: "600" }}>No hay recorridos hoy</Text>
+            <Text style={{ color: "#9CA3AF", fontSize: 12, marginTop: 2 }}>Contacta al administrador</Text>
+          </View>
+        )}
+
+        {/* STATE: Recorrido activo — próximo estudiante (en camino o en geocerca) */}
+        {!rutaCompletada && !loadingRecorridos && recorridos.length > 0 && hayEstudianteActivo && (
+          <View>
+            <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+              {/* Left: label + name + address */}
+              <View style={{ flexDirection: "row", alignItems: "flex-start", flex: 1, marginRight: 12 }}>
+                <MapPin size={20} color={Colors.tecnibus[600]} strokeWidth={2} style={{ marginTop: 3, marginRight: 10 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 10, color: "#9CA3AF", fontWeight: "700", letterSpacing: 0.8, textTransform: "uppercase" }}>
+                    {estaEnGeocerca ? "Llegando a:" : "En camino a:"}
+                  </Text>
+                  <Text style={{ fontSize: 20, fontWeight: "800", color: "#1F2937", lineHeight: 24, marginTop: 1 }} numberOfLines={1}>
+                    {estudianteActivoNombre || "—"}
+                  </Text>
+                  {estudianteActivoDireccion ? (
+                    <Text style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }} numberOfLines={1}>
+                      {estudianteActivoDireccion}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+              {/* Right: ETA */}
+              <View style={{ alignItems: "flex-end", minWidth: 56 }}>
+                {etaProximaParada !== null ? (
+                  <>
+                    <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.tecnibus[600] }}>
+                      ~{etaProximaParada} min
+                    </Text>
+                    <Text style={{ fontSize: 10, color: "#9CA3AF", fontWeight: "700", letterSpacing: 0.5 }}>
+                      LLEGADA
+                    </Text>
+                  </>
+                ) : estaEnGeocerca ? (
+                  <>
+                    <Text style={{ fontSize: 18, fontWeight: "800", color: "#10B981" }}>¡Ya!</Text>
+                    <Text style={{ fontSize: 10, color: "#9CA3AF", fontWeight: "700" }}>LLEGASTE</Text>
+                  </>
+                ) : null}
+              </View>
+            </View>
+
+            {/* Marcar ausencia */}
+            <TouchableOpacity
+              onPress={estaEnGeocerca ? handleMarcarAusenteGeocerca : handleMarcarAusente}
+              disabled={!!processingStudent}
               activeOpacity={0.8}
               style={{
-                marginTop: 8,
-                backgroundColor: Colors.tecnibus[600],
+                marginTop: 14,
+                borderWidth: 1.5,
+                borderColor: "#EF4444",
                 borderRadius: 14,
-                paddingVertical: 14,
-                paddingHorizontal: 32,
+                paddingVertical: 13,
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
-                width: "100%",
+                gap: 8,
+                opacity: processingStudent ? 0.55 : 1,
               }}
             >
-              <Bus size={18} color="#ffffff" strokeWidth={2.5} />
-              <Text
-                className="font-bold"
-                style={{ fontSize: 15, color: "#ffffff", marginLeft: 8 }}
-              >
-                Volver al inicio
-              </Text>
+              {processingStudent === estudianteActivoId ? (
+                <ActivityIndicator size="small" color="#EF4444" />
+              ) : (
+                <>
+                  <UserX size={15} color="#EF4444" strokeWidth={2.5} />
+                  <Text style={{ color: "#EF4444", fontWeight: "700", fontSize: 13, letterSpacing: 0.8 }}>
+                    MARCAR AUSENCIA
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
-        ) : loadingRecorridos ? (
-          <View className="items-center" style={{ paddingTop: 60 }}>
-            <ActivityIndicator size="large" color={Colors.tecnibus[600]} />
-            <Text style={{ color: "#6B7280", marginTop: 12, fontSize: 14 }}>
-              Cargando recorridos...
-            </Text>
-          </View>
-        ) : recorridos.length === 0 ? (
-          <View className="items-center" style={{ paddingTop: 60 }}>
-            <Bus size={56} color="#D1D5DB" strokeWidth={1.5} />
-            <Text
-              className="font-semibold"
-              style={{ color: "#6B7280", marginTop: 16, fontSize: 16 }}
-            >
-              No hay recorridos hoy
-            </Text>
-            <Text style={{ color: "#9CA3AF", marginTop: 4, fontSize: 13 }}>
-              Contacta al administrador
-            </Text>
-          </View>
-        ) : routeActive && dentroDeZona && estudianteGeocerca ? (
-          <>
-            {/* Hero: student nearby via geocerca */}
-            <NextStudentHero
-              studentName={estudianteGeocerca.nombreCompleto}
-              address={estudianteGeocerca.parada_nombre || "Sin direccion"}
-              parentName={undefined}
-              parentPhone={undefined}
-              estimatedMinutes={etaProximaParada ?? undefined}
-              isApproaching={true}
-              onNavigate={handleNavigate}
-              onMarkAbsent={handleMarcarAusenteGeocerca}
-              isProcessing={
-                processingStudent === estudianteGeocerca.id_estudiante
-              }
-            />
+        )}
 
-            {/* Quick stats */}
-            <DriverQuickStats
-              pickedUp={stats.completed}
-              total={stats.total}
-              remaining={stats.remaining}
-              estimatedMinutes={etaFinRuta ?? undefined}
-            />
-
-            {/* Map card */}
-            <MapCard
-              paradas={paradasVisibles}
-              ubicacionBus={ubicacionBus}
-              recorridoActivo={routeActive}
-              polylineCoordinates={polylineRestante}
-              ubicacionColegio={ubicacionColegio}
-              mostrarUbicacionChofer={true}
-              ubicacionChofer={ubicacionChofer}
-            />
-
-            {/* Finalize button */}
-            <View style={{ marginHorizontal: 16, marginTop: 16 }}>
-              <TouchableOpacity
-                onPress={handleFinalizarRecorrido}
-                activeOpacity={0.8}
-                style={{
-                  backgroundColor: "#EF4444",
-                  borderRadius: 16,
-                  paddingVertical: 16,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  shadowColor: "#EF4444",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 6,
-                  elevation: 4,
-                }}
-              >
-                <Square size={18} color="#ffffff" strokeWidth={2.5} />
-                <Text
-                  className="font-bold"
-                  style={{
-                    fontSize: 15,
-                    color: "#ffffff",
-                    marginLeft: 8,
-                  }}
-                >
-                  Finalizar Recorrido
-                </Text>
-              </TouchableOpacity>
+        {/* STATE: En camino al colegio (todos los estudiantes recogidos) */}
+        {!rutaCompletada && !loadingRecorridos && recorridos.length > 0 && enCaminoAlColegio && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.tecnibus[100], alignItems: "center", justifyContent: "center" }}>
+              <Bus size={24} color={Colors.tecnibus[600]} strokeWidth={2} />
             </View>
-          </>
-        ) : routeActive && (nextStudent || estudianteGeocerca) ? (
-          <>
-            {/* Route active but not near any stop - waiting state */}
-            <View
-              style={{
-                backgroundColor: "#ffffff",
-                borderRadius: 20,
-                padding: 24,
-                marginHorizontal: 16,
-                marginTop: -20,
-                alignItems: "center",
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.1,
-                shadowRadius: 16,
-                elevation: 8,
-              }}
-            >
-              <View
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 32,
-                  backgroundColor: Colors.tecnibus[50],
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 12,
-                }}
-              >
-                <MapPinOff
-                  size={32}
-                  color={Colors.tecnibus[400]}
-                  strokeWidth={1.5}
-                />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: "800", color: "#1F2937" }}>En camino al colegio</Text>
+              <Text style={{ fontSize: 12, color: "#9CA3AF", marginTop: 1 }}>Todos los estudiantes recogidos</Text>
+              <Text style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>La ruta finaliza automáticamente al llegar</Text>
+            </View>
+            {etaFinRuta !== null && (
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.tecnibus[600] }}>~{etaFinRuta} min</Text>
+                <Text style={{ fontSize: 10, color: "#9CA3AF", fontWeight: "700" }}>AL COLEGIO</Text>
               </View>
-              <Text
-                className="font-bold"
-                style={{ fontSize: 18, color: "#1F2937" }}
-              >
-                En camino a siguiente parada
-              </Text>
-              {horaInicioRecorrido && (
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: "#9CA3AF",
-                    marginTop: 2,
-                  }}
-                >
-                  Inicio: {formatHoraEC(horaInicioRecorrido)}
+            )}
+          </View>
+        )}
+
+        {/* STATE: Pre-recorrido (ruta no iniciada) */}
+        {!rutaCompletada && !loadingRecorridos && recorridos.length > 0 && !routeActive && (
+          <View>
+            {/* Info de la ruta */}
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.tecnibus[100], alignItems: "center", justifyContent: "center", marginRight: 12 }}>
+                <Bus size={22} color={Colors.tecnibus[600]} strokeWidth={2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 10, color: "#9CA3AF", fontWeight: "700", letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 1 }}>
+                  Tu ruta:
                 </Text>
-              )}
-              {paradaMasCercana ? (
-                <>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      color: "#6B7280",
-                      textAlign: "center",
-                      marginTop: 8,
-                    }}
-                  >
-                    Proxima parada:{" "}
-                    {paradaMasCercana.parada.nombre ||
-                      paradaMasCercana.parada.direccion ||
-                      "Sin nombre"}
-                  </Text>
-                  <Text
-                    className="font-semibold"
-                    style={{
-                      fontSize: 13,
-                      color: Colors.tecnibus[600],
-                      marginTop: 8,
-                    }}
-                  >
-                    {paradaMasCercana.distanciaMetros > 1000
-                      ? `${(paradaMasCercana.distanciaMetros / 1000).toFixed(1)} km`
-                      : `${Math.round(paradaMasCercana.distanciaMetros)}m`}
-                    {" de distancia"}
-                    {etaProximaParada !== null
-                      ? ` · ~${etaProximaParada} min`
-                      : ""}
-                  </Text>
-                  {etaFinRuta !== null && (
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        color: "#9CA3AF",
-                        marginTop: 4,
-                      }}
-                    >
-                      ETA fin de ruta: ~{etaFinRuta} min
-                    </Text>
-                  )}
-                </>
+                <Text style={{ fontSize: 15, fontWeight: "800", color: "#1F2937" }} numberOfLines={1}>
+                  {recorridoActual?.nombre_ruta || "Sin recorrido"}
+                </Text>
+                <Text style={{ fontSize: 12, color: "#9CA3AF" }}>
+                  {recorridoActual ? `${recorridoActual.hora_inicio} - ${recorridoActual.hora_fin}` : ""}
+                </Text>
+              </View>
+              {loading ? (
+                <ActivityIndicator size="small" color={Colors.tecnibus[500]} />
               ) : (
-                <Text
-                  style={{
-                    fontSize: 14,
-                    color: "#6B7280",
-                    textAlign: "center",
-                    marginTop: 8,
-                  }}
-                >
-                  Dirigete a la siguiente parada
-                </Text>
-              )}
-            </View>
-
-            {/* Quick stats */}
-            <DriverQuickStats
-              pickedUp={stats.completed}
-              total={stats.total}
-              remaining={stats.remaining}
-              estimatedMinutes={etaFinRuta ?? undefined}
-            />
-
-            {/* Map card */}
-            <MapCard
-              paradas={paradasVisibles}
-              ubicacionBus={ubicacionBus}
-              recorridoActivo={routeActive}
-              polylineCoordinates={polylineRestante}
-              ubicacionColegio={ubicacionColegio}
-              mostrarUbicacionChofer={true}
-              ubicacionChofer={ubicacionChofer}
-            />
-
-            {/* Finalize button */}
-            <View style={{ marginHorizontal: 16, marginTop: 16 }}>
-              <TouchableOpacity
-                onPress={handleFinalizarRecorrido}
-                activeOpacity={0.8}
-                style={{
-                  backgroundColor: "#EF4444",
-                  borderRadius: 16,
-                  paddingVertical: 16,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  shadowColor: "#EF4444",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 6,
-                  elevation: 4,
-                }}
-              >
-                <Square size={18} color="#ffffff" strokeWidth={2.5} />
-                <Text
-                  className="font-bold"
-                  style={{
-                    fontSize: 15,
-                    color: "#ffffff",
-                    marginLeft: 8,
-                  }}
-                >
-                  Finalizar Recorrido
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        ) : routeActive && !nextStudent && !estudianteGeocerca ? (
-          <>
-            {/* Todos los estudiantes recogidos → en camino al colegio */}
-            <View
-              style={{
-                backgroundColor: "#ffffff",
-                borderRadius: 20,
-                padding: 24,
-                marginHorizontal: 16,
-                marginTop: -20,
-                alignItems: "center",
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.1,
-                shadowRadius: 16,
-                elevation: 8,
-              }}
-            >
-              <View
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 32,
-                  backgroundColor: Colors.tecnibus[50],
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 12,
-                }}
-              >
-                <Bus size={36} color={Colors.tecnibus[500]} strokeWidth={1.5} />
-              </View>
-              <Text
-                className="font-bold"
-                style={{ fontSize: 18, color: "#1F2937" }}
-              >
-                En camino al colegio
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: "#6B7280",
-                  textAlign: "center",
-                  marginTop: 8,
-                }}
-              >
-                Todos los estudiantes han sido recogidos
-              </Text>
-              {ubicacionColegio && (
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: Colors.tecnibus[600],
-                    marginTop: 4,
-                    fontWeight: "600",
-                  }}
-                >
-                  Destino: {ubicacionColegio.nombre}
-                </Text>
-              )}
-              {etaFinRuta !== null && (
-                <View
-                  style={{
-                    marginTop: 16,
-                    backgroundColor: Colors.tecnibus[50],
-                    borderRadius: 12,
-                    paddingVertical: 10,
-                    paddingHorizontal: 20,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    className="font-bold"
-                    style={{ fontSize: 24, color: Colors.tecnibus[700] }}
-                  >
-                    ~{etaFinRuta} min
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.tecnibus[600] }}>
+                    {estudiantes.length}
                   </Text>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: Colors.tecnibus[500],
-                      marginTop: 2,
-                    }}
-                  >
-                    al colegio
+                  <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.tecnibus[500] }}>
+                    estudiantes
                   </Text>
                 </View>
               )}
-              <Text
-                style={{
-                  fontSize: 11,
-                  color: "#9CA3AF",
-                  marginTop: 12,
-                  textAlign: "center",
-                }}
-              >
-                La ruta se finalizará automáticamente al llegar al colegio
-              </Text>
             </View>
 
-            <DriverQuickStats
-              pickedUp={stats.completed}
-              total={stats.total}
-              remaining={0}
-              estimatedMinutes={etaFinRuta ?? 0}
-            />
-
-            <MapCard
-              paradas={paradasVisibles}
-              ubicacionBus={ubicacionBus}
-              recorridoActivo={routeActive}
-              polylineCoordinates={polylineRestante}
-              ubicacionColegio={ubicacionColegio}
-              mostrarUbicacionChofer={true}
-              ubicacionChofer={ubicacionChofer}
-            />
-
-            <View style={{ marginHorizontal: 16, marginTop: 16 }}>
+            {/* Iniciar recorrido */}
+            {recorridoActual && (
               <TouchableOpacity
-                onPress={handleFinalizarRecorrido}
+                onPress={handleIniciarRecorrido}
                 activeOpacity={0.8}
                 style={{
-                  backgroundColor: "#EF4444",
+                  backgroundColor: Colors.tecnibus[600],
                   borderRadius: 16,
                   paddingVertical: 16,
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "center",
-                  shadowColor: "#EF4444",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 6,
+                  gap: 10,
+                  shadowColor: Colors.tecnibus[600],
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.35,
+                  shadowRadius: 8,
                   elevation: 4,
                 }}
               >
-                <Square size={18} color="#ffffff" strokeWidth={2.5} />
-                <Text
-                  className="font-bold"
-                  style={{
-                    fontSize: 15,
-                    color: "#ffffff",
-                    marginLeft: 8,
-                  }}
-                >
-                  Finalizar Recorrido
+                <Play size={18} color="#ffffff" strokeWidth={2.5} fill="#ffffff" />
+                <Text style={{ color: "#ffffff", fontWeight: "700", fontSize: 16, letterSpacing: 0.3 }}>
+                  Iniciar Recorrido
                 </Text>
               </TouchableOpacity>
-            </View>
-          </>
-        ) : (
-          <>
-            {/* Route not active: start button */}
-            <View
-              style={{
-                backgroundColor: "#ffffff",
-                borderRadius: 20,
-                padding: 24,
-                marginHorizontal: 16,
-                marginTop: -20,
-                alignItems: "center",
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.1,
-                shadowRadius: 16,
-                elevation: 8,
-              }}
-            >
-              <Bus size={48} color={Colors.tecnibus[400]} strokeWidth={1.5} />
-              <Text
-                className="font-bold"
-                style={{
-                  fontSize: 18,
-                  color: "#1F2937",
-                  marginTop: 16,
-                }}
-              >
-                {recorridoActual?.nombre_ruta || "Selecciona un recorrido"}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: "#6B7280",
-                  textAlign: "center",
-                  marginTop: 4,
-                }}
-              >
-                {recorridoActual
-                  ? `${recorridoActual.hora_inicio} - ${recorridoActual.hora_fin}${recorridoActual.descripcion ? ` • ${recorridoActual.descripcion}` : ""}`
-                  : "No hay recorridos asignados"}
-              </Text>
-
-              {loading ? (
-                <ActivityIndicator
-                  size="small"
-                  color={Colors.tecnibus[600]}
-                  style={{ marginTop: 12 }}
-                />
-              ) : (
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: "#9CA3AF",
-                    marginTop: 8,
-                  }}
-                >
-                  {estudiantes.length} estudiantes en esta ruta
-                </Text>
-              )}
-
-              {recorridoActual && (
-                <TouchableOpacity
-                  onPress={handleIniciarRecorrido}
-                  activeOpacity={0.8}
-                  style={{
-                    backgroundColor: Colors.tecnibus[600],
-                    borderRadius: 16,
-                    paddingVertical: 16,
-                    paddingHorizontal: 32,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginTop: 20,
-                    width: "100%",
-                    shadowColor: Colors.tecnibus[600],
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.35,
-                    shadowRadius: 6,
-                    elevation: 4,
-                  }}
-                >
-                  <Play size={20} color="#ffffff" strokeWidth={2.5} />
-                  <Text
-                    className="font-bold"
-                    style={{
-                      fontSize: 16,
-                      color: "#ffffff",
-                      marginLeft: 8,
-                    }}
-                  >
-                    Iniciar Recorrido
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              {recorridos.length > 1 && (
-                <TouchableOpacity
-                  onPress={() => setShowRecorridoSelector(true)}
-                  activeOpacity={0.7}
-                  style={{ marginTop: 12 }}
-                >
-                  <Text
-                    className="font-semibold"
-                    style={{
-                      fontSize: 14,
-                      color: Colors.tecnibus[600],
-                    }}
-                  >
-                    Cambiar recorrido
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Map preview when inactive */}
-            {paradasVisibles.length > 0 && (
-              <View style={{ marginTop: 16 }}>
-                <MapCard
-                  paradas={paradasVisibles}
-                  ubicacionBus={null}
-                  recorridoActivo={false}
-                  ubicacionColegio={ubicacionColegio}
-                  mostrarUbicacionChofer={true}
-                  ubicacionChofer={ubicacionChofer}
-                />
-              </View>
             )}
-          </>
-        )}
 
-        {/* GPS tracking indicator */}
-        {routeActive && tracking && (
-          <View
-            className="flex-row items-center justify-center"
-            style={{ marginTop: 12 }}
-          >
-            <View
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: "#10B981",
-                marginRight: 6,
-              }}
-            />
-            <Text style={{ fontSize: 12, color: "#6B7280" }}>GPS activo</Text>
+            {recorridos.length > 1 && (
+              <TouchableOpacity
+                onPress={() => setShowRecorridoSelector(true)}
+                activeOpacity={0.7}
+                style={{ marginTop: 10, alignItems: "center" }}
+              >
+                <Text style={{ fontSize: 13, color: Colors.tecnibus[600], fontWeight: "600" }}>
+                  Cambiar recorrido
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
-      </ScrollView>
+      </View>
 
-      {/* Recorrido selector modal */}
+      {/* ── Modals ── */}
       <RecorridoSelector
         visible={showRecorridoSelector}
         recorridos={recorridos}
         selectedId={recorridoActual?.id}
-        onSelect={(rec) => {
-          haptic.light();
-          setRecorridoActual(rec);
-          setShowRecorridoSelector(false);
-        }}
+        onSelect={(rec) => { haptic.light(); setRecorridoActual(rec); setShowRecorridoSelector(false); }}
         onClose={() => setShowRecorridoSelector(false)}
       />
 
-      {/* GPS error alert */}
+      {/* GPS error */}
       {errorGPS && (
-        <View
-          style={{
-            position: "absolute",
-            bottom: 100,
-            left: 16,
-            right: 16,
-            backgroundColor: "#EF4444",
-            padding: 12,
-            borderRadius: 16,
-          }}
-        >
-          <Text
-            className="font-semibold"
-            style={{
-              color: "#ffffff",
-              fontSize: 13,
-              textAlign: "center",
-            }}
-          >
+        <View style={{
+          position: "absolute", bottom: 100, left: 16, right: 16,
+          backgroundColor: "#EF4444", padding: 12, borderRadius: 16,
+        }}>
+          <Text style={{ color: "#ffffff", fontSize: 13, textAlign: "center", fontWeight: "600" }}>
             {errorGPS}
           </Text>
         </View>
       )}
 
-      {/* Loading overlay: Optimizando ruta */}
+      {/* Overlay: Optimizando ruta */}
       {optimizandoRuta && (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 999,
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: "#ffffff",
-              borderRadius: 20,
-              padding: 32,
-              alignItems: "center",
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 16,
-              elevation: 10,
-            }}
-          >
+        <View style={{
+          position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.7)",
+          justifyContent: "center", alignItems: "center", zIndex: 999,
+        }}>
+          <View style={{ backgroundColor: "#ffffff", borderRadius: 20, padding: 32, alignItems: "center" }}>
             <ActivityIndicator size="large" color={Colors.tecnibus[600]} />
-            <Text
-              className="font-bold"
-              style={{
-                fontSize: 18,
-                color: "#1F2937",
-                marginTop: 16,
-              }}
-            >
+            <Text style={{ fontSize: 18, fontWeight: "800", color: "#1F2937", marginTop: 16 }}>
               Optimizando ruta...
             </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                color: "#6B7280",
-                marginTop: 8,
-                textAlign: "center",
-              }}
-            >
+            <Text style={{ fontSize: 14, color: "#6B7280", marginTop: 8, textAlign: "center" }}>
               Calculando mejor recorrido{"\n"}con Google Maps
             </Text>
           </View>
         </View>
       )}
 
-      {/* Bottom navigation */}
+      {/* ── Bottom navigation ── */}
       <BottomNavigation
         activeTab="home"
         onHomePress={() => {}}
