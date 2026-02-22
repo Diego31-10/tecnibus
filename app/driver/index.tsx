@@ -39,6 +39,7 @@ import { supabase } from "@/lib/services/supabase";
 import type { UbicacionActual } from "@/lib/services/ubicaciones.service";
 import { haptic } from "@/lib/utils/haptics";
 import * as Location from "expo-location";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
   Bus,
@@ -663,22 +664,36 @@ export default function DriverHomeScreen() {
         </View>
       )}
 
-      {/* ── CAPA 4: Bottom card — flotante (igual que BottomNavigation) ── */}
+      {/* ── CAPA 4: Bottom card — mismo estilo glass que BottomNavigation ── */}
       <View style={{
         position: "absolute",
-        left: 14, right: 14, bottom: BOTTOM_CARD_BOTTOM,
-        backgroundColor: "#ffffff",
-        borderRadius: 24,
-        paddingHorizontal: 18,
-        paddingTop: 16,
-        paddingBottom: 16,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.12,
-        shadowRadius: 16,
-        elevation: 16,
+        left: 30, right: 30, bottom: BOTTOM_CARD_BOTTOM,
+        borderRadius: 28,
+        shadowColor: Colors.tecnibus[800],
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        elevation: 14,
         zIndex: 5,
       }}>
+        <LinearGradient
+          colors={["rgba(235, 248, 255, 0.95)", "rgba(244, 250, 253, 0.97)", "rgba(255, 255, 255, 0.93)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            borderRadius: 28,
+            borderWidth: 1,
+            borderColor: "rgba(209, 235, 247, 0.6)",
+            paddingHorizontal: 18,
+            paddingTop: 16,
+            paddingBottom: 16,
+          }}
+        >
+          {/* Inner highlight — igual que BottomNavigation */}
+          <View style={{
+            position: "absolute", top: 1, left: 20, right: 20,
+            height: 1, backgroundColor: "rgba(255, 255, 255, 0.8)", borderRadius: 1,
+          }} />
 
         {/* STATE: Ruta completada */}
         {rutaCompletada && (
@@ -848,7 +863,7 @@ export default function DriverHomeScreen() {
         {/* STATE: Pre-recorrido */}
         {!rutaCompletada && !loadingRecorridos && recorridos.length > 0 && !routeActive && (
           <View>
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 14 }}>
               <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.tecnibus[100], alignItems: "center", justifyContent: "center", marginRight: 12 }}>
                 <Bus size={22} color={Colors.tecnibus[600]} strokeWidth={2} />
               </View>
@@ -866,9 +881,13 @@ export default function DriverHomeScreen() {
               {loading ? (
                 <ActivityIndicator size="small" color={Colors.tecnibus[500]} />
               ) : (
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.tecnibus[600] }}>{estudiantes.length}</Text>
-                  <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.tecnibus[500] }}>estudiantes</Text>
+                <View style={{
+                  flexDirection: "row", alignItems: "center", gap: 4,
+                  backgroundColor: "rgba(209, 235, 247, 0.5)",
+                  borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7,
+                }}>
+                  <Text style={{ fontSize: 18, fontWeight: "800", color: Colors.tecnibus[600] }}>{estudiantes.length}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: "600", color: Colors.tecnibus[500] }}> estudiantes</Text>
                 </View>
               )}
             </View>
@@ -906,6 +925,7 @@ export default function DriverHomeScreen() {
             )}
           </View>
         )}
+        </LinearGradient>
       </View>
 
       {/* ── Modals ── */}

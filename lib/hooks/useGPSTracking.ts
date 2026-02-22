@@ -91,7 +91,7 @@ export function useGPSTracking({
   const consecutiveStopsRef = useRef<number>(0);
   const movementStateRef = useRef<MovementState>('detenido');
 
-  // Solicitar permisos al montar
+  // Solicitar permisos y obtener posición inicial inmediata
   useEffect(() => {
     (async () => {
       try {
@@ -101,6 +101,20 @@ export function useGPSTracking({
           return;
         }
         setPermisoConcedido(true);
+
+        // Posición inmediata para mostrar el marcador sin esperar watchPositionAsync
+        // (watchPositionAsync con distanceInterval>0 no dispara si el usuario está parado)
+        const pos = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        const { latitude, longitude, speed, heading } = pos.coords;
+        setUbicacionActual({
+          latitude,
+          longitude,
+          speed: speed != null ? speed * 3.6 : null,
+          heading: heading ?? null,
+          bearing: 0,
+        });
       } catch {
         setError('Error al solicitar permisos de ubicación');
       }
@@ -184,8 +198,9 @@ export function useGPSTracking({
           // else: lastBearingRef queda congelado — sin snap a 0° al detenerse
 
           // PASO F: Throttle de setState — evitar renders cuando no hay cambio real
+          // Siempre actualizar en la primera posición (prev = null) para mostrar el marcador
           const bearingDiff = Math.abs(((lastBearingRef.current - prevBearing + 540) % 360) - 180);
-          if (distance < 2 && bearingDiff < 3) {
+          if (prev && distance < 2 && bearingDiff < 3) {
             prevPositionRef.current = { lat: latitude, lng: longitude, timestamp };
             return;
           }
