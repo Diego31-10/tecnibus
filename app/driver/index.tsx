@@ -9,6 +9,7 @@ import {
 } from "@/features/driver";
 import { Colors } from "@/lib/constants/colors";
 import { useGeofencing } from "@/lib/hooks/useGeofencing";
+import type { UbicacionLocal } from "@/lib/hooks/useGPSTracking";
 import { useGPSTracking } from "@/lib/hooks/useGPSTracking";
 import {
   getRecorridosHoy,
@@ -19,12 +20,7 @@ import {
   marcarAusente,
   type EstudianteConAsistencia,
 } from "@/lib/services/asistencias.service";
-import {
-  finalizarRecorrido,
-  getEstadoRecorrido,
-  guardarPolylineRuta,
-  iniciarRecorrido,
-} from "@/lib/services/recorridos.service";
+import { getUbicacionColegio } from "@/lib/services/configuracion.service";
 import {
   calcularDistancia,
   calcularETAsRuta,
@@ -32,16 +28,30 @@ import {
   marcarEstudianteCompletado,
 } from "@/lib/services/geocercas.service";
 import { sendPushToParents } from "@/lib/services/notifications.service";
-import { getParadasByRuta, calcularRutaOptimizada, type Parada } from "@/lib/services/rutas.service";
-import { getUbicacionColegio } from "@/lib/services/configuracion.service";
+import {
+  finalizarRecorrido,
+  getEstadoRecorrido,
+  guardarPolylineRuta,
+  iniciarRecorrido,
+} from "@/lib/services/recorridos.service";
+import {
+  calcularRutaOptimizada,
+  getParadasByRuta,
+  type Parada,
+} from "@/lib/services/rutas.service";
 import { supabase } from "@/lib/services/supabase";
 import type { UbicacionActual } from "@/lib/services/ubicaciones.service";
-import type { UbicacionLocal } from "@/lib/hooks/useGPSTracking";
 import { haptic } from "@/lib/utils/haptics";
-import { useRouter } from "expo-router";
-import { Bus, CheckCircle2, MapPinOff, Play, Square } from "lucide-react-native";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Location from "expo-location";
+import { useRouter } from "expo-router";
+import {
+  Bus,
+  CheckCircle2,
+  MapPinOff,
+  Play,
+  Square,
+} from "lucide-react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -83,12 +93,20 @@ export default function DriverHomeScreen() {
     nombre: string;
   } | null>(null);
   // ubicacionChofer se obtiene del hook GPS (watchPositionAsync, incluye heading)
-  const [horaInicioRecorrido, setHoraInicioRecorrido] = useState<string | null>(null);
+  const [horaInicioRecorrido, setHoraInicioRecorrido] = useState<string | null>(
+    null,
+  );
   const [rutaCompletada, setRutaCompletada] = useState(false);
-  const [horaLlegadaColegio, setHoraLlegadaColegio] = useState<string | null>(null);
+  const [horaLlegadaColegio, setHoraLlegadaColegio] = useState<string | null>(
+    null,
+  );
 
   // GPS tracking con watchPositionAsync: fluido, con heading, sin polling
-  const { error: errorGPS, tracking, ubicacionActual } = useGPSTracking({
+  const {
+    error: errorGPS,
+    tracking,
+    ubicacionActual,
+  } = useGPSTracking({
     idAsignacion: recorridoActual?.id || null,
     idChofer: profile?.id || "",
     recorridoActivo: routeActive,
@@ -174,7 +192,8 @@ export default function DriverHomeScreen() {
 
   // Parada más cercana por GPS (para el card "en camino")
   const paradaMasCercana = useMemo(() => {
-    if (!ubicacionChofer || paradasVisibles.length === 0 || !routeActive) return null;
+    if (!ubicacionChofer || paradasVisibles.length === 0 || !routeActive)
+      return null;
 
     // Solo considerar paradas que tienen estudiantes pendientes
     const paradasPendientes = paradasVisibles.filter((p) => {
@@ -210,7 +229,9 @@ export default function DriverHomeScreen() {
 
   // ETAs acumulados por parada + fin de ruta (una sola llamada, consistentes entre sí)
   // Ruta: chofer → parada1 → parada2 → ... → colegio
-  const [etasPorParada, setEtasPorParada] = useState<Record<string, number>>({});
+  const [etasPorParada, setEtasPorParada] = useState<Record<string, number>>(
+    {},
+  );
   const [etaFinRuta, setEtaFinRuta] = useState<number | null>(null);
 
   useEffect(() => {
@@ -221,21 +242,30 @@ export default function DriverHomeScreen() {
     }
     // Paradas pendientes ordenadas por distancia desde el chofer (más cercana primero).
     // No usar `orden` de DB porque refleja el orden de ingreso, no la ruta optimizada.
-    const paradasPendientes = paradasVisibles.filter((p) =>
-      estudiantes.some(
-        (e) => e.parada?.id === p.id && e.estado !== 'ausente' && e.estado !== 'completado',
-      ),
-    ).sort((a, b) => {
-      const distA = calcularDistancia(
-        ubicacionChofer.latitude, ubicacionChofer.longitude,
-        Number(a.latitud), Number(a.longitud),
-      );
-      const distB = calcularDistancia(
-        ubicacionChofer.latitude, ubicacionChofer.longitude,
-        Number(b.latitud), Number(b.longitud),
-      );
-      return distA - distB;
-    });
+    const paradasPendientes = paradasVisibles
+      .filter((p) =>
+        estudiantes.some(
+          (e) =>
+            e.parada?.id === p.id &&
+            e.estado !== "ausente" &&
+            e.estado !== "completado",
+        ),
+      )
+      .sort((a, b) => {
+        const distA = calcularDistancia(
+          ubicacionChofer.latitude,
+          ubicacionChofer.longitude,
+          Number(a.latitud),
+          Number(a.longitud),
+        );
+        const distB = calcularDistancia(
+          ubicacionChofer.latitude,
+          ubicacionChofer.longitude,
+          Number(b.latitud),
+          Number(b.longitud),
+        );
+        return distA - distB;
+      });
 
     if (paradasPendientes.length === 0 && !ubicacionColegio) {
       setEtasPorParada({});
@@ -244,13 +274,18 @@ export default function DriverHomeScreen() {
     }
 
     // Cache key basado en IDs de paradas pendientes para detectar cambios
-    const cacheKey = `chofer-${paradasPendientes.map(p => p.id).join(',')}`;
+    const cacheKey = `chofer-${paradasPendientes.map((p) => p.id).join(",")}`;
 
     calcularETAsRuta(
       ubicacionChofer.latitude,
       ubicacionChofer.longitude,
       paradasPendientes,
-      ubicacionColegio ? { latitud: ubicacionColegio.latitud, longitud: ubicacionColegio.longitud } : null,
+      ubicacionColegio
+        ? {
+            latitud: ubicacionColegio.latitud,
+            longitud: ubicacionColegio.longitud,
+          }
+        : null,
       cacheKey,
     ).then(({ porParada, destinoFinal }) => {
       setEtasPorParada(porParada);
@@ -260,14 +295,17 @@ export default function DriverHomeScreen() {
       // Formato: { "parada_uuid": minutos, ..., "colegio": minutos }
       if (recorridoActual?.id) {
         supabase
-          .from('estados_recorrido')
+          .from("estados_recorrido")
           .update({ eta_paradas: { ...porParada, colegio: destinoFinal } })
-          .eq('id_asignacion', recorridoActual.id)
+          .eq("id_asignacion", recorridoActual.id)
           .then(({ error }) => {
             if (error) {
-              console.error('❌ Error publicando ETAs en DB:', error.message);
+              console.error("❌ Error publicando ETAs en DB:", error.message);
             } else {
-              console.log('✅ ETAs publicados en DB:', { paradas: Object.keys(porParada).length, colegio: destinoFinal });
+              console.log("✅ ETAs publicados en DB:", {
+                paradas: Object.keys(porParada).length,
+                colegio: destinoFinal,
+              });
             }
           });
       }
@@ -278,8 +316,8 @@ export default function DriverHomeScreen() {
     routeActive,
     // Recalcular cuando cambia el conjunto de paradas pendientes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    paradasVisibles.map(p => p.id).join(','),
-    estudiantes.map(e => e.estado).join(','),
+    paradasVisibles.map((p) => p.id).join(","),
+    estudiantes.map((e) => e.estado).join(","),
     ubicacionColegio?.latitud,
     ubicacionColegio?.longitud,
     recorridoActual?.id,
@@ -299,7 +337,8 @@ export default function DriverHomeScreen() {
 
   // Polyline dinámica: solo los puntos desde la posición actual del chofer hacia adelante
   const polylineRestante = useMemo(() => {
-    if (!polylineCoordinates.length || !ubicacionChofer) return polylineCoordinates;
+    if (!polylineCoordinates.length || !ubicacionChofer)
+      return polylineCoordinates;
     let minDist = Infinity;
     let closestIdx = 0;
     for (let i = 0; i < polylineCoordinates.length; i++) {
@@ -312,7 +351,11 @@ export default function DriverHomeScreen() {
       }
     }
     return polylineCoordinates.slice(closestIdx);
-  }, [polylineCoordinates, ubicacionChofer?.latitude, ubicacionChofer?.longitude]);
+  }, [
+    polylineCoordinates,
+    ubicacionChofer?.latitude,
+    ubicacionChofer?.longitude,
+  ]);
 
   // Cargar ubicación del colegio
   useEffect(() => {
@@ -327,7 +370,6 @@ export default function DriverHomeScreen() {
 
     cargarUbicacionColegio();
   }, []);
-
 
   // Load recorridos
   const cargarRecorridos = useCallback(async () => {
@@ -467,7 +509,7 @@ export default function DriverHomeScreen() {
       {
         tipo: "geocerca_entrada",
         id_estudiante: estudianteGeocerca.id_estudiante,
-      }
+      },
     ).catch((err) => {
       console.warn("Error enviando push de geocerca entrada:", err);
     });
@@ -490,7 +532,7 @@ export default function DriverHomeScreen() {
         {
           tipo: "geocerca_salida",
           id_estudiante: prevEst.id_estudiante,
-        }
+        },
       ).catch((err) => {
         console.warn("Error enviando push de geocerca salida:", err);
       });
@@ -512,26 +554,26 @@ export default function DriverHomeScreen() {
       ubicacionColegio.longitud,
     );
 
-    if (distancia > 100) return;
+    if (distancia > 50) return;
 
     // Dentro del radio del colegio → finalizar ruta automáticamente
     colegioGeofenceActivadoRef.current = true;
-    console.log('🏫 GEOCERCA COLEGIO:', { distancia: Math.round(distancia) });
+    console.log("🏫 GEOCERCA COLEGIO:", { distancia: Math.round(distancia) });
 
-    const horaLlegada = new Date().toLocaleTimeString('es-EC', {
-      hour: '2-digit',
-      minute: '2-digit',
+    const horaLlegada = new Date().toLocaleTimeString("es-EC", {
+      hour: "2-digit",
+      minute: "2-digit",
       hour12: true,
-      timeZone: 'America/Guayaquil',
+      timeZone: "America/Guayaquil",
     });
 
     if (recorridoActual?.id) {
       sendPushToParents(
         recorridoActual.id,
-        '🏫 Llegaron al colegio',
+        "🏫 Llegaron al colegio",
         `Tus hijos llegaron al colegio a las ${horaLlegada}. ¡Buen día escolar!`,
-        { tipo: 'llegada_colegio', hora: horaLlegada },
-      ).catch((err) => console.warn('Error push colegio:', err));
+        { tipo: "llegada_colegio", hora: horaLlegada },
+      ).catch((err) => console.warn("Error push colegio:", err));
 
       finalizarRecorrido(recorridoActual.id)
         .then((success) => {
@@ -542,7 +584,9 @@ export default function DriverHomeScreen() {
             haptic.success();
           }
         })
-        .catch((err) => console.error('Error finalizando recorrido (colegio):', err));
+        .catch((err) =>
+          console.error("Error finalizando recorrido (colegio):", err),
+        );
     }
   }, [
     enCaminoAlColegio,
@@ -646,7 +690,7 @@ export default function DriverHomeScreen() {
         setOptimizandoRuta(false);
         Alert.alert(
           "Permisos necesarios",
-          "Necesitas habilitar permisos de ubicación para iniciar el recorrido"
+          "Necesitas habilitar permisos de ubicación para iniciar el recorrido",
         );
         return;
       }
@@ -666,7 +710,6 @@ export default function DriverHomeScreen() {
       // 3. Calcular ruta optimizada (solo paradas con estudiantes activos)
       const paradasParaOptimizar = paradasVisibles;
       if (paradasParaOptimizar.length > 0) {
-
         try {
           const resultado = await calcularRutaOptimizada(
             ubicacionChofer,
@@ -675,7 +718,7 @@ export default function DriverHomeScreen() {
             {
               lat: ubicacionColegio.latitud,
               lng: ubicacionColegio.longitud,
-            }
+            },
           );
 
           if (resultado) {
@@ -683,17 +726,24 @@ export default function DriverHomeScreen() {
             setParadas(resultado.paradasOptimizadas);
             setPolylineCoordinates(resultado.polylineCoordinates);
             console.log(
-              `✅ Ruta optimizada: ${resultado.paradasOptimizadas.length} paradas, ${(resultado.distanciaTotal / 1000).toFixed(1)} km, ${Math.round(resultado.duracionTotal / 60)} min`
+              `✅ Ruta optimizada: ${resultado.paradasOptimizadas.length} paradas, ${(resultado.distanciaTotal / 1000).toFixed(1)} km, ${Math.round(resultado.duracionTotal / 60)} min`,
             );
 
             // Guardar polyline en la BD para que el padre pueda verlo
-            console.log('💾 Guardando polyline:', {
+            console.log("💾 Guardando polyline:", {
               id_asignacion: recorridoActual.id,
               cantidad_puntos: resultado.polylineCoordinates.length,
               primeros_3: resultado.polylineCoordinates.slice(0, 3),
             });
-            const guardado = await guardarPolylineRuta(recorridoActual.id, resultado.polylineCoordinates);
-            console.log(guardado ? '✅ Polyline guardado en BD' : '❌ Error guardando polyline');
+            const guardado = await guardarPolylineRuta(
+              recorridoActual.id,
+              resultado.polylineCoordinates,
+            );
+            console.log(
+              guardado
+                ? "✅ Polyline guardado en BD"
+                : "❌ Error guardando polyline",
+            );
           } else {
             console.warn("⚠️ No se pudo optimizar ruta, usando orden actual");
           }
@@ -761,17 +811,18 @@ export default function DriverHomeScreen() {
 
   const formatHoraEC = (isoString: string) => {
     const date = new Date(isoString);
-    return date.toLocaleTimeString('es-EC', {
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleTimeString("es-EC", {
+      hour: "2-digit",
+      minute: "2-digit",
       hour12: true,
-      timeZone: 'America/Guayaquil',
+      timeZone: "America/Guayaquil",
     });
   };
 
-  const headerSubtitle = routeActive && horaInicioRecorrido
-    ? `${recorridoActual?.nombre_ruta || "Recorrido"} · Salió ${formatHoraEC(horaInicioRecorrido)}`
-    : recorridoActual?.nombre_ruta || "Sin recorrido";
+  const headerSubtitle =
+    routeActive && horaInicioRecorrido
+      ? `${recorridoActual?.nombre_ruta || "Recorrido"} · Salió ${formatHoraEC(horaInicioRecorrido)}`
+      : recorridoActual?.nombre_ruta || "Sin recorrido";
 
   return (
     <View className="flex-1" style={{ backgroundColor: "#F8FAFB" }}>
@@ -857,7 +908,9 @@ export default function DriverHomeScreen() {
                   alignItems: "center",
                 }}
               >
-                <Text style={{ fontSize: 12, color: "#059669" }}>Llegada al colegio</Text>
+                <Text style={{ fontSize: 12, color: "#059669" }}>
+                  Llegada al colegio
+                </Text>
                 <Text
                   className="font-bold"
                   style={{ fontSize: 26, color: "#065F46", marginTop: 2 }}
@@ -1020,7 +1073,11 @@ export default function DriverHomeScreen() {
                   marginBottom: 12,
                 }}
               >
-                <MapPinOff size={32} color={Colors.tecnibus[400]} strokeWidth={1.5} />
+                <MapPinOff
+                  size={32}
+                  color={Colors.tecnibus[400]}
+                  strokeWidth={1.5}
+                />
               </View>
               <Text
                 className="font-bold"
@@ -1049,7 +1106,10 @@ export default function DriverHomeScreen() {
                       marginTop: 8,
                     }}
                   >
-                    Proxima parada: {paradaMasCercana.parada.nombre || paradaMasCercana.parada.direccion || "Sin nombre"}
+                    Proxima parada:{" "}
+                    {paradaMasCercana.parada.nombre ||
+                      paradaMasCercana.parada.direccion ||
+                      "Sin nombre"}
                   </Text>
                   <Text
                     className="font-semibold"
@@ -1063,7 +1123,9 @@ export default function DriverHomeScreen() {
                       ? `${(paradaMasCercana.distanciaMetros / 1000).toFixed(1)} km`
                       : `${Math.round(paradaMasCercana.distanciaMetros)}m`}
                     {" de distancia"}
-                    {etaProximaParada !== null ? ` · ~${etaProximaParada} min` : ""}
+                    {etaProximaParada !== null
+                      ? ` · ~${etaProximaParada} min`
+                      : ""}
                   </Text>
                   {etaFinRuta !== null && (
                     <Text
@@ -1192,7 +1254,12 @@ export default function DriverHomeScreen() {
               </Text>
               {ubicacionColegio && (
                 <Text
-                  style={{ fontSize: 13, color: Colors.tecnibus[600], marginTop: 4, fontWeight: "600" }}
+                  style={{
+                    fontSize: 13,
+                    color: Colors.tecnibus[600],
+                    marginTop: 4,
+                    fontWeight: "600",
+                  }}
                 >
                   Destino: {ubicacionColegio.nombre}
                 </Text>
@@ -1214,7 +1281,13 @@ export default function DriverHomeScreen() {
                   >
                     ~{etaFinRuta} min
                   </Text>
-                  <Text style={{ fontSize: 11, color: Colors.tecnibus[500], marginTop: 2 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: Colors.tecnibus[500],
+                      marginTop: 2,
+                    }}
+                  >
                     al colegio
                   </Text>
                 </View>
