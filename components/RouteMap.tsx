@@ -41,14 +41,13 @@ type RouteMapProps = {
   ubicacionBus: UbicacionActual | null;
   recorridoActivo: boolean;
   polylineCoordinates?: { latitude: number; longitude: number }[];
-  polylineRecorrido?: { latitude: number; longitude: number }[];
   ubicacionColegio?: {
     latitud: number;
     longitud: number;
     nombre: string;
   } | null;
   mostrarUbicacionChofer?: boolean; // Para mostrar ubicación del chofer siempre (en vista chofer)
-  ubicacionChofer?: { latitude: number; longitude: number } | null; // Ubicación actual del chofer
+  ubicacionChofer?: { latitude: number; longitude: number; heading?: number | null } | null; // Ubicación actual del chofer
   showsUserLocation?: boolean; // Controla si se muestra el círculo azul del usuario (default: true)
 };
 
@@ -57,7 +56,6 @@ export default function RouteMap({
   ubicacionBus,
   recorridoActivo,
   polylineCoordinates,
-  polylineRecorrido,
   ubicacionColegio,
   mostrarUbicacionChofer = false,
   ubicacionChofer = null,
@@ -66,17 +64,6 @@ export default function RouteMap({
   const mapRef = useRef<MapView>(null);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<Region | null>(null);
-
-  // DEBUG: Log props para entender por qué no se renderiza el marker
-  console.log("🗺️ RouteMap props:", {
-    recorridoActivo,
-    ubicacionBus,
-    mostrarUbicacionChofer,
-    ubicacionChofer,
-    hayParadas: paradas.length,
-    hayPolyline: polylineCoordinates?.length || 0,
-    showsUserLocation,
-  });
 
   // Obtener ubicación del dispositivo solo si showsUserLocation es true (para chofer)
   useEffect(() => {
@@ -139,9 +126,25 @@ export default function RouteMap({
     }
   }, [paradas]);
 
-  // Auto-centrar en el bus cuando se mueve
+  // Auto-seguir al chofer en vista chofer (con rotación por heading solo cuando se mueve)
   useEffect(() => {
-    if (ubicacionBus && mapRef.current && recorridoActivo) {
+    if (!mostrarUbicacionChofer || !ubicacionChofer || !mapRef.current || !recorridoActivo) return;
+    // Solo rotar el mapa si el bus va a más de 5 km/h — evita giros erráticos al estar quieto
+    const enMovimiento = (ubicacionChofer.speed ?? 0) > 5;
+    mapRef.current.animateCamera(
+      {
+        center: { latitude: ubicacionChofer.latitude, longitude: ubicacionChofer.longitude },
+        zoom: 17,
+        heading: enMovimiento ? (ubicacionChofer.heading ?? 0) : undefined,
+        pitch: 0,
+      },
+      { duration: 1500 },
+    );
+  }, [ubicacionChofer?.latitude, ubicacionChofer?.longitude, mostrarUbicacionChofer, recorridoActivo]);
+
+  // Auto-centrar en el bus cuando se mueve (vista padre)
+  useEffect(() => {
+    if (ubicacionBus && mapRef.current && recorridoActivo && !mostrarUbicacionChofer) {
       mapRef.current.animateCamera(
         {
           center: {
@@ -153,7 +156,7 @@ export default function RouteMap({
         { duration: 1000 },
       );
     }
-  }, [ubicacionBus, recorridoActivo]);
+  }, [ubicacionBus, recorridoActivo, mostrarUbicacionChofer]);
 
   return (
     <View style={styles.container}>
@@ -168,21 +171,10 @@ export default function RouteMap({
         showsCompass={true}
         showsScale={true}
       >
-        {/* Polyline gris: ruta planificada por Google Directions */}
+        {/* Polyline verde: ruta restante (se va consumiendo conforme avanza el bus) */}
         {polylineCoordinates && polylineCoordinates.length > 0 && (
           <Polyline
             coordinates={polylineCoordinates}
-            strokeColor="#9CA3AF"
-            strokeWidth={4}
-            lineCap="round"
-            lineJoin="round"
-          />
-        )}
-
-        {/* Polyline verde: recorrido real del chofer (trail dinámico) */}
-        {polylineRecorrido && polylineRecorrido.length > 1 && (
-          <Polyline
-            coordinates={polylineRecorrido}
             strokeColor="#10B981"
             strokeWidth={5}
             lineCap="round"
@@ -219,19 +211,8 @@ export default function RouteMap({
 
         {/* Marker del bus en tiempo real (cuando recorrido activo) */}
         {(() => {
-          console.log("🔍 Evaluando condiciones de marker:", {
-            recorridoActivo,
-            tieneUbicacionBus: !!ubicacionBus,
-            mostrarUbicacionChofer,
-            tieneUbicacionChofer: !!ubicacionChofer,
-          });
 
           if (recorridoActivo && ubicacionBus) {
-            console.log("🚌 Renderizando marker con recorrido activo:", {
-              lat: ubicacionBus.latitud,
-              lng: ubicacionBus.longitud,
-              velocidad: ubicacionBus.velocidad,
-            });
             return (
               <Marker
                 coordinate={{
@@ -246,6 +227,7 @@ export default function RouteMap({
                 }
                 anchor={{ x: 0.5, y: 0.5 }}
                 flat={true}
+                rotation={(ubicacionBus.velocidad ?? 0) > 5 ? (ubicacionBus.heading ?? 0) : 0}
               >
                 <BusMarker />
               </Marker>
@@ -253,10 +235,6 @@ export default function RouteMap({
           }
 
           if (mostrarUbicacionChofer && ubicacionChofer) {
-            console.log(
-              "📍 Renderizando marker chofer sin recorrido:",
-              ubicacionChofer,
-            );
             return (
               <Marker
                 coordinate={ubicacionChofer}
@@ -264,13 +242,13 @@ export default function RouteMap({
                 description="Ubicación actual del chofer"
                 anchor={{ x: 0.5, y: 0.5 }}
                 flat={true}
+                rotation={(ubicacionChofer.speed ?? 0) > 5 ? (ubicacionChofer.heading ?? 0) : 0}
               >
                 <BusMarker />
               </Marker>
             );
           }
 
-          console.log("⚠️ Ninguna condición se cumplió, no se muestra marker");
           return null;
         })()}
       </MapView>
