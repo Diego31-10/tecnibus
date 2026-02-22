@@ -2,7 +2,7 @@ import { Colors } from "@/lib/constants/colors";
 import type { Parada } from "@/lib/services/rutas.service";
 import type { UbicacionActual } from "@/lib/services/ubicaciones.service";
 import * as Location from "expo-location";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -20,14 +20,14 @@ import MapView, {
 // Resolver la imagen de la buseta para React Native Maps
 const busImage = require("@/assets/images/bus-upview.png");
 
-// Componente de marker personalizado para la buseta
-const BusMarker = () => (
+// Memoizado para evitar recreación en cada render del mapa padre
+const BusMarker = memo(() => (
   <Image
     source={busImage}
     style={{ width: 35, height: 35 }}
     resizeMode="contain"
   />
-);
+));
 
 const DEFAULT_REGION: Region = {
   latitude: -2.9, // Cuenca, Ecuador
@@ -35,6 +35,21 @@ const DEFAULT_REGION: Region = {
   latitudeDelta: 0.05,
   longitudeDelta: 0.05,
 };
+
+function distanciaMetros(
+  lat1: number, lon1: number,
+  lat2: number, lon2: number,
+): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 type RouteMapProps = {
   paradas: Parada[];
@@ -46,9 +61,15 @@ type RouteMapProps = {
     longitud: number;
     nombre: string;
   } | null;
-  mostrarUbicacionChofer?: boolean; // Para mostrar ubicación del chofer siempre (en vista chofer)
-  ubicacionChofer?: { latitude: number; longitude: number; heading?: number | null } | null; // Ubicación actual del chofer
-  showsUserLocation?: boolean; // Controla si se muestra el círculo azul del usuario (default: true)
+  mostrarUbicacionChofer?: boolean;
+  ubicacionChofer?: {
+    latitude: number;
+    longitude: number;
+    speed?: number | null;
+    heading?: number | null;
+    bearing?: number;        // bearing suavizado del hook useGPSTracking
+  } | null;
+  showsUserLocation?: boolean;
 };
 
 export default function RouteMap({
@@ -64,6 +85,26 @@ export default function RouteMap({
   const mapRef = useRef<MapView>(null);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<Region | null>(null);
+
+  // Detección de interacción del usuario — pausa el auto-follow
+  const isUserInteractingRef = useRef(false);
+  const userInteractingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Última posición animada — para evitar micro-animaciones sin cambio real
+  const lastAnimatedPositionRef = useRef<{
+    lat: number;
+    lng: number;
+    bearing: number;
+  } | null>(null);
+
+  // Limpiar timer de interacción al desmontar
+  useEffect(() => {
+    return () => {
+      if (userInteractingTimerRef.current) {
+        clearTimeout(userInteractingTimerRef.current);
+      }
+    };
+  }, []);
 
   // Obtener ubicación del dispositivo solo si showsUserLocation es true (para chofer)
   useEffect(() => {
@@ -83,7 +124,6 @@ export default function RouteMap({
           longitudeDelta: 0.02,
         };
         setUserLocation(region);
-        // Si no hay paradas, centrar en el usuario (útil para chofer)
         if (paradas.length === 0 && mapRef.current) {
           mapRef.current.animateToRegion(region, 500);
         }
@@ -114,7 +154,6 @@ export default function RouteMap({
   };
 
   const getInitialRegion = (): Region => {
-    // Prioridad: paradas > ubicación usuario (si showsUserLocation) > default
     return getRegionFromParadas() || (showsUserLocation ? userLocation : null) || DEFAULT_REGION;
   };
 
@@ -126,36 +165,82 @@ export default function RouteMap({
     }
   }, [paradas]);
 
-  // Auto-seguir al chofer en vista chofer (con rotación por heading solo cuando se mueve)
+  // Auto-seguir al chofer en vista chofer — con bearing estable y pitch 3D
   useEffect(() => {
     if (!mostrarUbicacionChofer || !ubicacionChofer || !mapRef.current || !recorridoActivo) return;
-    // Solo rotar el mapa si el bus va a más de 5 km/h — evita giros erráticos al estar quieto
-    const enMovimiento = (ubicacionChofer.speed ?? 0) > 5;
+    if (isUserInteractingRef.current) return;
+
+    const bearing = ubicacionChofer.bearing ?? 0;
+
+    // Validar cambio mínimo antes de animar — evita micro-animaciones
+    const prev = lastAnimatedPositionRef.current;
+    if (prev) {
+      const distDelta = distanciaMetros(
+        prev.lat, prev.lng,
+        ubicacionChofer.latitude, ubicacionChofer.longitude,
+      );
+      const bearingDelta = Math.abs(((bearing - prev.bearing + 540) % 360) - 180);
+      if (distDelta < 5 && bearingDelta < 5) return;
+    }
+
+    lastAnimatedPositionRef.current = {
+      lat: ubicacionChofer.latitude,
+      lng: ubicacionChofer.longitude,
+      bearing,
+    };
+
+    const enMovimiento = (ubicacionChofer.speed ?? 0) > 3;
+
     mapRef.current.animateCamera(
       {
         center: { latitude: ubicacionChofer.latitude, longitude: ubicacionChofer.longitude },
         zoom: 17,
-        heading: enMovimiento ? (ubicacionChofer.heading ?? 0) : undefined,
-        pitch: 0,
+        heading: enMovimiento ? bearing : undefined,
+        // undefined → mapa mantiene orientación actual sin snappear al norte
+        pitch: 35,
       },
       { duration: 1500 },
     );
-  }, [ubicacionChofer?.latitude, ubicacionChofer?.longitude, mostrarUbicacionChofer, recorridoActivo]);
+  }, [ubicacionChofer?.latitude, ubicacionChofer?.longitude, ubicacionChofer?.bearing, mostrarUbicacionChofer, recorridoActivo]);
+
+  // Resetear pitch y zoom al finalizar recorrido
+  useEffect(() => {
+    if (!recorridoActivo && mostrarUbicacionChofer && mapRef.current) {
+      lastAnimatedPositionRef.current = null;
+      mapRef.current.animateCamera({ pitch: 0, zoom: 15 }, { duration: 800 });
+    }
+  }, [recorridoActivo]);
 
   // Auto-centrar en el bus cuando se mueve (vista padre)
   useEffect(() => {
-    if (ubicacionBus && mapRef.current && recorridoActivo && !mostrarUbicacionChofer) {
-      mapRef.current.animateCamera(
-        {
-          center: {
-            latitude: ubicacionBus.latitud,
-            longitude: ubicacionBus.longitud,
-          },
-          zoom: 15,
-        },
-        { duration: 1000 },
+    if (!ubicacionBus || !mapRef.current || !recorridoActivo || mostrarUbicacionChofer) return;
+    if (isUserInteractingRef.current) return;
+
+    const prev = lastAnimatedPositionRef.current;
+    if (prev) {
+      const distDelta = distanciaMetros(
+        prev.lat, prev.lng,
+        ubicacionBus.latitud, ubicacionBus.longitud,
       );
+      if (distDelta < 8) return;
     }
+
+    lastAnimatedPositionRef.current = {
+      lat: ubicacionBus.latitud,
+      lng: ubicacionBus.longitud,
+      bearing: 0,
+    };
+
+    mapRef.current.animateCamera(
+      {
+        center: {
+          latitude: ubicacionBus.latitud,
+          longitude: ubicacionBus.longitud,
+        },
+        zoom: 15,
+      },
+      { duration: 1000 },
+    );
   }, [ubicacionBus, recorridoActivo, mostrarUbicacionChofer]);
 
   return (
@@ -170,6 +255,15 @@ export default function RouteMap({
         showsMyLocationButton={true}
         showsCompass={true}
         showsScale={true}
+        onPanDrag={() => {
+          isUserInteractingRef.current = true;
+          if (userInteractingTimerRef.current) {
+            clearTimeout(userInteractingTimerRef.current);
+          }
+          userInteractingTimerRef.current = setTimeout(() => {
+            isUserInteractingRef.current = false;
+          }, 8000);
+        }}
       >
         {/* Polyline verde: ruta restante (se va consumiendo conforme avanza el bus) */}
         {polylineCoordinates && polylineCoordinates.length > 0 && (
@@ -211,7 +305,6 @@ export default function RouteMap({
 
         {/* Marker del bus en tiempo real (cuando recorrido activo) */}
         {(() => {
-
           if (recorridoActivo && ubicacionBus) {
             return (
               <Marker
@@ -242,7 +335,8 @@ export default function RouteMap({
                 description="Ubicación actual del chofer"
                 anchor={{ x: 0.5, y: 0.5 }}
                 flat={true}
-                rotation={(ubicacionChofer.speed ?? 0) > 5 ? (ubicacionChofer.heading ?? 0) : 0}
+                rotation={ubicacionChofer.bearing ?? 0}
+                // bearing viene congelado del hook cuando el bus está parado → sin snap a norte
               >
                 <BusMarker />
               </Marker>
@@ -273,25 +367,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: { marginTop: 8, color: "#6b7280", fontSize: 14 },
-  busMarkerContainer: {
-    width: 35,
-    height: 35,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  busMarker: {
-    width: 35,
-    height: 35,
-  },
-  busFallback: {
-    position: "absolute",
-    width: 35,
-    height: 35,
-    backgroundColor: Colors.tecnibus[600],
-    borderRadius: 18,
-    borderWidth: 3,
-    borderColor: "#ffffff",
-    justifyContent: "center",
-    alignItems: "center",
-  },
 });

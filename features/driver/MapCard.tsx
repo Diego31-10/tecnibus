@@ -14,7 +14,7 @@ interface MapCardProps {
     nombre: string;
   } | null;
   mostrarUbicacionChofer?: boolean;
-  ubicacionChofer?: { latitude: number; longitude: number; heading?: number | null } | null;
+  ubicacionChofer?: { latitude: number; longitude: number; speed?: number | null; heading?: number | null; bearing?: number } | null;
 }
 
 export function MapCard({
