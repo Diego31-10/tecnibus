@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
+  Alert,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -101,9 +102,9 @@ export default function AdminHomeScreen() {
     router.push("/admin/asignaciones");
   };
 
-  const handleConfigPress = () => {
+  const handleReportesPress = () => {
     haptic.light();
-    router.push("/admin/settings");
+    Alert.alert("Próximamente", "Módulo de reportes en desarrollo. 📊");
   };
 
   return (
@@ -178,7 +179,7 @@ export default function AdminHomeScreen() {
                 onRoutesPress={handleRoutesPress}
                 onAnnouncementsPress={handleAnnouncementsPress}
                 onAssignmentsPress={handleAssignmentsPress}
-                onConfigPress={handleConfigPress}
+                onReportesPress={handleReportesPress}
               />
             </Section>
 

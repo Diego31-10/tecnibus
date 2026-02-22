@@ -52,7 +52,7 @@ export function AdminStatsGrid({
           icon={Bus}
           iconColor={Colors.tecnibus[800]}
           iconBgColor={Colors.tecnibus[200]}
-          value={stats.activeBuses}
+          value={stats.totalBuses}
           label="BUSES"
           onPress={onBusesPress}
         />

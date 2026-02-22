@@ -1,20 +1,20 @@
 import { View } from "react-native";
 import { ActionCard } from "@/components/ui/ActionCard";
-import { MapPin, Megaphone, Navigation, Settings } from "lucide-react-native";
+import { BarChart2, MapPin, Megaphone, Navigation } from "lucide-react-native";
 import { Colors } from "@/lib/constants/colors";
 
 interface AdminQuickActionsProps {
   onRoutesPress: () => void;
   onAnnouncementsPress: () => void;
   onAssignmentsPress: () => void;
-  onConfigPress: () => void;
+  onReportesPress: () => void;
 }
 
 export function AdminQuickActions({
   onRoutesPress,
   onAnnouncementsPress,
   onAssignmentsPress,
-  onConfigPress,
+  onReportesPress,
 }: AdminQuickActionsProps) {
   return (
     <View style={{ paddingHorizontal: 20 }}>
@@ -56,12 +56,12 @@ export function AdminQuickActions({
         </View>
         <View className="flex-1">
           <ActionCard
-            icon={Settings}
-            iconColor={Colors.tecnibus[800]}
+            icon={BarChart2}
+            iconColor={Colors.tecnibus[700]}
             iconBgColor={Colors.tecnibus[100]}
-            title="Configuración"
-            description="Ajustes del sistema."
-            onPress={onConfigPress}
+            title="Reportes"
+            description="Estadísticas y análisis."
+            onPress={onReportesPress}
           />
         </View>
       </View>
