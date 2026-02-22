@@ -1,4 +1,5 @@
 import { BottomNavigation } from "@/components/layout/BottomNavigation";
+import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import RouteMap from "@/components/RouteMap";
 import { useAuth } from "@/contexts/AuthContext";
 import { RecorridoSelector } from "@/features/driver";
@@ -38,7 +39,6 @@ import { supabase } from "@/lib/services/supabase";
 import type { UbicacionActual } from "@/lib/services/ubicaciones.service";
 import { haptic } from "@/lib/utils/haptics";
 import * as Location from "expo-location";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
   Bus,
@@ -54,6 +54,7 @@ import {
   Alert,
   Linking,
   StatusBar,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -64,6 +65,8 @@ export default function DriverHomeScreen() {
   const router = useRouter();
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
+  // Altura del header medida via onLayout para posicionar pills correctamente
+  const [headerHeight, setHeaderHeight] = useState(160);
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [routeActive, setRouteActive] = useState(false);
@@ -119,7 +122,7 @@ export default function DriverHomeScreen() {
   // ── Derived stats ──────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     const completed = estudiantes.filter(
-      (e) => e.estado === "presente" || e.estado === "completado",
+      (e) => e.estado === "completado",
     ).length;
     const absent = estudiantes.filter((e) => e.estado === "ausente").length;
     const total = estudiantes.length;
@@ -535,7 +538,10 @@ export default function DriverHomeScreen() {
 
   // ── Derived for bottom card ────────────────────────────────────────────────
   const estaEnGeocerca = !!(routeActive && dentroDeZona && estudianteGeocerca);
-  const hayEstudianteActivo = routeActive && (estaEnGeocerca || !!nextStudent);
+  // Panel estudiante → solo cuando estamos en la geocerca de su parada
+  const hayEstudianteActivo = routeActive && estaEnGeocerca;
+  // Estado intermedio → hay siguiente parada pero aún no llegamos a su geocerca
+  const hayCaminoASiguiente = routeActive && !estaEnGeocerca && !!nextStudent;
 
   const estudianteActivoNombre = estaEnGeocerca
     ? estudianteGeocerca?.nombreCompleto
@@ -550,89 +556,15 @@ export default function DriverHomeScreen() {
     : nextStudent?.id;
 
   // ── Render ─────────────────────────────────────────────────────────────────
+  // Nav bar: bottom=7, altura ≈ 87px. Card flota sobre ella con gap garantizado.
+  const BOTTOM_CARD_BOTTOM = Math.max(insets.bottom + 88, 98);
+
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.tecnibus[50] }}>
+    <View style={{ flex: 1 }}>
       <StatusBar barStyle="light-content" />
 
-      {/* ── HEADER ── */}
-      <LinearGradient
-        colors={[Colors.tecnibus[400], Colors.tecnibus[700]]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.4, y: 1 }}
-        style={{ paddingTop: insets.top + 10, paddingBottom: 18, paddingHorizontal: 20 }}
-      >
-        {/* Row: icon + label | EN CURSO badge */}
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <View style={{ backgroundColor: "rgba(255,255,255,0.22)", borderRadius: 10, padding: 8 }}>
-              <Bus size={18} color="#ffffff" strokeWidth={2.5} />
-            </View>
-            <Text style={{ color: "#ffffff", fontWeight: "700", fontSize: 11, letterSpacing: 1.5, lineHeight: 16 }}>
-              {"PANEL DE\nCHOFER"}
-            </Text>
-          </View>
-          {routeActive && (
-            <View style={{
-              backgroundColor: "rgba(255,255,255,0.18)",
-              borderRadius: 20,
-              paddingHorizontal: 14,
-              paddingVertical: 7,
-              borderWidth: 1,
-              borderColor: "rgba(255,255,255,0.35)",
-            }}>
-              <Text style={{ color: "#ffffff", fontWeight: "700", fontSize: 12, letterSpacing: 1 }}>
-                EN CURSO
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Route name */}
-        <Text
-          style={{ color: "#ffffff", fontWeight: "800", fontSize: 26, marginTop: 14, lineHeight: 30 }}
-          numberOfLines={1}
-        >
-          {recorridoActual?.nombre_ruta || "Panel de Chofer"}
-        </Text>
-
-        {/* "Salió X:XX a.m." */}
-        {routeActive && horaInicioRecorrido && (
-          <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, marginTop: 3 }}>
-            Salió {formatHoraEC(horaInicioRecorrido)}
-          </Text>
-        )}
-
-        {/* Stats pills */}
-        {routeActive && (
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-            <View style={{
-              flexDirection: "row", alignItems: "center",
-              backgroundColor: "rgba(255,255,255,0.95)",
-              borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, gap: 6,
-            }}>
-              <CheckCircle2 size={14} color="#10B981" strokeWidth={2.5} />
-              <Text style={{ color: "#10B981", fontWeight: "700", fontSize: 12 }}>
-                {stats.completed}/{stats.total} RECOGIDOS
-              </Text>
-            </View>
-            {etaFinRuta !== null && (
-              <View style={{
-                flexDirection: "row", alignItems: "center",
-                backgroundColor: "rgba(255,255,255,0.95)",
-                borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, gap: 6,
-              }}>
-                <Clock size={14} color={Colors.tecnibus[600]} strokeWidth={2.5} />
-                <Text style={{ color: Colors.tecnibus[700], fontWeight: "700", fontSize: 12 }}>
-                  ETA FINAL: {etaFinRuta} MIN
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-      </LinearGradient>
-
-      {/* ── MAP HERO ── */}
-      <View style={{ flex: 1 }}>
+      {/* ── CAPA 0: Mapa — fondo absoluto fullscreen ── */}
+      <View style={StyleSheet.absoluteFillObject}>
         <RouteMap
           paradas={paradasVisibles}
           ubicacionBus={ubicacionBus}
@@ -643,35 +575,109 @@ export default function DriverHomeScreen() {
           ubicacionChofer={ubicacionChofer}
           showsUserLocation={false}
         />
-        {/* GPS dot */}
-        {routeActive && tracking && (
-          <View style={{
-            position: "absolute", top: 12, right: 12,
-            flexDirection: "row", alignItems: "center",
-            backgroundColor: "rgba(255,255,255,0.92)",
-            borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5,
-            shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.1, shadowRadius: 4, elevation: 2,
-          }}>
-            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#10B981", marginRight: 5 }} />
-            <Text style={{ fontSize: 11, color: "#6B7280", fontWeight: "600" }}>GPS activo</Text>
+      </View>
+
+      {/* ── CAPA 1: Header (tiene fondo propio via LinearGradient) ── */}
+      <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
+        <DashboardHeader
+          title="PANEL DE CHOFER"
+          subtitle={recorridoActual?.nombre_ruta || "Panel de Chofer"}
+          icon={Bus}
+          rightBadge={
+            routeActive
+              ? { text: "EN CURSO", bgColor: "rgba(255,255,255,0.25)", textColor: "#ffffff" }
+              : null
+          }
+        />
+        {/* "Salió X:XX" — en el espacio paddingBottom del header */}
+        {routeActive && horaInicioRecorrido && (
+          <View style={{ position: "absolute", bottom: 14, left: 24 }}>
+            <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, fontWeight: "500" }}>
+              Salió {formatHoraEC(horaInicioRecorrido)}
+            </Text>
           </View>
         )}
       </View>
 
-      {/* ── BOTTOM CARD ── */}
+      {/* ── CAPA 2: Pills flotando sobre el mapa, debajo del header ── */}
+      {routeActive && (
+        <View
+          style={{
+            position: "absolute",
+            top: headerHeight + 8,
+            left: 16,
+            zIndex: 10,
+          }}
+        >
+          {/* Pill: RECOGIDOS */}
+          <View style={{
+            flexDirection: "row", alignItems: "center",
+            backgroundColor: "rgba(255,255,255,0.97)",
+            borderRadius: 20,
+            paddingHorizontal: 14, paddingVertical: 9,
+            gap: 7,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.15, shadowRadius: 8, elevation: 5,
+          }}>
+            <CheckCircle2 size={16} color="#10B981" strokeWidth={2.5} />
+            <Text style={{ color: "#1F2937", fontWeight: "700", fontSize: 13 }}>
+              {stats.completed}/{stats.total} RECOGIDOS
+            </Text>
+          </View>
+
+          {/* Pill: ETA FINAL */}
+          <View style={{
+            flexDirection: "row", alignItems: "center",
+            backgroundColor: "rgba(255,255,255,0.97)",
+            borderRadius: 20,
+            paddingHorizontal: 14, paddingVertical: 9,
+            gap: 7, marginTop: 8,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.15, shadowRadius: 8, elevation: 5,
+          }}>
+            <Clock size={16} color="#10B981" strokeWidth={2.5} />
+            <Text style={{ color: "#1F2937", fontWeight: "700", fontSize: 13 }}>
+              {etaFinRuta !== null ? `ETA FINAL: ${etaFinRuta} MIN` : "ETA FINAL: —"}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* ── CAPA 3: GPS dot — sobre el mapa ── */}
+      {routeActive && tracking && (
+        <View style={{
+          position: "absolute",
+          top: headerHeight + 12,
+          right: 12,
+          zIndex: 10,
+          flexDirection: "row", alignItems: "center",
+          backgroundColor: "rgba(255,255,255,0.92)",
+          borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5,
+          shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.1, shadowRadius: 4, elevation: 3,
+        }}>
+          <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#10B981", marginRight: 5 }} />
+          <Text style={{ fontSize: 11, color: "#6B7280", fontWeight: "600" }}>GPS activo</Text>
+        </View>
+      )}
+
+      {/* ── CAPA 4: Bottom card — flotante (igual que BottomNavigation) ── */}
       <View style={{
+        position: "absolute",
+        left: 14, right: 14, bottom: BOTTOM_CARD_BOTTOM,
         backgroundColor: "#ffffff",
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        paddingHorizontal: 20,
-        paddingTop: 20,
-        paddingBottom: insets.bottom + 82,
+        borderRadius: 24,
+        paddingHorizontal: 18,
+        paddingTop: 16,
+        paddingBottom: 16,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
         elevation: 16,
+        zIndex: 5,
       }}>
 
         {/* STATE: Ruta completada */}
@@ -718,16 +724,15 @@ export default function DriverHomeScreen() {
           </View>
         )}
 
-        {/* STATE: Recorrido activo — próximo estudiante (en camino o en geocerca) */}
+        {/* STATE: Recorrido activo — próximo estudiante */}
         {!rutaCompletada && !loadingRecorridos && recorridos.length > 0 && hayEstudianteActivo && (
           <View>
             <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
-              {/* Left: label + name + address */}
               <View style={{ flexDirection: "row", alignItems: "flex-start", flex: 1, marginRight: 12 }}>
                 <MapPin size={20} color={Colors.tecnibus[600]} strokeWidth={2} style={{ marginTop: 3, marginRight: 10 }} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 10, color: "#9CA3AF", fontWeight: "700", letterSpacing: 0.8, textTransform: "uppercase" }}>
-                    {estaEnGeocerca ? "Llegando a:" : "En camino a:"}
+                    Llegando a:
                   </Text>
                   <Text style={{ fontSize: 20, fontWeight: "800", color: "#1F2937", lineHeight: 24, marginTop: 1 }} numberOfLines={1}>
                     {estudianteActivoNombre || "—"}
@@ -739,7 +744,6 @@ export default function DriverHomeScreen() {
                   ) : null}
                 </View>
               </View>
-              {/* Right: ETA */}
               <View style={{ alignItems: "flex-end", minWidth: 56 }}>
                 {etaProximaParada !== null ? (
                   <>
@@ -759,21 +763,15 @@ export default function DriverHomeScreen() {
               </View>
             </View>
 
-            {/* Marcar ausencia */}
             <TouchableOpacity
-              onPress={estaEnGeocerca ? handleMarcarAusenteGeocerca : handleMarcarAusente}
+              onPress={handleMarcarAusenteGeocerca}
               disabled={!!processingStudent}
               activeOpacity={0.8}
               style={{
                 marginTop: 14,
-                borderWidth: 1.5,
-                borderColor: "#EF4444",
-                borderRadius: 14,
-                paddingVertical: 13,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
+                borderWidth: 1.5, borderColor: "#EF4444", borderRadius: 14,
+                paddingVertical: 13, flexDirection: "row", alignItems: "center",
+                justifyContent: "center", gap: 8,
                 opacity: processingStudent ? 0.55 : 1,
               }}
             >
@@ -791,7 +789,43 @@ export default function DriverHomeScreen() {
           </View>
         )}
 
-        {/* STATE: En camino al colegio (todos los estudiantes recogidos) */}
+        {/* STATE: En camino a la siguiente parada (fuera de geocerca) */}
+        {!rutaCompletada && !loadingRecorridos && recorridos.length > 0 && hayCaminoASiguiente && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={{
+              width: 42, height: 42, borderRadius: 21,
+              backgroundColor: Colors.tecnibus[50],
+              alignItems: "center", justifyContent: "center",
+            }}>
+              <MapPin size={22} color={Colors.tecnibus[600]} strokeWidth={2} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 10, color: "#9CA3AF", fontWeight: "700", letterSpacing: 0.8, textTransform: "uppercase" }}>
+                En camino a
+              </Text>
+              <Text style={{ fontSize: 16, fontWeight: "800", color: "#1F2937" }} numberOfLines={1}>
+                {nextStudent ? `${nextStudent.nombre} ${nextStudent.apellido}` : "—"}
+              </Text>
+              {nextStudent?.parada && (
+                <Text style={{ fontSize: 12, color: "#9CA3AF", marginTop: 1 }} numberOfLines={1}>
+                  {paradas.find((p) => p.id === nextStudent.parada?.id)?.direccion || nextStudent.parada.nombre}
+                </Text>
+              )}
+            </View>
+            {etaProximaParada !== null && (
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={{ fontSize: 18, fontWeight: "800", color: Colors.tecnibus[600] }}>
+                  ~{etaProximaParada} min
+                </Text>
+                <Text style={{ fontSize: 10, color: "#9CA3AF", fontWeight: "700", letterSpacing: 0.5 }}>
+                  LLEGADA
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* STATE: En camino al colegio */}
         {!rutaCompletada && !loadingRecorridos && recorridos.length > 0 && enCaminoAlColegio && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.tecnibus[100], alignItems: "center", justifyContent: "center" }}>
@@ -811,10 +845,9 @@ export default function DriverHomeScreen() {
           </View>
         )}
 
-        {/* STATE: Pre-recorrido (ruta no iniciada) */}
+        {/* STATE: Pre-recorrido */}
         {!rutaCompletada && !loadingRecorridos && recorridos.length > 0 && !routeActive && (
           <View>
-            {/* Info de la ruta */}
             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
               <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.tecnibus[100], alignItems: "center", justifyContent: "center", marginRight: 12 }}>
                 <Bus size={22} color={Colors.tecnibus[600]} strokeWidth={2} />
@@ -834,34 +867,23 @@ export default function DriverHomeScreen() {
                 <ActivityIndicator size="small" color={Colors.tecnibus[500]} />
               ) : (
                 <View style={{ alignItems: "flex-end" }}>
-                  <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.tecnibus[600] }}>
-                    {estudiantes.length}
-                  </Text>
-                  <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.tecnibus[500] }}>
-                    estudiantes
-                  </Text>
+                  <Text style={{ fontSize: 20, fontWeight: "800", color: Colors.tecnibus[600] }}>{estudiantes.length}</Text>
+                  <Text style={{ fontSize: 11, fontWeight: "600", color: Colors.tecnibus[500] }}>estudiantes</Text>
                 </View>
               )}
             </View>
 
-            {/* Iniciar recorrido */}
             {recorridoActual && (
               <TouchableOpacity
                 onPress={handleIniciarRecorrido}
                 activeOpacity={0.8}
                 style={{
-                  backgroundColor: Colors.tecnibus[600],
-                  borderRadius: 16,
-                  paddingVertical: 16,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 10,
+                  backgroundColor: Colors.tecnibus[600], borderRadius: 16,
+                  paddingVertical: 16, flexDirection: "row", alignItems: "center",
+                  justifyContent: "center", gap: 10,
                   shadowColor: Colors.tecnibus[600],
                   shadowOffset: { width: 0, height: 3 },
-                  shadowOpacity: 0.35,
-                  shadowRadius: 8,
-                  elevation: 4,
+                  shadowOpacity: 0.35, shadowRadius: 8, elevation: 4,
                 }}
               >
                 <Play size={18} color="#ffffff" strokeWidth={2.5} fill="#ffffff" />
@@ -898,8 +920,8 @@ export default function DriverHomeScreen() {
       {/* GPS error */}
       {errorGPS && (
         <View style={{
-          position: "absolute", bottom: 100, left: 16, right: 16,
-          backgroundColor: "#EF4444", padding: 12, borderRadius: 16,
+          position: "absolute", bottom: BOTTOM_CARD_BOTTOM + 60, left: 16, right: 16,
+          backgroundColor: "#EF4444", padding: 12, borderRadius: 16, zIndex: 20,
         }}>
           <Text style={{ color: "#ffffff", fontSize: 13, textAlign: "center", fontWeight: "600" }}>
             {errorGPS}
@@ -926,7 +948,7 @@ export default function DriverHomeScreen() {
         </View>
       )}
 
-      {/* ── Bottom navigation ── */}
+      {/* ── Bottom navigation — ya flotante via BottomNavigation ── */}
       <BottomNavigation
         activeTab="home"
         onHomePress={() => {}}

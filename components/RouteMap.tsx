@@ -194,10 +194,10 @@ export default function RouteMap({
     mapRef.current.animateCamera(
       {
         center: { latitude: ubicacionChofer.latitude, longitude: ubicacionChofer.longitude },
-        zoom: 17,
+        zoom: 16,
         heading: enMovimiento ? bearing : undefined,
         // undefined → mapa mantiene orientación actual sin snappear al norte
-        pitch: 35,
+        pitch: 30,
       },
       { duration: 1500 },
     );
