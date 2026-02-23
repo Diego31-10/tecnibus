@@ -131,6 +131,15 @@ export default function DriverHomeScreen() {
     return { completed, absent, total, remaining };
   }, [estudiantes]);
 
+  const nextStudent = useMemo(() => {
+    const pending = estudiantes
+      .filter((e) => e.estado !== "ausente" && e.estado !== "completado")
+      .sort((a, b) => (a.parada?.orden ?? 99) - (b.parada?.orden ?? 99));
+    return pending[0] || null;
+  }, [estudiantes]);
+
+  const enCaminoAlColegio = routeActive && !nextStudent && !estudianteGeocerca;
+
   const paradasAusentesIds = useMemo(() => {
     if (estudiantes.length === 0) return new Set<string>();
     const activos = new Map<string, number>();
@@ -155,19 +164,6 @@ export default function DriverHomeScreen() {
     if (paradasAusentesIds.size === 0) return paradas;
     return paradas.filter((p) => !paradasAusentesIds.has(p.id));
   }, [paradas, paradasAusentesIds]);
-
-  const nextStudent = useMemo(() => {
-    const pending = estudiantes
-      .filter((e) => e.estado !== "ausente" && e.estado !== "completado")
-      .sort((a, b) => {
-        const idxA = paradasVisibles.findIndex((p) => p.id === a.parada?.id);
-        const idxB = paradasVisibles.findIndex((p) => p.id === b.parada?.id);
-        return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
-      });
-    return pending[0] || null;
-  }, [estudiantes, paradasVisibles]);
-
-  const enCaminoAlColegio = routeActive && !nextStudent && !estudianteGeocerca;
 
   const paradaMasCercana = useMemo(() => {
     if (!ubicacionChofer || paradasVisibles.length === 0 || !routeActive) return null;
