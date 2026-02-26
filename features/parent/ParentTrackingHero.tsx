@@ -1,5 +1,5 @@
 import { Colors } from "@/lib/constants/colors";
-import { BellOff, CheckCircle2, MessageCircle } from "lucide-react-native";
+import { BellOff, CheckCircle2, Lock, MessageCircle } from "lucide-react-native";
 import { Text, TouchableOpacity, View } from "react-native";
 
 interface ParentTrackingHeroProps {
@@ -8,6 +8,7 @@ interface ParentTrackingHeroProps {
   isOnline?: boolean;
   isAttending?: boolean;
   isRecogido?: boolean;
+  routeStarted?: boolean;
   onChatPress: () => void;
   onNotifyAbsencePress: () => void;
 }
@@ -18,6 +19,7 @@ export function ParentTrackingHero({
   isOnline = false,
   isAttending = true,
   isRecogido = false,
+  routeStarted = false,
   onChatPress,
   onNotifyAbsencePress,
 }: ParentTrackingHeroProps) {
@@ -104,20 +106,22 @@ export function ParentTrackingHero({
         {!isRecogido && (
           <TouchableOpacity
             onPress={onNotifyAbsencePress}
-            activeOpacity={0.8}
+            activeOpacity={routeStarted ? 1 : 0.8}
             style={{
               flex: 1,
-              backgroundColor: isAttending ? "#ffffff" : Colors.tecnibus[50],
+              backgroundColor: routeStarted ? "#F3F4F6" : isAttending ? "#ffffff" : Colors.tecnibus[50],
               borderRadius: 12,
               paddingVertical: 14,
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "center",
               borderWidth: 1.5,
-              borderColor: isAttending ? "#E5E7EB" : Colors.tecnibus[300],
+              borderColor: routeStarted ? "#E5E7EB" : isAttending ? "#E5E7EB" : Colors.tecnibus[300],
             }}
           >
-            {isAttending ? (
+            {routeStarted ? (
+              <Lock size={16} color="#9CA3AF" strokeWidth={2.5} />
+            ) : isAttending ? (
               <BellOff size={18} color="#6B7280" strokeWidth={2.5} />
             ) : (
               <CheckCircle2
@@ -130,10 +134,10 @@ export function ParentTrackingHero({
               className="font-semibold ml-2"
               style={{
                 fontSize: 14,
-                color: isAttending ? "#374151" : Colors.tecnibus[700],
+                color: routeStarted ? "#9CA3AF" : isAttending ? "#374151" : Colors.tecnibus[700],
               }}
             >
-              {isAttending ? "Marcar falta" : "Marcar presente"}
+              {routeStarted ? "Ruta iniciada" : isAttending ? "Marcar falta" : "Marcar presente"}
             </Text>
           </TouchableOpacity>
         )}

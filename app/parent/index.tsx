@@ -70,6 +70,7 @@ export default function ParentHomeScreen() {
   >([]);
   const [horaInicioRecorrido, setHoraInicioRecorrido] = useState<string | null>(null);
   const [nombreChofer, setNombreChofer] = useState<string | null>(null);
+  const [idChofer, setIdChofer] = useState<string | null>(null);
 
   // ETAs publicados por el chofer (Google Directions, acumulados y precisos).
   // El chofer los calcula y los guarda en estados_recorrido.eta_paradas.
@@ -337,17 +338,23 @@ export default function ParentHomeScreen() {
     setParadasRuta([paradaDelHijo]);
   }, [estudianteSeleccionado?.parada]);
 
-  // Cargar nombre del chofer de la ruta del estudiante
+  // Cargar nombre e id del chofer de la ruta del estudiante
   useEffect(() => {
     const idRuta = estudianteSeleccionado?.parada?.ruta?.id;
     if (!idRuta) {
       setNombreChofer(null);
+      setIdChofer(null);
       return;
     }
     supabase
       .rpc('get_nombre_chofer_de_ruta', { p_id_ruta: idRuta })
       .then(({ data }) => {
         setNombreChofer(data || null);
+      });
+    supabase
+      .rpc('get_chofer_de_ruta', { p_id_ruta: idRuta })
+      .then(({ data }) => {
+        setIdChofer(data || null);
       });
   }, [estudianteSeleccionado?.parada?.ruta?.id]);
 
@@ -561,6 +568,15 @@ export default function ParentHomeScreen() {
       return;
     }
 
+    if (choferEnCamino) {
+      haptic.error();
+      Alert.alert(
+        "Ruta en curso",
+        "No puedes cambiar la asistencia una vez que la ruta ha iniciado.",
+      );
+      return;
+    }
+
     try {
       setProcessingAttendance(true);
       haptic.medium();
@@ -626,8 +642,15 @@ export default function ParentHomeScreen() {
   };
 
   const handleChatDriver = () => {
+    if (!idAsignacion || !idChofer) {
+      Alert.alert("Chat no disponible", "No hay un recorrido activo.");
+      return;
+    }
     haptic.light();
-    Alert.alert("Chat Chofer", "Funcionalidad en desarrollo");
+    router.push({
+      pathname: "/parent/chat",
+      params: { idAsignacion, idChofer, nombreChofer: nombreChofer ?? "Chofer" },
+    });
   };
 
   // Loading state
@@ -871,6 +894,7 @@ export default function ParentHomeScreen() {
             isOnline={choferEnCamino}
             isAttending={isAttending}
             isRecogido={estudianteRecogido}
+            routeStarted={choferEnCamino}
             onChatPress={handleChatDriver}
             onNotifyAbsencePress={handleToggleAttendance}
           />

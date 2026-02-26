@@ -92,6 +92,14 @@ function AppContent() {
           name="driver/settings"
           options={{ animation: "fade", animationDuration: 200 }}
         />
+        <Stack.Screen
+          name="parent/chat"
+          options={{ animation: "slide_from_right", animationDuration: 250 }}
+        />
+        <Stack.Screen
+          name="driver/chat"
+          options={{ animation: "slide_from_right", animationDuration: 250 }}
+        />
       </Stack>
     </AuthGuard>
   );
