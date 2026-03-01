@@ -117,14 +117,22 @@ The `service_role_key` and all server-side API keys exist only within Edge Funct
 
 ---
 
-## Academic Context
+## 📚 Documentation
 
-TecniBus was developed as the Integrative Technical Project (Proyecto Integrador) for the Technical Baccalaureate in Computer Science at Unidad Educativa Técnico Salesiano (UETS), Ecuador, 2025–2026. The project focuses on production-level architecture, real-world problem solving, and applied software engineering — including secure API design, relational data modeling, and cross-platform mobile development.
+Detailed technical documentation is available in our GitHub Wiki:
+
+- [DOCS (ES)](https://github.com/Diego31-10/TecniBus/wiki/DOCS-(ES)) – Spanish version 🇪🇸
+- [DOCS (EN)](https://github.com/Diego31-10/TecniBus/wiki/DOCS-(EN)) – English version 🇺🇸
 
 ---
 
+## Academic Context
+
+TecniBus was developed as the Integrative Technical Project (Proyecto Integrador) for the Technical Baccalaureate in Computer Science at Unidad Educativa Técnico Salesiano (UETS), Ecuador, 2025–2026. The project focuses on production-level architecture, real-world problem solving, and applied software engineering — including secure API design, relational data modeling, and cross-platform mobile development.
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
 
 Copyright (c) 2026 Diego Torres — TecniBus
