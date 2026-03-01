@@ -1,269 +1,182 @@
-<div align="center">
-
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=45&pause=5000&color=F70A8D&center=true&vCenter=true&width=500&height=60&lines=TECNIBUS" alt="TecniBus" />
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&amp;size=45&amp;pause=5000&amp;color=F70A8D&amp;center=true&amp;vCenter=true&amp;width=500&amp;height=60&amp;lines=TECNIBUS">
   
-  <br />
+<br>
 
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=25&pause=5000&color=FFFFFF&center=true&vCenter=true&width=500&height=40&lines=Proyecto+Integrador+UETS" alt="Proyecto" />
-
-<br/>
-
-<img src="https://img.shields.io/badge/Estado-En%20Desarrollo%20Avanzado-f70a8d?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Expo-SDK%2052-000000?style=for-the-badge&logo=expo&logoColor=white" />
-<img src="https://img.shields.io/badge/Supabase-Backend-3ecf8e?style=for-the-badge&logo=supabase&logoColor=white" />
-<br/>
-<img src="https://img.shields.io/badge/TypeScript-Strict-3178c6?style=for-the-badge&logo=typescript&logoColor=white" />
-<img src="https://img.shields.io/badge/Google%20Maps-Integrado-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white" />
-<img src="https://img.shields.io/badge/Ámbito-UETS%20Institucional-00519b?style=for-the-badge" />
-
-</div>
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&amp;size=25&amp;pause=5000&amp;color=FFFFFF&amp;center=true&amp;vCenter=true&amp;width=500&amp;height=40&amp;lines=Proyecto+Integrador+UETS">
 
 ---
 
-## 🚌 Sobre el proyecto
+## Project Overview
 
-**TecniBus** es una aplicación móvil institucional desarrollada como **Proyecto Integrador de Bachillerato Técnico** en la Unidad Educativa Técnico Salesiano (UETS).
+**TecniBus** is a full-stack mobile application for school transportation management. It provides real-time GPS tracking, route optimization, attendance control, and push notifications in a single platform.
 
-Permite la gestión completa del transporte escolar: el **administrador** organiza rutas y usuarios, el **chofer** conduce con navegación asistida y tracking GPS en tiempo real, y los **padres** siguen a la buseta desde su celular con ETAs precisos y actualizaciones al instante.
+The system addresses the lack of visibility and coordination in school bus operations. Parents have no reliable way to know where the bus is or when it will arrive; administrators manage routes and rosters manually; drivers operate without digital tools. TecniBus solves all three problems in a unified, role-aware application.
 
-> Proyecto sin fines comerciales · Uso exclusivamente educativo · UETS Ecuador
+**Target users:**
 
----
-
-## 📊 Avance del proyecto
-
-```
-Frontend   ████████████████████░░  92%
-Backend    ███████████████████░░░░  85%
-Base Datos ████████████████████░░  90%
-```
+- **Administrators** — manage routes, users, vehicles, and view system-wide data.
+- **Drivers** — navigate optimized routes, track attendance, and trigger parent notifications.
+- **Parents** — monitor the bus in real time and receive arrival estimates for their children's stop.
 
 ---
 
-## 👥 Roles del sistema
+## Key Features
 
-### 🛠️ Administrador
-Panel de control completo para gestionar toda la operación:
-- Gestión de usuarios: padres, choferes y estudiantes (CRUD)
-- Administración de busetas y asignación chofer↔buseta
-- Creación y edición de rutas con mapa interactivo
-- Optimización automática de rutas con Google Directions API
-- Gestión de paradas con geolocalización (lat/lng, orden, nombre)
-- Estadísticas en tiempo real del sistema
-
-### 🚌 Chofer
-Dashboard operativo para conducir con toda la información necesaria:
-- Visualización de ruta optimizada en mapa con polyline
-- Tracking GPS en tiempo real (heading, velocidad, posición)
-- Lista de estudiantes pendientes con estado de asistencia
-- Geocercas automáticas: detecta llegada a cada parada
-- ETAs calculados con Google Directions (parada por parada)
-- Marcar estudiantes ausentes · Notificaciones push a padres al acercarse
-- Iniciar/Finalizar recorrido · Navegación directa a Google Maps
-
-### 👨‍👩‍👧 Padre de familia
-Seguimiento completo del transporte de sus hijos:
-- Mapa en tiempo real con posición exacta de la buseta
-- ETAs precisos y actualizados (Google Directions vía DB)
-- Timeline del recorrido: inicio → paradas → colegio
-- Badge de llegada estimada a la parada del hijo
-- Estado del recorrido: activo / inactivo
-- Marcar ausencia del estudiante · Soporte multi-estudiante
-- Nombre del chofer e indicador de conexión en vivo
+- **Real-time bus tracking** — live GPS position broadcast via Supabase Realtime (WebSocket).
+- **Route management with Google Maps** — interactive route builder with stop sequencing and polyline rendering.
+- **Attendance tracking** — per-stop student check-in with absence marking and trip-level records.
+- **PDF attendance reports** — generated server-side inside Supabase Edge Functions; never exposed as client logic.
+- **Role-based dashboards** — fully separated UI and data access for admin, driver, and parent roles.
+- **Secure backend architecture** — Row Level Security on every table; sensitive operations isolated in Edge Functions.
+- **CSV/JSON bulk import** — import students, stops, and routes in bulk without manual entry.
+- **Firebase push notifications** — FCM integration for real-time alerts when the bus approaches a stop.
 
 ---
 
-## 🧱 Stack tecnológico
+## System Architecture
 
-### 📱 Frontend
-| Tecnología | Versión | Uso |
-|---|---|---|
-| React Native | — | Framework base |
-| Expo | SDK 52 | Build, OTA, herramientas |
-| TypeScript | Strict | Tipado estático completo |
-| Expo Router | v3 | Navegación file-based |
-| NativeWind | v4 | Tailwind CSS para RN |
-| react-native-maps | — | Mapas interactivos |
-| expo-location | — | GPS del dispositivo |
-| react-native-reanimated | — | Animaciones fluidas |
-| lucide-react-native | — | Iconografía |
+TecniBus follows a strict client/backend separation. The mobile client handles UI and user interaction; all privileged operations execute on the server.
 
-### ☁️ Backend
-| Tecnología | Uso |
-|---|---|
-| Supabase | BaaS completo |
-| PostgreSQL | Base de datos relacional |
-| Supabase Auth | Autenticación email/password |
-| Row Level Security | Seguridad a nivel de fila |
-| Edge Functions (Deno) | Operaciones sensibles server-side |
-| Supabase Realtime | Cambios en tiempo real vía WebSocket |
+- **Expo (React Native)** — cross-platform mobile client built with SDK 52, Expo Router for file-based navigation, and NativeWind for styling.
+- **Supabase** — serves as the complete backend: PostgreSQL for relational data, Supabase Auth for email/password authentication, Edge Functions (Deno runtime) for server-side logic, Supabase Storage for report files, and Realtime for WebSocket subscriptions.
+- **Google Maps SDK + Directions API** — the Maps SDK runs on the client for map rendering; the Directions API is called exclusively from Edge Functions, keeping the API key out of the client bundle.
+- **Firebase (FCM)** — used solely for push notification delivery. No Firebase database or hosting is used.
 
-### 🗺️ APIs externas
-| API | Uso |
-|---|---|
-| Google Directions API | Optimización de rutas y cálculo de ETAs |
-| Google Maps SDK | Renderizado de mapas nativos |
+Client code never holds privileged credentials. The `service_role_key` and server-side API keys exist only within Edge Function environment variables.
 
 ---
 
-## 🗄️ Esquema de base de datos
+## Security & Best Practices
 
-```
-profiles          → Datos base de todos los usuarios (nombre, rol)
-padres            → Extensión de profiles para padres
-choferes          → Extensión de profiles para choferes (licencia, buseta)
-estudiantes       → Vinculados a padre y parada
-busetas           → Flota de vehículos (placa, capacidad, modelo)
-rutas             → Rutas con tipo (ida/vuelta) y horarios
-paradas           → Puntos GPS de cada ruta (lat, lng, orden, nombre)
-asignaciones_ruta → Asignación chofer↔ruta con polyline optimizado
-estados_recorrido → Estado en tiempo real: activo, hora_inicio, eta_paradas
-ubicaciones       → Historial GPS del bus (lat, lng, heading, velocidad)
-asistencias       → Registro diario de asistencia por estudiante
-configuracion     → Ajustes globales (ubicación del colegio, etc.)
-```
-
-> Todas las tablas cuentan con **RLS habilitado**. Las operaciones sensibles se realizan mediante Edge Functions con `service_role_key` en servidor.
+- **API key separation** — the Google Maps SDK key (client) and the Directions API key (server) are distinct credentials with different restrictions. The Directions key is never shipped in the app bundle.
+- **Server-side PDF generation** — attendance reports are generated and stored inside Edge Functions. Clients receive a signed URL with a limited validity window.
+- **Role-based authorization** — Row Level Security policies on every table enforce that each role can only read or write its own data. No client-side access control is trusted without a server-side check.
+- **Signed URLs for reports** — PDF files stored in Supabase Storage are served through time-limited signed URLs, preventing unauthorized access.
+- **Environment secrets management** — all secrets are stored as environment variables in Supabase Edge Function config or in `.env` files excluded from version control. No secret is hardcoded.
 
 ---
 
-## 🏗️ Arquitectura
+## Tech Stack
 
-```
-┌─────────────────────────────────────────────────┐
-│                 App Móvil (Expo)                 │
-│  ┌──────────┐  ┌──────────┐  ┌───────────────┐  │
-│  │  Admin   │  │  Chofer  │  │     Padre     │  │
-│  │ Dashboard│  │Dashboard │  │   Dashboard   │  │
-│  └────┬─────┘  └────┬─────┘  └──────┬────────┘  │
-│       └─────────────┼───────────────┘           │
-│              Supabase Client JS                  │
-└─────────────────────┬───────────────────────────┘
-                       │ HTTPS / WebSocket
-┌─────────────────────▼───────────────────────────┐
-│                  Supabase                        │
-│  ┌─────────────┐  ┌────────────┐  ┌──────────┐  │
-│  │  PostgreSQL │  │  Realtime  │  │  Edge    │  │
-│  │  + RLS      │  │  (WS)      │  │Functions │  │
-│  └─────────────┘  └────────────┘  └──────────┘  │
-└─────────────────────────────────────────────────┘
-                       │
-┌─────────────────────▼───────────────────────────┐
-│            Google Directions API                 │
-│   Optimización de rutas · ETAs en tiempo real   │
-└─────────────────────────────────────────────────┘
-```
+**Frontend**
 
-**Flujo de ETAs en tiempo real:**
-1. Chofer se mueve → GPS actualiza posición cada 5s
-2. Driver calcula ETAs con Google Directions (todos los waypoints en 1 llamada)
-3. ETAs se publican en `estados_recorrido.eta_paradas` (JSONB)
-4. Padre lee ETAs vía RPC `SECURITY DEFINER` → sin problemas de RLS
-5. Polling cada 10s + Realtime como refuerzo garantizan actualización
+- React Native (Expo SDK 52)
+- TypeScript (strict mode)
+- Expo Router v3
+- NativeWind v4 (Tailwind CSS for React Native)
+- react-native-maps
+- expo-location
+- react-native-reanimated
+- lucide-react-native
+
+**Backend**
+
+- Supabase (PostgreSQL, Auth, Realtime, Storage)
+- Edge Functions (Deno runtime)
+- Row Level Security
+- `SECURITY DEFINER` RPC functions
+
+**Infrastructure**
+
+- Supabase Cloud
+- Expo EAS (build and OTA updates)
+- Firebase Cloud Messaging (FCM)
+
+**External Services**
+
+- Google Maps SDK (map rendering)
+- Google Directions API (route optimization and ETA calculation)
 
 ---
 
-## 📁 Estructura del proyecto
+## Screenshots (Future)
+
+Screenshots will be added as the project reaches stable UI milestones.
+
+**Admin Dashboard**
+
+![Admin Dashboard](.github/screenshots/admin-dashboard.png)
+![Route Builder](.github/screenshots/admin-route-builder.png)
+![User Management](.github/screenshots/admin-users.png)
+
+**Driver Interface**
+
+![Driver Map](.github/screenshots/driver-map.png)
+![Attendance List](.github/screenshots/driver-attendance.png)
+
+**Parent Interface**
+
+![Parent Tracking](.github/screenshots/parent-tracking.png)
+![Stop ETA](.github/screenshots/parent-eta.png)
+
+**Reports & Analytics**
+
+![Attendance Report PDF](.github/screenshots/report-pdf.png)
+![Analytics Overview](.github/screenshots/analytics.png)
+
+---
+
+## Installation & Setup
+
+### Requirements
+
+- Node.js 18+
+- Expo CLI (`npm install -g expo-cli`)
+- Supabase CLI (`npm install -g supabase`)
+- A Supabase project
+- A Firebase project with FCM enabled
+- Google Cloud project with Maps SDK and Directions API enabled
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and fill in the required values:
 
 ```
-tecnibus/
-├── app/                        # Pantallas (Expo Router)
-│   ├── _layout.tsx             # Root layout + AuthProvider
-│   ├── login.tsx               # Autenticación
-│   ├── admin/                  # Panel administrador
-│   │   ├── index.tsx           # Dashboard con estadísticas
-│   │   ├── choferes/           # CRUD choferes
-│   │   ├── padres/             # CRUD padres
-│   │   ├── estudiantes/        # CRUD estudiantes
-│   │   ├── busetas/            # Gestión de flota
-│   │   └── rutas/              # Rutas con mapa interactivo
-│   ├── driver/
-│   │   └── index.tsx           # Dashboard del chofer
-│   └── parent/
-│       └── index.tsx           # Dashboard del padre
-│
-├── lib/
-│   ├── contexts/
-│   │   └── AuthContext.tsx     # Estado global de autenticación
-│   ├── services/
-│   │   ├── supabase.ts         # Cliente Supabase
-│   │   ├── geocercas.service.ts# ETAs + geofencing
-│   │   ├── directions.service.ts# Google Directions API
-│   │   ├── recorridos.service.ts# Inicio/fin de recorridos
-│   │   └── ...                 # Otros servicios
-│   └── types/
-│       └── database.types.ts   # Tipos generados desde Supabase
-│
-├── components/                 # Componentes compartidos
-├── features/                   # Módulos por rol (admin/driver/parent)
-└── supabase/
-    ├── functions/              # Edge Functions (Deno)
-    └── migrations/             # Historial de migraciones SQL
+EXPO_PUBLIC_SUPABASE_URL=
+EXPO_PUBLIC_SUPABASE_ANON_KEY=
+EXPO_PUBLIC_GOOGLE_MAPS_KEY=
+```
+
+Edge Function secrets (set via `supabase secrets set`):
+
+```
+GOOGLE_DIRECTIONS_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+FIREBASE_SERVER_KEY=
+```
+
+### Supabase Setup
+
+```bash
+supabase login
+supabase link --project-ref <your-project-ref>
+supabase db push
+```
+
+### Running Locally
+
+```bash
+npm install
+npx expo start
+```
+
+### Deploying Edge Functions
+
+```bash
+supabase functions deploy generate-report
+supabase functions deploy send-notification
 ```
 
 ---
 
-## 🔐 Seguridad
+## Academic Context
 
-- **RLS activo** en todas las tablas — cada rol solo accede a sus datos
-- **Edge Functions** para operaciones con `service_role_key` (nunca expuesta al cliente)
-- **RPCs `SECURITY DEFINER`** para consultas que requieren bypass controlado de RLS
-- **Validación** en cliente y servidor con TypeScript strict
-- **Tokens y secrets** exclusivamente en variables de entorno
+TecniBus was developed as the Integrative Technical Project (Proyecto Integrador) required for the Technical Baccalaureate in Computer Science at Unidad Educativa Técnico Salesiano (UETS), Ecuador, 2025–2026. The project emphasizes production-level architecture, real-world problem solving, and the application of software engineering principles — including secure API design, relational data modeling, and mobile development — in an institutional context.
 
 ---
 
-## 🚀 Funcionalidades completadas
+## License
 
-### Admin
-- [x] Autenticación y persistencia de sesión
-- [x] Dashboard con estadísticas en tiempo real
-- [x] CRUD de padres, choferes y estudiantes
-- [x] Gestión de busetas
-- [x] Creación de rutas con mapa interactivo
-- [x] Optimización de rutas (Google Directions)
-- [x] Asignación chofer↔buseta↔ruta
-- [x] Configuración de ubicación del colegio
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-### Chofer
-- [x] Dashboard operativo con mapa
-- [x] Tracking GPS en tiempo real
-- [x] Geocercas por parada
-- [x] ETAs con Google Directions
-- [x] Lista de estudiantes + control de asistencia
-- [x] Inicio/fin de recorrido
-- [x] Push notifications a padres al acercarse
-- [x] Navegación a Google Maps
-
-### Padre
-- [x] Mapa en tiempo real con posición de la buseta
-- [x] ETAs precisos (DB-driven, Google Directions)
-- [x] Timeline del recorrido con paradas
-- [x] Badge de llegada estimada
-- [x] Marcar ausencia del estudiante
-- [x] Multi-estudiante
-- [x] Nombre del chofer e indicador online
-
-## ⏳ Pendiente
-
-- [ ] Chat chofer ↔ padre
-- [ ] Notificaciones push (anuncios del admin)
-- [ ] Historial de recorridos
-- [ ] Reportes y analytics
-
----
-
-## ⚖️ Licencia
-
-Este proyecto está bajo la Licencia MIT - mira el archivo [LICENSE](LICENSE) para detalles.
-
-Copyright (c) 2026 - Diego Torres - TecniBus
-
----
-
-<div align="center">
-
-**TecniBus** · Proyecto Integrador · Bachillerato Técnico en Informática  
-Unidad Educativa Técnico Salesiano (UETS) · Ecuador · 2025–2026
-
-</div>
+Copyright (c) 2026 Diego Torres — TecniBus
