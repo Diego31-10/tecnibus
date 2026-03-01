@@ -390,22 +390,13 @@ async function importBus(
 ) {
   const placa = row.placa?.trim();
   const capacidad = parseInt(row.capacidad?.trim() || '0', 10);
-  const modelo = row.modelo?.trim() || '';
-  const marca = row.marca?.trim() || '';
 
   if (!placa) throw new Error('Placa es obligatoria');
   if (isNaN(capacidad) || capacidad <= 0) throw new Error('Capacidad debe ser un número positivo');
 
-  const insertData: Record<string, string | number> = {
-    placa,
-    capacidad,
-  };
-  if (modelo) insertData.modelo = modelo;
-  if (marca) insertData.marca = marca;
-
   const { error: insertError } = await supabase
     .from('busetas')
-    .insert(insertData);
+    .insert({ placa, capacidad });
 
   if (insertError) {
     throw new Error(`Insert: ${insertError.message}`);

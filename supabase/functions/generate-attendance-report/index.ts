@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
     };
 
     // === HEADER ===
-    drawText('TecniBus', margin, y, { font: fontBold, size: 20, color: rgb(0.13, 0.55, 0.13) });
+    drawText('TecniBus', margin, y, { font: fontBold, size: 20, color: rgb(0.239, 0.655, 0.843) });
     y -= 24;
     drawText('Reporte de Asistencia', margin, y, { font: fontBold, size: 14 });
     y -= 20;
